@@ -1,0 +1,40 @@
+<view class="login-container">
+  <view class="login-box">
+    <view class="logo">
+      <!-- 修改 src 为变量 -->
+      <image src="{{logoUrl}}" mode="aspectFit"></image>
+    </view>
+    
+    <view class="title">序话</view>
+    <view class="subtitle">当你要AI真正懂你...</view>
+
+    <button 
+      class="login-btn {{loading ? 'loading' : ''}}"
+      bindtap="handleLogin"
+      loading="{{loading}}"
+      hover-class="btn-hover"
+    >
+      微信一键登录
+    </button>
+
+    <view class="button-group">
+      <button 
+        class="skip-btn"
+        bindtap="handleSkip"
+        hover-class="skip-btn-hover"
+      >
+        暂不登录，先看看
+      </button>
+      
+      <button 
+        class="back-btn"
+        bindtap="handleBack"
+        hover-class="back-btn-hover"
+      >
+        返回
+      </button>
+    </view>
+
+    <view class="error-msg" wx:if="{{error}}">{{error}}</view>
+  </view>
+</view>

@@ -1,0 +1,413 @@
+/* 分享页面样式 */
+.shared-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 120rpx;
+}
+
+/* 优化后的顶部导航 */
+.header-optimized {
+  background: #fff;
+  padding: 120rpx 32rpx 24rpx; /* 增加顶部内边距避免与状态栏重叠 */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.page-title-optimized {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+}
+
+.loading-icon {
+  width: 80rpx;
+  height: 80rpx;
+  margin-bottom: 20rpx;
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #999;
+  font-size: 28rpx;
+}
+
+/* 错误状态 */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 32rpx;
+}
+
+.error-icon {
+  width: 120rpx;
+  height: 120rpx;
+  margin-bottom: 30rpx;
+  opacity: 0.5;
+}
+
+.error-text {
+  color: #999;
+  font-size: 28rpx;
+  margin-bottom: 40rpx;
+  text-align: center;
+}
+
+.retry-btn, .home-btn {
+  background: #43B692 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 24rpx !important;
+  padding: 16rpx 32rpx !important;
+  font-size: 28rpx !important;
+  margin: 8rpx !important;
+  min-height: auto !important;
+}
+
+.home-btn {
+  background: #fff !important;
+  color: #43B692 !important;
+  border: 2rpx solid #43B692 !important;
+}
+
+/* 内容区域 */
+.content {
+  padding: 32rpx;
+}
+
+/* 分享信息卡片 */
+.share-info-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+}
+
+.share-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20rpx;
+}
+
+.share-header-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.app-icon {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%; /* 改为圆形 */
+  margin-right: 16rpx;
+}
+
+.app-info {
+  flex: 1;
+}
+
+.app-name {
+  display: block;
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 4rpx;
+}
+
+.share-desc {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 分享信息卡片右上角的分享按钮 */
+.share-info-btn {
+  background: rgba(67, 182, 146, 0.1) !important;
+  border: none !important;
+  border-radius: 20rpx !important;
+  padding: 12rpx !important;
+  margin: 0 !important;
+  min-height: auto !important;
+  line-height: 1 !important;
+  transition: all 0.2s ease;
+  width: 54rpx !important;  /* 放大50%：36 * 1.5 = 54 */
+  height: 54rpx !important; /* 放大50%：36 * 1.5 = 54 */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0;
+}
+
+.share-info-btn:active {
+  background: rgba(67, 182, 146, 0.2) !important;
+  transform: scale(0.95);
+}
+
+.share-info-btn image {
+  width: 28rpx;
+  height: 28rpx;
+  opacity: 0.8;
+}
+
+.share-info-btn::after {
+  border: none !important;
+}
+
+.model-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 16rpx;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+/* 不同模型类型的颜色区分 - 与历史页面保持一致 */
+.model-tag.text-type {
+  background: rgba(67, 182, 146, 0.15);
+  color: #43B692;
+}
+
+.model-tag.image-type {
+  background: rgba(63, 136, 197, 0.15);
+  color: #3F88C5;
+}
+
+.model-tag.video-type {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9B59B6;
+}
+
+/* 早期记录的data-type方式（兼容性支持） */
+.model-tag[data-type="text"] {
+  background: rgba(67, 182, 146, 0.15);
+  color: #43B692;
+}
+
+.model-tag[data-type="image"] {
+  background: rgba(63, 136, 197, 0.15);
+  color: #3F88C5;
+}
+
+.model-tag[data-type="video"] {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9B59B6;
+}
+
+/* 底部行布局 */
+.bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16rpx;
+  gap: 20rpx; /* 增加间隙确保按钮靠右 */
+}
+
+.bottom-row .create-time {
+  flex: 0 0 auto; /* 时间固定宽度 */
+}
+
+.bottom-row .experience-btn {
+  margin-left: auto; /* 强制按钮靠右 */
+}
+
+.create-time {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 体验按钮样式 */
+.experience-btn {
+  background: linear-gradient(135deg, #43B692 0%, #3A9D7C 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 20rpx !important;
+  padding: 12rpx 16rpx !important; /* 减少左右内边距，减少宽度 */
+  font-size: 22rpx !important; /* 稍微减小字体 */
+  font-weight: 500 !important;
+  min-height: auto !important;
+  line-height: 1.2 !important;
+  box-shadow: 0 2rpx 8rpx rgba(67, 182, 146, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap; /* 防止文字换行 */
+  flex-shrink: 0; /* 防止按钮被压缩 */
+}
+
+.experience-btn:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 1rpx 4rpx rgba(67, 182, 146, 0.2);
+}
+
+.experience-btn::after {
+  border: none !important;
+}
+
+/* 详情内容 */
+.detail-content {
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+  margin-bottom: 32rpx;
+}
+
+.prompt-section {
+  padding: 32rpx;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.prompt-section:last-child {
+  border-bottom: none;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  color: #43B692;
+  font-weight: 500;
+}
+
+.copy-btn {
+  padding: 8rpx;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.copy-btn:active {
+  opacity: 1;
+}
+
+.copy-btn image {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.prompt-content {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  user-select: text;
+}
+
+/* 富文本样式（复用历史页面样式） */
+.formatted-content {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+}
+
+.section .section-title {
+  font-weight: 600;
+  margin: 20rpx 0 12rpx 0;
+  display: block;
+}
+
+.section .section-title.level-1 {
+  font-size: 34rpx;
+  color: #333;
+}
+
+.section .section-title.level-2 {
+  font-size: 32rpx;
+  color: #555;
+}
+
+.section .section-title.level-3 {
+  font-size: 30rpx;
+  color: #666;
+}
+
+.content-line {
+  margin-bottom: 12rpx;
+}
+
+.content-text {
+  display: block;
+  line-height: 1.7;
+  color: #333;
+}
+
+.markdown-bold {
+  font-weight: 600;
+  color: #222;
+}
+
+.markdown-italic {
+  font-style: italic;
+  color: #555;
+}
+
+.special-mark {
+  color: #43B692;
+  font-weight: 500;
+}
+
+.markdown-divider {
+  width: 100%;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, #ddd 20%, #ddd 80%, transparent);
+  margin: 24rpx 0;
+}
+
+.markdown-quote {
+  display: flex;
+  margin: 16rpx 0;
+  padding-left: 20rpx;
+  position: relative;
+}
+
+.quote-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6rpx;
+  background: #43B692;
+  border-radius: 3rpx;
+}
+
+.quote-text {
+  color: #666;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+
+/* 新增样式：图标按钮容器 */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 10px;
+}
+
+/* 确保每个按钮在容器中正确对齐 */
+.action-buttons .copy-btn {
+  margin-left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

@@ -1,0 +1,27 @@
+<!-- custom-tab-bar/index.wxml -->
+<view class="tab-bar">
+  <view 
+    class="tab-bar-item {{selected === index ? 'tab-bar-item-active' : ''}}"
+    wx:for="{{list}}" 
+    wx:key="index"
+    data-path="{{item.pagePath}}" 
+    data-index="{{index}}"
+    bindtap="switchTab"
+  >
+    <!-- 图标容器 -->
+    <view class="tab-bar-icon-wrapper">
+      <image 
+        class="tab-bar-icon {{selected === index ? 'tab-bar-icon-active' : ''}}"
+        src="{{selected === index ? item.selectedIconPath : item.iconPath}}"
+        mode="aspectFit"
+      ></image>
+    </view>
+    
+    <!-- 文字标签 -->
+    <view 
+      class="tab-bar-text {{selected === index ? 'tab-bar-text-active' : ''}}"
+    >
+      {{item.text}}
+    </view>
+  </view>
+</view>

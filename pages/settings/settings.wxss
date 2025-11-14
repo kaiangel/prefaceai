@@ -1,0 +1,100 @@
+.settings-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 48rpx;
+}
+
+/* 顶部导航 */
+.search-bar {
+  padding: 180rpx 32rpx 20rpx;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  gap: 20rpx;
+}
+
+.back-btn {
+  padding: 8rpx;
+}
+
+.back-arrow {
+  font-size: 40rpx;
+  color: #333;
+  font-weight: 600;
+  transform: scale(0.8, 1.2);
+}
+
+.page-title {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+/* 设置列表 */
+.settings-list {
+  margin: 32rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.settings-item:last-child {
+  border-bottom: none;
+}
+
+.item-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.item-icon {
+  width: 40rpx;
+  height: 40rpx;
+  opacity: 0.7;
+}
+
+.item-label {
+  font-size: 30rpx;
+  color: #333;
+}
+
+.item-right {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.cache-size {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.arrow {
+  font-size: 32rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+/* 开关样式优化 */
+.setting-switch {
+  transform: scale(0.9);
+}
+
+.settings-item-signout .item-label {
+  color: #e74c3c;  /* 使用红色标识退出登录 */
+}
+
+.settings-item-signout .item-icon {
+  opacity: 0.7;
+  filter: invert(40%) sepia(79%) saturate(2088%) hue-rotate(338deg) brightness(96%) contrast(91%);  /* 图标也使用红色 */
+}

@@ -1,0 +1,14 @@
+<!-- components/policy-modal/policy-modal.wxml -->
+<view class="policy-modal {{show ? 'show' : ''}}">
+  <view class="modal-mask" bindtap="onClose"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text class="modal-title">{{type === 'privacy' ? '隐私政策' : '用户协议'}}</text>
+      <view class="close-btn" bindtap="onClose">×</view>
+    </view>
+    <scroll-view scroll-y class="modal-body">
+      <!-- 使用currentContent替代直接调用getContent() -->
+      <text class="policy-text" space="nbsp" decode>{{currentContent}}</text>
+    </scroll-view>
+  </view>
+</view>

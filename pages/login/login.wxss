@@ -1,0 +1,136 @@
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%);
+  padding: 32rpx;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 600rpx;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 24rpx;
+  padding: 48rpx 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+  text-align: center;
+  backdrop-filter: blur(8px);
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.login-box:hover {
+  transform: translateY(-8rpx);
+  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.15);
+}
+
+.logo {
+  width: 160rpx;
+  height: 160rpx;
+  margin: 0 auto 40rpx;
+}
+
+.logo image {
+  width: 100%;
+  height: 100%;
+  border-radius: 80%;
+  filter: drop-shadow(0 4rpx 8rpx rgba(0, 0, 0, 0.1));
+}
+
+.title {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 16rpx;
+  letter-spacing: 2rpx;
+}
+
+.subtitle {
+  font-size: 28rpx;
+  color: #34495e;
+  margin-bottom: 48rpx;
+  font-weight: 300;
+}
+
+.login-btn {
+  background: linear-gradient(90deg, #43B692 0%, #3F88C5 100%);
+  color: #fff !important;
+  border: none;
+  height: 88rpx;
+  font-size: 32rpx;
+  border-radius: 44rpx;
+  margin: 0 auto;
+  width: 80%;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(67, 182, 146, 0.3);
+}
+
+.login-btn.loading {
+  opacity: 0.7;
+}
+
+.btn-hover {
+  transform: scale(0.95);
+  box-shadow: 0 4rpx 12rpx rgba(67, 182, 146, 0.2);
+}
+
+.error-msg {
+  color: #e74c3c;
+  font-size: 24rpx;
+  margin-top: 24rpx;
+  opacity: 0.9;
+}
+
+.button-group {
+  margin-top: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.skip-btn {
+  background: transparent;
+  color: #43B692;
+  border: 2rpx solid #43B692;
+  height: 76rpx;
+  font-size: 30rpx;
+  border-radius: 38rpx;
+  margin: 0 auto;
+  width: 80%;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.skip-btn-hover {
+  background: rgba(67, 182, 146, 0.1);
+  transform: scale(0.98);
+}
+
+.back-btn {
+  background: transparent;
+  color: #666;
+  border: 2rpx solid #ccc;
+  height: 76rpx;
+  font-size: 30rpx;
+  border-radius: 38rpx;
+  margin: 0 auto;
+  width: 80%;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.back-btn-hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #999;
+  transform: scale(0.98);
+}

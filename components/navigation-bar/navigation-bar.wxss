@@ -1,0 +1,150 @@
+/* components/navigation-bar/navigation-bar.wxss */
+.nav-bar {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 100;
+}
+
+.nav-bar.fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.nav-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 88rpx;
+  padding: 0 24rpx;
+  margin-top: 4px;
+}
+
+.left, .center {
+  min-width: 80rpx;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.center {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.right {
+  min-width: 80rpx;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 16rpx;
+}
+
+.user-btn {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 100px;
+}
+
+.user-icon {
+  width: 50rpx;
+  height: 50rpx;
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
+.dropdown-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 999;
+}
+
+.dropdown-mask.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.dropdown-menu {
+  position: fixed;
+  top: 100px;
+  right: 16rpx;
+  background: white;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+  transform: translateY(-20rpx);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.dropdown-menu.show {
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 32rpx;
+  transition: background-color 0.2s;
+}
+
+.menu-item:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.menu-icon {
+  width: 36rpx;
+  height: 40rpx;
+  margin-right: 20rpx;
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
+.menu-text {
+  font-size: 28rpx;
+  color: #2c3e50;
+}
+
+.menu-item.logout {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.menu-item.logout .menu-text {
+  color: #e74c3c;
+}
+
+.menu-item.login {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.menu-item.login .menu-text {
+  color: var(--color-primary);
+}
+
+.menu-item.login .menu-icon {
+  width: 36rpx;
+  height: 40rpx;
+  margin-right: 20rpx;
+  filter: invert(67%) sepia(13%) saturate(1200%) hue-rotate(118deg) brightness(89%) contrast(84%);
+}

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed:*)",
+      "Bash(grep:*)",
+      "Bash(cp:*)",
+      "Bash(python3:*)",
+      "Bash(cat:*)",
+      "Bash(xxd:*)",
+      "Bash(node:*)",
+      "Bash(echo:*)",
+      "WebSearch",
+      "WebFetch(domain:developers.weixin.qq.com)",
+      "Read(//Users/kaisbabybook/WeChatProjects/xuhuanb/pages/index/**)",
+      "Read(//Users/kaisbabybook/WeChatProjects/xuhuanb/**)",
+      "Bash(for:*)",
+      "Bash(do echo \"压缩 $file...\")",
+      "Bash(sips:*)",
+      "Bash(/dev/null)",
+      "Bash(done)",
+      "Bash(awk:*)",
+      "Bash(find:*)"
+    ],
+    "deny": []
+  }
+}

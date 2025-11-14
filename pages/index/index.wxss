@@ -1,0 +1,1065 @@
+/* pages/index/index.wxss */
+page {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%) fixed;
+  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* index.wxss - tabbar首页样式调整 */
+.container {
+  position: relative;
+  min-height: 100vh;
+  height: auto;
+  padding: 0 3rpx;
+  /* 关键调整：减少顶部padding，因为不再需要为自定义导航栏预留空间 */
+  padding-top: 200rpx; /* 从原来的300rpx调整到120rpx */
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* 重要：为底部TabBar预留空间 */
+  padding-bottom: 120rpx; /* 增加底部空间，避免内容被TabBar遮挡 */
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%) fixed;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  height: auto;
+  padding-bottom: 30rpx;
+}
+
+.content::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.title-area {
+  margin-bottom: 20rpx;
+  text-align: center;
+  width: 100%;
+}
+
+.main-title {
+  font-size: 72rpx;
+  color: #43B692;
+  font-weight: 600;
+  letter-spacing: 8rpx;
+  margin-bottom: 24rpx;
+  position: relative;
+  display: inline-block;
+}
+
+.main-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8rpx;
+  left: 0;
+  width: 100%;
+  height: 4rpx;
+  background: linear-gradient(90deg, #43B692 0%, #3F88C5 100%);
+  border-radius: 2rpx;
+}
+
+.sub-title {
+  margin-top: 20rpx;
+  font-size: 36rpx;
+  color: #34495e;
+  font-weight: 300;
+}
+
+/* 模型选择器样式 - 修改宽度为75% */
+.model-selector {
+  width: 75%;
+  margin: 10rpx auto 40rpx;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 16rpx;
+  padding: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
+  overflow: hidden; /* 防止内容溢出 */
+}
+
+.model-tabs {
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  white-space: nowrap;
+  position: relative;
+  z-index: 5; /* 提高层级，确保在顶部 */
+  background: rgba(255, 255, 255, 0.9); /* 添加背景色 */
+  margin-bottom: 8rpx; /* 增加底部间距 */
+  height: 50rpx; /* 设置整体高度 */
+  align-items: center; /* 垂直居中内容 */
+}
+
+.model-tab {
+  display: inline-block;
+  padding: 37rpx 36rpx 14rpx;
+  font-size: 28rpx;
+  color: #666;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.model-tab.active {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* 修改标签底部指示器 */
+.model-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1rpx; /* 覆盖底部边框 */
+  left: 20%;
+  width: 60%;
+  height: 4rpx;
+  background: var(--color-primary);
+  border-radius: 2rpx;
+  z-index: 10; /* 确保指示器在最顶层 */
+}
+
+/* 增加卡片区域的上边距，与标签底部分离 */
+.model-cards-scroll {
+  padding: 24rpx 0 10rpx; /* 增加顶部内边距 */
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+  margin-top: 10rpx; /* 添加顶部外边距 */
+}
+
+/* 完全重写卡片活跃状态样式 */
+.model-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 140rpx; /* 稍微缩小宽度 */
+  height: 160rpx; /* 稍微缩小高度 */
+  background: #fff;
+  border-radius: 16rpx;
+  margin-right: 12rpx; /* 减小卡片间距 */
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+  transition: all 0.3s;
+  position: relative;
+  overflow: visible; /* 允许伪元素溢出 */
+}
+
+/* 使用底部指示条而非边框 */
+.model-card.active {
+  background: rgba(67, 182, 146, 0.1); /* 更明显的背景色 */
+  transform: translateY(-2rpx); /* 轻微上移效果 */
+  box-shadow: 0 6rpx 12rpx rgba(67, 182, 146, 0.2);
+}
+
+/* 添加底部指示条 */
+.model-card.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4rpx; /* 位于卡片底部以下 */
+  left: 20%;
+  width: 60%;
+  height: 4rpx;
+  background: var(--color-primary);
+  border-radius: 4rpx;
+}
+
+.card-icon {
+  width: 70rpx;
+  height: 70rpx;
+  border-radius: 50%;
+  overflow: hidden; /* 确保内容不会溢出圆形边界 */
+  margin-bottom: 12rpx;
+  padding: 0; /* 移除任何可能的内边距 */
+  background: transparent; /* 使背景透明，完全显示图片 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-icon {
+  background: rgba(67, 182, 146, 0.1);
+}
+
+.image-icon {
+  background: rgba(63, 136, 197, 0.1);
+}
+
+.video-icon {
+  background: rgba(155, 89, 182, 0.1);
+}
+
+.icon-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 关键：使用cover而不是aspectFit，确保图片填满容器 */
+  display: block; /* 消除可能的间隙 */
+}
+
+.card-name {
+  font-size: 24rpx;
+  color: #333;
+  text-align: center;
+}
+
+/* 风格选择器样式 */
+.style-selector {
+  margin: 16rpx 0 -26rpx;
+}
+
+.style-options-scroll {
+  white-space: nowrap;
+  display: flex;
+  justify-content: center; /* 新增：居中对齐 */
+  padding: 0 20rpx; /* 新增：左右内边距确保不贴边 */
+}
+
+.style-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100rpx;
+  height: 56rpx;
+  background: rgba(255, 255, 255, 0.6);
+  border: 2rpx solid rgba(0, 0, 0, 0.1);
+  border-radius: 28rpx;
+  margin-right: 16rpx;
+  padding: 0 20rpx;
+  font-size: 24rpx;
+  color: #666;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.style-option:active {
+  transform: scale(0.95);
+}
+
+.style-option.active {
+  color: #fff;
+  border-color: transparent;
+  font-weight: 500;
+  transform: translateY(0rpx); /* 减少上移距离，从-2rpx改为-1rpx */
+  box-shadow: 0 6rpx 16rpx rgba(0,0,0,0.15);
+}
+
+/* 不同风格的渐变背景 */
+.style-option.interesting.active {
+  background: linear-gradient(135deg, #9c27b0, #ce93d8); /* 从深粉色到浅粉色的渐变 */
+}
+
+.style-option.practical.active {
+  background: linear-gradient(135deg, #27ae60, #58d68d);
+}
+
+.style-option.insightful.active {
+  background: linear-gradient(135deg, #f39c12, #f7c92d);
+}
+
+.style-emoji {
+  margin-right: 8rpx;
+  font-size: 26rpx;
+}
+
+.style-name {
+  font-size: 24rpx;
+  white-space: nowrap;
+}
+
+.current-selection {
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  padding-top: 10rpx;
+  margin-top: 5rpx; /* 增加顶部间距 */
+  border-top: 1px solid rgba(0,0,0,0.03); /* 添加顶部分隔线 */
+}
+
+.input-area {
+  margin-top: 20rpx;
+  margin-bottom: 20rpx;
+  width: 80%;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+  padding: 15rpx;
+  /* 固定定位相关属性，增强稳定性 */
+  position: relative;
+  will-change: auto; /* 移除不必要的GPU加速 */
+}
+
+.input-box {
+  width: 96%;
+  min-height: 314rpx; /* 进一步减小高度 */
+  max-height: 334rpx;
+  padding: 20rpx;
+  font-size: 32rpx;
+  color: #2c3e50;
+  line-height: 1.6;
+  background: transparent;
+  transition: none; /* 移除过渡动画，避免布局冲突 */
+
+  /* 增强焦点保持能力 */
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
+.input-box::placeholder {
+  color: rgba(52, 73, 94, 0.5);
+  font-size: 28rpx;
+}
+
+.button-area {
+  margin-top: 20rpx; /* 进一步减少与输入框的距离 */
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.inspire-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 48rpx;
+  background: linear-gradient(90deg, #43B692 0%, #3F88C5 100%);
+  border-radius: 999rpx;
+  color: white !important;
+  font-size: 32rpx;
+  border: none;
+  box-shadow: 0 8rpx 24rpx rgba(67, 182, 146, 0.3);
+  transition: all 0.3s;
+}
+
+.inspire-btn image {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 20rpx;
+  filter: brightness(0) invert(1);
+  opacity: 0.95;
+}
+
+.inspire-btn-hover {
+  transform: scale(0.95);
+  box-shadow: 0 4rpx 12rpx rgba(67, 182, 146, 0.2);
+}
+
+/* AI生成标识样式 */
+.ai-generation-notice {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.ai-notice-text {
+  font-size: 24rpx;
+  color: #999;
+  background: transparent;
+}
+
+.input-area:hover {
+  transform: translateY(-8rpx);
+  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.15);
+}
+
+.result-area {
+  width: 100%;
+  margin-top: 40rpx;
+  margin-bottom: 40rpx;
+  margin-left: 25rpx;
+  opacity: 0;
+  transform: translateY(20rpx);
+  transition: all 0.3s ease-out;
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  display: none;
+}
+
+.result-area.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.result-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+  margin: 24rpx;
+  overflow: hidden;
+  width: 90%;
+  position: relative;
+  z-index: 2;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 32rpx;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  position: relative;
+}
+
+.result-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #2c3e50;
+  flex: 1; /* 占据剩余空间，防止被压缩 */
+  min-width: 0; /* 允许flex子项收缩 */
+  white-space: nowrap; /* 防止文字换行显示成竖向 */
+}
+
+/* 右侧工具按钮组 - 全新添加 */
+.tool-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8rpx; /* 工具按钮之间的间距小一些，表示它们是一组 */
+  flex-shrink: 0;
+}
+
+/* 统一的工具按钮样式 - 全新添加 */
+.tool-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx; /* 与收藏按钮保持一致的padding */
+  background: none;
+  border: none;
+  transition: all 0.2s ease;
+  border-radius: 8rpx; /* 添加圆角，提供视觉反馈区域 */
+}
+
+/* 确保button元素的分享按钮样式重置 */
+button.tool-button {
+  /* 重置所有button默认样式 */
+  outline: none;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: center;
+  text-decoration: none;
+  overflow: visible;
+  color: inherit;
+  background-color: transparent;
+  border: 0;
+  margin: 0;
+  padding: 16rpx;
+  position: relative;
+  
+  /* 确保flex布局正常工作 */
+  box-sizing: border-box;
+  flex-shrink: 0; /* 防止按钮被压缩 */
+  min-width: auto;
+  width: auto;
+  height: auto;
+  
+  /* 确保按钮内容正常显示 */
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+
+/* 重置按钮在小程序中的特殊样式 */
+button.tool-button::after {
+  border: none;
+  background-color: transparent;
+}
+
+.tool-button:active {
+  opacity: 0.7;
+  transform: scale(0.95);
+  background: rgba(0, 0, 0, 0.05); /* 点击时的背景反馈 */
+}
+
+/* 统一的工具图标样式 - 全新添加 */
+.tool-icon {
+  width: 36rpx; /* 与收藏按钮图标保持一致 */
+  height: 36rpx;
+  opacity: 0.6; /* 与收藏按钮图标保持一致的透明度 */
+}
+
+/* 快速复制工具按钮的特殊样式 - 全新添加 */
+.quick-copy-tool:active {
+  background: rgba(67, 182, 146, 0.1); /* 点击时显示品牌色背景 */
+}
+
+.quick-copy-tool .tool-icon {
+  opacity: 0.7; /* 稍微提高透明度，暗示这是一个特殊功能 */
+}
+
+/* 分享工具按钮样式 - 全新添加 */
+.share-tool:active {
+  background: rgba(52, 152, 219, 0.1); /* 点击时显示蓝色背景，表示分享操作 */
+}
+
+.share-tool .tool-icon {
+  opacity: 0.6; /* 与其他工具按钮保持一致的透明度 */
+}
+
+/* 全局复制工具按钮保持原有行为 - 全新添加 */
+.copy-tool .tool-icon {
+  opacity: 0.6;
+}
+
+.result-content {
+  padding: 24rpx;  /* 这里给整个结果区域加了24rpx的内边距 */
+  background: #fff;
+  border-radius: 16rpx;
+  white-space: normal;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 30rpx;
+  color: #43B692;
+  font-weight: 500;
+  margin-bottom: 24rpx;
+  margin-top: 8rpx;
+}
+
+.section-content {
+  padding: 12rpx 0;
+  line-height: 1.8;
+}
+
+.content-text {
+  font-size: 28rpx;
+  line-height: 2;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.content-text text {
+  display: block;
+  margin: 16rpx 0;
+}
+
+.tag-content {
+  color: #2c3e50;
+  padding-left: 16rpx;
+  margin: 8rpx 0;
+  display: block;
+}
+
+.separator {
+  height: 1rpx;
+  background: rgba(0, 0, 0, 0.05);
+  margin: 24rpx 0;
+}
+
+.inspire-btn[disabled] {
+  background: linear-gradient(90deg, #43B692 0%, #3F88C5 100%);
+  color: white !important;
+  opacity: 0.7;
+}
+
+.inspire-btn.weui-btn_loading {
+  color: white !important;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-shrink: 0; /* 防止收藏按钮被压缩 */
+}
+
+.favorite-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx;
+  background: none;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.favorite-button:active {
+  opacity: 0.7;
+  transform: scale(0.95);
+}
+
+.favorite-icon {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 210rpx;  /* <-- 删除这行 */
+  opacity: 0.6;
+}
+
+.favorite-icon.active {
+  opacity: 1;
+  filter: invert(70%) sepia(80%) saturate(1000%) hue-rotate(360deg) brightness(105%) contrast(105%);
+}
+
+.typing-controls {
+  width: 80%;
+  margin: 20rpx auto;
+  padding: 16rpx 24rpx;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+}
+
+.control-label {
+  display: block;
+  margin-bottom: 8rpx;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background-color: #333;
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+@media screen and (min-width: 768px) {
+  .input-area {
+    max-width: 650px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .result-card {
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.scroll-to-bottom-arrow {
+  position: fixed;
+  bottom: 146rpx;
+  left: 50%;
+  transform: translateX(-50%) translateY(20rpx);
+  width: 90rpx;
+  height: 90rpx;
+  background: rgba(67, 182, 146, 0.95);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.scroll-to-bottom-arrow.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.scroll-to-bottom-arrow:active {
+  transform: translateX(-50%) scale(0.95);
+  opacity: 0.8;
+}
+
+.scroll-to-bottom-arrow image {
+  width: 45rpx;
+  height: 45rpx;
+  filter: brightness(0) invert(1);
+}
+
+/* 修正section容器的内边距问题 */
+.section {
+  margin-bottom: 32rpx;
+  padding: 0 8rpx; /* 移除左右内边距，确保内容完全靠左 */
+}
+
+/* 标题层级样式 - 使用更高优先级的选择器 */
+.result-content .section .section-title.level-1 {
+  font-size: 36rpx !important;
+  color: #43B692 !important;
+  font-weight: 600 !important;
+  margin: 32rpx 0 24rpx 0 !important;
+  padding: 0 !important;
+  border-bottom: 2rpx solid #43B692;
+  text-align: left !important;
+}
+
+.result-content .section .section-title.level-2 {
+  font-size: 32rpx !important;
+  color: #3F88C5 !important;
+  font-weight: 500 !important;
+  margin: 28rpx 0 20rpx 0 !important;
+  padding: 0 !important;
+  border-bottom: 1rpx solid #3F88C5;
+  text-align: left !important;
+}
+
+.result-content .section .section-title.level-3 {
+  font-size: 30rpx !important;
+  color: #2c3e50 !important;
+  font-weight: 500 !important;
+  margin: 24rpx 0 16rpx 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+  margin-left: 0 !important; /* 明确设置左边距为0 */
+  padding-left: 0 !important; /* 明确设置左内边距为0 */
+}
+
+.result-content .section .section-title.level-4 {
+  font-size: 28rpx !important;
+  color: #34495e !important;
+  font-weight: 500 !important;
+  margin: 20rpx 0 12rpx 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+.result-content .section .section-title.level-5,
+.result-content .section .section-title.level-6 {
+  font-size: 26rpx !important;
+  color: #5d6d7e !important;
+  font-weight: 400 !important;
+  margin: 16rpx 0 8rpx 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+/* 行内格式样式 */
+.markdown-bold {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.markdown-italic {
+  font-style: italic;
+  color: #34495e;
+}
+
+/* 引用块样式 */
+.markdown-quote {
+  display: flex;
+  align-items: flex-start;
+  margin: 16rpx 0;
+  padding: 16rpx 0 16rpx 32rpx;
+  background: rgba(67, 182, 146, 0.05);
+  border-radius: 8rpx;
+  position: relative;
+}
+
+.quote-line {
+  position: absolute;
+  left: 16rpx;
+  top: 0;
+  bottom: 0;
+  width: 4rpx;
+  background: #43B692;
+  border-radius: 2rpx;
+}
+
+.quote-text {
+  font-size: 28rpx;
+  color: #5d6d7e;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* 分割线样式 */
+.markdown-divider {
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, #bdc3c7, transparent);
+  margin: 32rpx 0;
+  border-radius: 1rpx;
+}
+
+/* 优化内容行样式 */
+.content-line {
+  margin: 12rpx 0;
+  line-height: 1.8;
+  margin-left: 0 !important; /* 确保内容行也没有左边距 */
+}
+
+.content-text {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.8;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* 特殊标记样式 - 通过class控制 */
+.special-mark {
+  color: #43B692;
+  font-weight: 500;
+}
+
+/* 响应式适配 */
+@media screen and (min-width: 768px) {
+  .result-content .section .section-title.level-1 { font-size: 40rpx !important; }
+  .result-content .section .section-title.level-2 { font-size: 36rpx !important; }
+  .result-content .section .section-title.level-3 { font-size: 32rpx !important; }
+  .content-text { font-size: 30rpx; }
+  .quote-text { font-size: 30rpx; }
+
+  .stop-btn-circle {
+    width: 96rpx !important;
+    height: 96rpx !important;
+  }
+  
+  .stop-btn-circle image {
+    width: 36rpx;
+    height: 36rpx;
+  }
+}
+
+/* 键盘激活时的页面调整 */
+.container.keyboard-active {
+  /* 只保留必要的样式调整 */
+  padding-bottom: 20rpx;
+  overflow-anchor: none;               /* 防止滚动锚定影响布局 */
+}
+
+.container.keyboard-active .title-area {
+  /* 键盘激活时稍微压缩标题区域 */
+  margin-bottom: 10rpx;
+}
+
+.container.keyboard-active .model-selector {
+  /* 压缩模型选择器的间距 */
+  margin: 5rpx auto 20rpx;
+}
+
+/* 输入区域在键盘激活时的优化 */
+.input-area.keyboard-focus {
+  /* 增强输入区域的视觉突出效果 */
+  box-shadow: 0 12rpx 32rpx rgba(67, 182, 146, 0.15);
+}
+
+/* 新增：键盘激活状态下的强制固定高度 */
+.container.keyboard-active .input-box {
+  height: 334rpx !important; /* 从418rpx改为334rpx */
+  min-height: 334rpx !important;
+  max-height: 334rpx !important;
+  overflow-y: auto;                    /* 内容超出时可滚动 */
+  resize: none;                        /* 禁止用户调整大小 */
+  box-sizing: border-box;              /* 确保padding计算正确 */
+}
+
+/* 增强输入区域容器在键盘状态下的稳定性 */
+.container.keyboard-active .input-area {
+  position: relative;                  /* 确保定位稳定 */
+  transform: none !important;          /* 禁止任何变换 */
+  will-change: auto;                   /* 移除GPU加速避免布局问题 */
+  contain: layout;                     /* 隔离布局变化 */
+}
+
+.input-box:focus {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* 响应式布局：在键盘弹出时隐藏一些非关键元素 */
+@media screen and (max-height: 600px) {
+  .container.keyboard-active .sub-title {
+    display: none;
+  }
+  
+  .container.keyboard-active .current-selection {
+    font-size: 22rpx;
+    padding-top: 5rpx;
+  }
+}
+
+/* 生成控制区域的整体布局 */
+.generating-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  width: 100%;
+}
+
+/* 生成状态指示器 */
+.generating-status {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 36rpx;
+  background: linear-gradient(90deg, #43B692 0%, #3F88C5 100%);
+  border-radius: 999rpx;
+  color: white;
+  gap: 16rpx;
+  opacity: 0.8;
+}
+
+.generating-icon {
+  width: 32rpx;
+  height: 32rpx;
+  filter: brightness(0) invert(1);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.generating-text {
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* 🎨 新增：圆形停止按钮样式 */
+.stop-btn-circle {
+  /* 基础尺寸：设为正圆 */
+  width: 88rpx !important;   /* 与生成状态指示器高度一致 */
+  height: 88rpx !important;  /* 宽高相等，形成正圆 */
+  
+  /* 圆形外观 */
+  border-radius: 50% !important;  /* 完全圆形 */
+  
+  /* 背景和颜色 */
+  background: #e74c3c !important;
+  border: none !important;
+  
+  /* 布局：图标居中 */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  /* 视觉效果 */
+  box-shadow: 0 6rpx 20rpx rgba(231, 76, 60, 0.3);
+  transition: all 0.3s ease;
+  
+  /* 确保无额外样式干扰 */
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: normal !important;
+}
+
+/* 圆形停止按钮内的图标 */
+.stop-btn-circle image {
+  width: 32rpx;   /* 图标尺寸适中 */
+  height: 32rpx;
+  filter: brightness(0) invert(1);  /* 白色图标 */
+}
+
+/* 圆形停止按钮的悬停效果 */
+.stop-btn-circle-hover {
+  transform: scale(0.9) !important;  /* 轻微缩小效果 */
+  background: #c0392b !important;    /* 更深的红色 */
+  box-shadow: 0 4rpx 12rpx rgba(231, 76, 60, 0.4) !important;
+}
+
+/* 清除微信小程序按钮默认样式 */
+.stop-btn-circle::after {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* 确保按钮在不同状态下都保持圆形 */
+.stop-btn-circle[disabled] {
+  opacity: 0.6;
+  background: #e74c3c !important;
+}
+
+/* 加载动画dots */
+.loading-dots {
+  display: flex;
+  gap: 6rpx;
+}
+
+.dot {
+  width: 8rpx;
+  height: 8rpx;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  animation: wave 1.5s ease-in-out infinite;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* 停止按钮样式 */
+.stop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 32rpx;
+  background: #e74c3c;
+  border-radius: 999rpx;
+  color: white !important;
+  font-size: 28rpx;
+  border: none;
+  box-shadow: 0 6rpx 20rpx rgba(231, 76, 60, 0.3);
+  transition: all 0.3s;
+  gap: 12rpx;
+}
+
+.stop-btn image {
+  width: 28rpx;
+  height: 28rpx;
+  filter: brightness(0) invert(1);
+}
+
+.stop-btn-hover {
+  transform: scale(0.95);
+  background: #c0392b;
+}
+
+/* 动画效果 */
+@keyframes pulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1; 
+  }
+  50% { 
+    transform: scale(1.1);
+    opacity: 0.7; 
+  }
+}
+
+@keyframes wave {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-10rpx);
+    opacity: 1;
+  }
+}
+/* 旋转动画 */
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}

@@ -1,0 +1,113 @@
+/* custom-tab-bar/index.wxss */
+
+/* TabBar容器 - 固定在底部 */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100rpx;
+  background: #ffffff;
+  display: flex;
+  z-index: 1000;
+  padding-bottom:36rpx;
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 单个Tab项容器 */
+.tab-bar-item {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 8rpx 0;
+  transition: all 0.2s ease;
+}
+
+/* Tab项点击效果 */
+.tab-bar-item:active {
+  opacity: 0.7;
+}
+
+/* 图标容器 */
+.tab-bar-icon-wrapper {
+  margin-bottom: -13rpx;
+}
+
+/* 图标基础样式 - 比原生减小20% */
+.tab-bar-icon {
+  width: 36rpx;  /* 原生通常是55rpx，这里减小20%到44rpx */
+  height: 36rpx;
+  transition: filter 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              opacity 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  margin-top: 4rpx;
+}
+
+/* 只对未选中的图标应用灰色滤镜 */
+.tab-bar-icon:not(.tab-bar-icon-active) {
+  filter: grayscale(100%) brightness(0.6);
+  opacity: 0.6;
+}
+
+/* 选中状态的图标：确保没有滤镜，只有放大效果 */
+.tab-bar-icon.tab-bar-icon-active {
+  filter: none;  /* 明确移除所有滤镜 */
+  opacity: 1;    /* 完全不透明 */
+  transform: scale(1.05);
+}
+
+/* 文字基础样式 - 比原生增加20% */
+.tab-bar-text {
+  font-size: 24rpx;  /* 原生通常是20rpx，这里增加20%到24rpx */
+  color: #999999;    /* 未选中时的灰色 */
+  transition: all 0.3s ease;
+  font-weight: 400;  /* 正常字重 */
+  margin-top: 10rpx;
+}
+
+/* 选中状态的文字 - 绿色且加粗 */
+.tab-bar-text-active {
+  color: #3da58a;    /* 比主色#43B692稍微淡一点的绿色 */
+  font-weight: 600;  /* 选中时变粗体 */
+  transform: scale(1.02); /* 轻微放大，增强选中效果 */
+}
+
+/* 特殊处理：序话tab的样式优化 */
+.tab-bar-item:first-child .tab-bar-text-active {
+  font-weight: 700; /* 序话tab选中时更粗一些，突出主要功能 */
+}
+
+/* 适配不同屏幕尺寸 */
+@media screen and (min-width: 768px) {
+  .tab-bar {
+    height: 120rpx; /* 大屏幕上稍微高一些 */
+  }
+  
+  .tab-bar-icon {
+    width: 48rpx;   /* 大屏幕上图标稍大 */
+    height: 48rpx;
+  }
+  
+  .tab-bar-text {
+    font-size: 26rpx; /* 大屏幕上文字稍大 */
+  }
+}
+
+/* 深色模式适配（如果需要的话） */
+@media (prefers-color-scheme: dark) {
+  .tab-bar {
+    background: #1a1a1a;
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .tab-bar-text {
+    color: #999999;
+  }
+  
+  .tab-bar-text-active {
+    color: #4fb3a3; /* 深色模式下的绿色稍亮一些 */
+  }
+}

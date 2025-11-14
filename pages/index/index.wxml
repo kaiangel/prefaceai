@@ -1,0 +1,367 @@
+<!-- pages/index/index.wxml -->
+<view class="container {{keyboardActive ? 'keyboard-active' : ''}}"
+      bindtap="handlePageClick">
+  
+  <view class="content">
+    <!-- 标题区域 -->
+    <view class="title-area">
+      <view class="main-title">序话</view>
+      <view class="sub-title">当你要AI真正懂你...</view>
+    </view>
+    
+    <!-- 模型选择区域 -->
+    <view class="model-selector">
+      <!-- 模型类别标签栏 -->
+      <scroll-view class="model-tabs" scroll-x enable-flex scroll-with-animation>
+        <view class="model-tab {{currentModelType === 'text' ? 'active' : ''}}" 
+              bindtap="switchModelType" data-type="text">文生文</view>
+        <view class="model-tab {{currentModelType === 'image' ? 'active' : ''}}" 
+              bindtap="switchModelType" data-type="image">生图</view>
+        <view class="model-tab {{currentModelType === 'video' ? 'active' : ''}}" 
+              bindtap="switchModelType" data-type="video">生视频</view>
+      </scroll-view>
+      
+      <!-- 模型卡片滚动区 -->
+      <scroll-view class="model-cards-scroll" scroll-x enable-flex scroll-with-animation>
+        <!-- 文生文模型 -->
+        <block wx:if="{{currentModelType === 'text'}}">
+          <view class="model-card {{currentModel === 'non-reasoning' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="non-reasoning">
+            <view class="card-icon text-icon">
+              <image class="icon-image" src="{{modelIcons['non-reasoning']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">通用模型</view>
+          </view>
+          
+          <view class="model-card {{currentModel === 'reasoning' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="reasoning">
+            <view class="card-icon text-icon">
+              <image class="icon-image" src="{{modelIcons['reasoning']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">推理模型</view>
+          </view>
+
+          <!-- 新增AI Agent模型卡片 -->
+          <view class="model-card {{currentModel === 'ai-agent' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="ai-agent">
+            <view class="card-icon text-icon">
+              <image class="icon-image" src="{{modelIcons['ai-agent']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">AI Agent</view>
+          </view>
+        </block>
+
+        <!-- 生图模型 -->
+        <block wx:if="{{currentModelType === 'image'}}">
+          <view class="model-card {{currentModel === 'GPT Image' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="GPT Image">
+            <view class="card-icon image-icon">
+              <image class="icon-image" src="{{modelIcons['GPT Image']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">GPT Image</view>
+          </view>
+          
+          <view class="model-card {{currentModel === 'flux' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="flux">
+            <view class="card-icon image-icon">
+              <image class="icon-image" src="{{modelIcons['flux']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">FLUX</view>
+          </view>
+          
+          <!-- 在FLUX和Midjourney卡片之间添加 -->
+          <view class="model-card {{currentModel === 'jimeng' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="jimeng">
+            <view class="card-icon image-icon">
+              <image class="icon-image" src="{{modelIcons['jimeng']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">即梦AI</view>
+          </view>
+          
+          <!-- Lovart卡片 -->
+          <view class="model-card {{currentModel === 'lovart' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="lovart">
+            <view class="card-icon image-icon">
+              <image class="icon-image" src="{{modelIcons['lovart']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">Lovart</view>
+          </view>
+
+          <!-- Midjourney卡片添加wx:if条件 -->
+          <view class="model-card {{currentModel === 'midjourney' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="midjourney"
+                wx:if="{{modelVisibility.midjourney}}">
+            <view class="card-icon image-icon">
+              <image class="icon-image" src="{{modelIcons['midjourney']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">Midjourney</view>
+          </view>
+        </block>
+
+        <!-- 视频模型 -->
+        <block wx:if="{{currentModelType === 'video'}}">
+          <!-- 可灵AI -->
+          <view class="model-card {{currentModel === 'keling' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="keling">
+            <view class="card-icon video-icon">
+              <image class="icon-image" src="{{modelIcons['keling']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">可灵AI</view>
+          </view>
+          
+          <!-- 即梦AI -->
+          <view class="model-card {{currentModel === 'jimengvideo' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="jimengvideo">
+            <view class="card-icon video-icon">
+              <image class="icon-image" src="{{modelIcons['jimengvideo']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">即梦AI</view>
+          </view>
+          
+          <!-- Lovart -->
+          <view class="model-card {{currentModel === 'lovartvideo' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="lovartvideo">
+            <view class="card-icon video-icon">
+              <image class="icon-image" src="{{modelIcons['lovartvideo']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">Lovart</view>
+          </view>
+          
+          <!-- 通义万相 -->
+          <view class="model-card {{currentModel === 'wanxiang' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="wanxiang">
+            <view class="card-icon video-icon">
+              <image class="icon-image" src="{{modelIcons['wanxiang']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">通义万相</view>
+          </view>
+           <!-- Sora2 -->
+          <view class="model-card {{currentModel === 'Sora2' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="Sora2">
+            <view class="card-icon video-icon">
+              <image class="icon-image" src="{{modelIcons['Sora2']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">Sora2</view>
+          </view>
+          <!-- Runway -->
+          <view class="model-card {{currentModel === 'runway' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="runway">
+            <view class="card-icon video-icon">
+              <image class="icon-image" src="{{modelIcons['runway']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">Runway</view>
+          </view>
+          
+          <!-- 腾讯混元卡片添加wx:if条件 -->
+          <view class="model-card {{currentModel === 'hunyuan' ? 'active' : ''}}" 
+                bindtap="selectModel" data-model="hunyuan"
+                wx:if="{{modelVisibility.hunyuan}}">
+            <view class="card-icon video-icon">
+              <image class="icon-image" src="{{modelIcons['hunyuan']}}" mode="cover"></image>
+            </view>
+            <view class="card-name">腾讯混元</view>
+          </view>
+        </block>
+      </scroll-view>
+
+      <!-- 在模型卡片滚动区后添加风格选择器 -->
+      <view class="style-selector">
+          <scroll-view class="style-options-scroll" scroll-x enable-flex scroll-with-animation>
+              <view class="style-option {{currentStyle === item.id ? 'active' : ''}} {{item.id}}" 
+                    wx:for="{{styleOptions}}" 
+                    wx:key="id"
+                    bindtap="switchStyle" 
+                    data-style="{{item.id}}">
+                  <text class="style-emoji">{{item.emoji}}</text>
+                  <text class="style-name">{{item.name}}</text>
+              </view>
+          </scroll-view>
+      </view>
+      
+      <!-- 当前选择提示 -->
+      <view class="current-selection">
+        {{currentSelectionText}}  <!-- ✅ 直接绑定数据字段 -->
+      </view>
+    </view>
+    
+    <!-- 输入区域 - 添加事件捕获阻止冒泡，但不影响textarea焦点 -->
+    <view class="input-area {{keyboardActive ? 'keyboard-focus' : ''}}" 
+          id="input-area"
+          catchtap="stopPropagation">
+          <textarea 
+            class="input-box" 
+            placeholder="{{currentPlaceholder}}"
+            placeholder-style="color: rgba(52, 73, 94, 0.5)"
+            maxlength="-1"
+            bindinput="onInputChange"
+            value="{{inputText}}"
+            bindfocus="onInputFocus"
+            bindblur="onInputBlur"
+            cursor="{{cursorPosition}}"
+            adjust-position="{{true}}"
+            cursor-spacing="150"
+            hold-keyboard="{{true}}"
+            confirm-type="done"
+            disable-default-padding="{{true}}"
+            show-confirm-bar="{{false}}"
+            auto-focus="{{false}}"
+            fixed="{{true}}"
+            bindkeyboardheightchange="onKeyboardHeightChange"
+          ></textarea>
+    </view>
+    
+    <!-- 按钮区域 -->
+    <view class="button-area">
+      <!-- 正常状态：显示点亮灵感按钮 -->
+      <button wx:if="{{!isGenerating && !isSaving}}"
+              class="inspire-btn"
+              hover-class="inspire-btn-hover"
+              bindtap="onGeneratePrompt"
+              disabled="{{!inputText}}"
+      >
+        <image src="/assets/icons/spark.png" mode="aspectFit"></image>
+        点亮灵感
+      </button>
+
+      <!-- 保存中状态：显示保存记录中 -->
+      <button wx:elif="{{isSaving}}"
+              class="inspire-btn"
+              disabled="{{true}}"
+      >
+        <image src="/assets/icons/loading.png" mode="aspectFit" class="rotating"></image>
+        保存记录中
+      </button>
+
+      <!-- 生成状态：显示进度信息和圆形停止按钮 -->
+      <view wx:else class="generating-controls">
+        <!-- 生成状态指示器 -->
+        <view class="generating-status">
+          <image class="generating-icon" src="/assets/icons/spark.png" mode="aspectFit"></image>
+          <text class="generating-text">点亮中</text>
+          <view class="loading-dots">
+            <view class="dot"></view>
+            <view class="dot"></view>
+            <view class="dot"></view>
+          </view>
+        </view>
+        
+        <!-- 🔄 新设计：圆形停止按钮 -->
+        <button class="stop-btn-circle" 
+                hover-class="stop-btn-circle-hover"
+                bindtap="handleStopGeneration">
+          <image src="/assets/icons/stop.png" mode="aspectFit"></image>
+        </button>
+      </view>
+    </view>
+
+    <!-- AI生成标识 - 长期显示 -->
+    <view class="ai-generation-notice">
+      <text class="ai-notice-text">内容由AI生成 仅供参考</text>
+    </view>
+
+    <!-- 结果展示区域 -->
+    <view class="result-area {{showResult ? 'show' : ''}}" wx:if="{{result}}">
+      <view class="result-card">
+        <view class="result-header">
+          <text class="result-title">点亮结果</text>
+          
+          <!-- 左侧操作按钮组：收藏按钮 -->
+          <view class="header-actions">
+            <view class="favorite-button" bindtap="toggleFavorite">
+              <image 
+                class="favorite-icon {{isFavorited ? 'active' : ''}}" 
+                src="/assets/icons/{{isFavorited ? 'star-filled' : 'star'}}.png" 
+                mode="aspectFit"
+              ></image>
+            </view>
+          </view>
+          
+          <!-- 右侧工具按钮组：快速复制 + 分享 + 全局复制 -->
+          <view class="tool-buttons">
+            <!-- 快速复制按钮（仅生图/生视频模型显示） -->
+            <view wx:if="{{showQuickCopy && (currentModelType === 'image' || currentModelType === 'video')}}" 
+                  class="tool-button quick-copy-tool" 
+                  bindtap="handleQuickCopyPrompt">
+              <image class="tool-icon" src="https://cdn.duyueai.com/prompt/lightning.png" mode="aspectFit"></image>
+            </view>
+            
+            <!-- 分享按钮（生成完成后才显示） -->
+            <button wx:if="{{!isGenerating && currentPromptId}}" 
+                    class="tool-button share-tool" 
+                    open-type="share"
+                    data-share-from="index"
+                    data-share-id="{{currentShareId}}"
+                    data-model-type="{{currentModelType}}"
+                    data-model-name="{{currentModel}}"
+                    data-style="{{currentStyle}}"
+                    data-input="{{inputText}}"
+                    catchtap="stopPropagation">
+              <image class="tool-icon" src="/assets/icons/share.png" mode="aspectFit"></image>
+            </button>
+            
+            <!-- 全局复制按钮 -->
+            <view class="tool-button copy-tool" bindtap="handleCopy">
+              <image class="tool-icon" src="/assets/icons/copy.png" mode="aspectFit"></image>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 内容区域保持不变 -->
+        <view class="result-content">
+          <block wx:for="{{result.sections}}" wx:key="index">
+            <view class="section">
+              <!-- 渲染标题，根据level设置不同样式 -->
+              <text wx:if="{{item.title}}" 
+                    class="section-title level-{{item.level || 1}}"
+                    user-select="{{true}}">
+                {{item.title}}
+              </text>
+              
+              <!-- 渲染内容 -->
+              <view class="section-content">
+                <block wx:for="{{item.content}}" wx:key="idx" wx:for-item="contentItem">
+                  
+                  <!-- 分割线 -->
+                  <view wx:if="{{contentItem.type === 'divider'}}" class="markdown-divider"></view>
+                  
+                  <!-- 引用块 -->
+                  <view wx:elif="{{contentItem.type === 'quote'}}" class="markdown-quote">
+                    <view class="quote-line"></view>
+                    <text class="quote-text" user-select="{{true}}">{{contentItem.text}}</text>
+                  </view>
+                  
+                  <!-- 普通文本（支持行内格式） -->
+                  <view wx:else class="content-line">
+                    <text class="content-text" user-select="{{true}}" space="nbsp">
+                      <!-- 如果有格式化内容，使用格式化渲染 -->
+                      <block wx:if="{{contentItem.formatted && contentItem.formatted.length > 0}}">
+                        <block wx:for="{{contentItem.formatted}}" wx:key="segIdx" wx:for-item="segment">
+                          <text wx:if="{{segment.type === 'normal'}}" user-select="{{true}}">{{segment.text}}</text>
+                          <text wx:elif="{{segment.type === 'bold'}}" class="markdown-bold" user-select="{{true}}">{{segment.text}}</text>
+                          <text wx:elif="{{segment.type === 'italic'}}" class="markdown-italic" user-select="{{true}}">{{segment.text}}</text>
+                          <text wx:elif="{{segment.type === 'special'}}" class="special-mark" user-select="{{true}}">{{segment.text}}</text>
+                        </block>
+                      </block>
+                      <!-- 否则直接显示原文本 -->
+                      <block wx:else user-select="{{true}}">{{contentItem.text}}</block>
+                    </text>
+                    
+                    <!-- 打字光标 -->
+                    <text wx:if="{{index === result.sections.length-1 && idx === item.content.length-1 && showCursor && isGenerating}}" 
+                          class="typing-cursor"></text>
+                  </view>
+                  
+                </block>
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 向下箭头按钮 -->
+  <view class="scroll-to-bottom-arrow {{showScrollArrow ? 'show' : ''}}" bindtap="scrollToBottom">
+    <image src="/assets/icons/arrow-down.png" mode="aspectFit"></image>
+  </view>
+</view>

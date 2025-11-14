@@ -1,0 +1,528 @@
+/* profile.wxss - 个人中心tabbar页面样式调整 */
+.profile-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  /* 关键调整：移除顶部padding，让内容从顶部开始 */
+  padding-top: 186rpx; /* 只保留基础的内容间距 */
+  /* 重要：为底部TabBar预留空间 */
+  padding-bottom: 120rpx;
+}
+
+.back-btn {
+  padding: 8rpx;
+}
+
+.back-arrow {
+  font-size: 40rpx;
+  color: #333;
+  font-weight: 600;
+  transform: scale(0.8, 1.2);
+}
+
+.page-title {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+/* 确保用户卡片有合适的顶部间距 */
+.user-card {
+  margin: 32rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+  /* 确保卡片顶部有足够间距 */
+  margin-top: 20rpx;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32rpx;
+  width: 100%;
+}
+
+.avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 0rpx;
+  background-color: #f5f5f5;
+}
+
+.user-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.nickname-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+  min-height: 50rpx;
+  width: 100%;
+}
+
+.nickname-edit-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: none;
+  line-height: normal;
+  height: auto;
+}
+
+.save-btn {
+  background-color: #07c160;
+  color: white;
+}
+
+.cancel-btn {
+  background-color: #f2f2f2;
+  color: #333;
+}
+
+.nickname {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+  line-height: 50rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  margin-left: 1ch;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.member-tag {
+  display: inline-flex;  /* 改为 inline-flex */
+  align-items: center;   /* 添加垂直居中对齐 */
+  font-size: 26rpx;
+  color: var(--color-primary);
+  background: rgba(67, 182, 146, 0.1);
+  padding: 13rpx 18rpx;
+  border-radius: 999rpx;
+  line-height: 1.2;
+  margin-top: 4rpx;
+  margin-left: 1ch;
+  max-width: fit-content;
+  max-height: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 新增：标签内文字的样式 */
+.member-tag text {
+  display: block;
+  line-height: 1.2;     /* 重置行高为1 */
+  position: relative;
+  top: 0;             /* 确保不会有偏移 */
+}
+
+/* 新增专业版会员标签样式 */
+.member-tag.pro {
+  color: #fff;
+  background: linear-gradient(90deg, #43B692, #3F88C5);
+  font-weight: 500;
+  box-shadow: 0 2rpx 8rpx rgba(67, 182, 146, 0.2);
+}
+
+.usage-stats {
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  padding-top: 24rpx;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+/* 新增专门的选择器,只针对点亮次数为0的情况 */
+.stat-item.clickable:first-child .stat-num {
+  color: #e74c3c;  /* 使用适中的红色 */
+}
+
+.stat-item.clickable {
+  position: relative;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+
+.stat-item.clickable:active {
+  opacity: 0.7;
+}
+
+.stat-num {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #333;
+  display: block;
+}
+
+.stat-label {
+  font-size: 26rpx;
+  color: #999;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+  margin: 48rpx 32rpx 24rpx;
+}
+
+.plans-grid {
+  padding: 0 32rpx;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24rpx;
+}
+
+.plan-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+  color: #333;
+}
+
+.plan-card .plan-price,
+.plan-card .plan-period,
+.plan-card .plan-features text {
+  color: #333;
+}
+
+.plan-card.current {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: #fff;
+}
+
+.plan-card.current .plan-price,
+.plan-card.current .plan-period,
+.plan-card.current .plan-features text {
+  color: #fff;
+}
+
+.plan-name {
+  font-size: 32rpx;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.plan-price {
+  font-size: 48rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.plan-period {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.plan-features {
+  margin-top: 24rpx;
+  text-align: left;
+}
+
+.plan-features text {
+  font-size: 26rpx;
+  color: #666;
+  display: block;
+  margin-top: 8rpx;
+}
+
+.function-list {
+  margin: 0 32rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.function-item {
+  display: flex;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.function-item:last-child {
+  border-bottom: none;
+}
+
+.function-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 16rpx;
+}
+
+.function-item text {
+  flex: 1;
+  font-size: 30rpx;
+  color: #333;
+}
+
+.arrow {
+  font-size: 32rpx;
+  color: #999;
+  flex: none !important;
+}
+
+/* 新增：分享按钮样式 */
+.share-app-btn {
+  background: transparent !important;
+  border: none !important;
+  padding: 32rpx !important;
+  margin: 0 !important;
+  min-height: auto !important;
+  line-height: 1 !important;
+  width: 100% !important;
+  text-align: left !important;
+  display: flex !important;
+  align-items: center !important;
+  border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+  font-weight: normal !important; /* 确保字体粗细正常 */
+}
+
+.share-app-btn::after {
+  border: none !important;
+}
+
+/* 确保分享按钮内的文本样式与其他选项一致 */
+.share-app-btn text {
+  flex: 1;
+  font-size: 30rpx !important;
+  color: #333 !important;
+  font-weight: normal !important;
+}
+
+.version {
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 48rpx;
+}
+
+.login-btn-wrapper {
+  padding: 32rpx 0;
+  text-align: center;
+}
+
+.login-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  height: 88rpx;
+  font-size: 32rpx;
+  border-radius: 44rpx;
+  width: 60%;
+  margin: 0 auto;
+  transition: all 0.3s;
+  /* 修改为flex布局实现垂直居中 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-btn:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+.avatar-button {
+  padding: 0;
+  width: 120rpx !important;
+  height: 120rpx !important;
+  border-radius: 50%;
+  background: none;
+  flex-shrink: 0;
+  margin-right: 16rpx;
+}
+
+.avatar-button::after {
+  border: none;
+}
+
+.nickname-button {
+  padding: 0;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+  background: none;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.nickname-button::after {
+  border: none;
+}
+
+/* 昵称编辑区域样式 */
+.nickname-edit {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.nickname-input {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2rpx solid var(--color-primary);
+  padding: 4rpx 0;
+  width: 100%;
+  height: 50rpx;
+  margin-left: 1.5ch;
+  line-height: 50rpx;
+}
+
+.nickname.editable {
+  position: relative;
+  cursor: pointer;
+}
+
+.nickname.editable:active {
+  opacity: 0.7;
+}
+
+/* 选项通用样式 */
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 40rpx;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+}
+
+.option-icon {
+  font-size: 36rpx;
+  margin-right: 20rpx;
+  color: #3f88c5;
+}
+
+.option-text {
+  flex: 1;
+  font-size: 32rpx;
+  color: #2c3e50;
+}
+
+.option-arrow {
+  font-size: 32rpx;
+  margin-right: -0.5ch;
+  color: #333;
+}
+
+/* 复用已有的modal基础样式 */
+.service-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32rpx;
+}
+
+.qrcode {
+  width: 400rpx;
+  height: 400rpx;
+  margin: 20rpx 0;
+}
+
+.tip-text {
+  font-size: 28rpx;
+  color: #666;
+  margin-top: 20rpx;
+}
+
+/* 基础modal样式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%;
+  max-width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.close-btn {
+  font-size: 40rpx;
+  color: #999;
+  padding: 10rpx;
+}
+
+.stat-unit {
+  font-size: 24rpx;  /* 较小的字体大小 */
+  font-weight: 400;  /* 减轻字体粗细 */
+  margin-left: 4rpx; /* 与数字之间有一点间距 */
+  opacity: 0.8;      /* 稍微降低不透明度，让它视觉上弱一些 */
+  position: relative;
+  bottom: 2rpx;      /* 稍微向上调整位置，使其更加协调 */
+}

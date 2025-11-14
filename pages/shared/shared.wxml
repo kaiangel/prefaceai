@@ -1,0 +1,141 @@
+<view class="shared-container">
+  <!-- 优化后的顶部导航 -->
+  <view class="header-optimized">
+    <text class="page-title-optimized">分享的灵感</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-container" wx:if="{{loading}}">
+    <image class="loading-icon" src="/assets/icons/loading.png" mode="aspectFit"></image>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-container" wx:elif="{{error}}">
+    <image class="error-icon" src="/assets/icons/error.png" mode="aspectFit"></image>
+    <text class="error-text">{{error}}</text>
+    <button class="retry-btn" bindtap="retry">重试</button>
+    <button class="home-btn" bindtap="goToHome">返回首页</button>
+  </view>
+
+  <!-- 内容展示 -->
+  <view class="content" wx:else>
+    <!-- 分享信息卡片 -->
+    <view class="share-info-card">
+      <view class="share-header">
+        <view class="share-header-left">
+          <image class="app-icon" src="https://cdn.duyueai.com/prompt/logo.png" mode="aspectFit"></image>
+          <view class="app-info">
+            <text class="app-name">序话</text>
+            <text class="share-desc">朋友分享的点亮</text>
+          </view>
+        </view>
+        <!-- 分享按钮放在右上角 -->
+        <button class="share-info-btn" open-type="share">
+          <image src="/assets/icons/share.png" mode="aspectFit"></image>
+        </button>
+      </view>
+      
+      <!-- 模型标签 -->
+      <view class="model-tag {{sharedContent.labelClass}}" 
+            data-type="{{sharedContent.modelType}}" 
+            wx:if="{{sharedContent.modelLabel}}">
+        <text>{{sharedContent.modelLabel}}</text>
+      </view>
+      
+      <!-- 创建时间和体验按钮 -->
+      <view class="bottom-row">
+        <view class="create-time" wx:if="{{sharedContent.createTime}}">
+          <text>{{sharedContent.createTime}}</text>
+        </view>
+        <!-- 体验按钮移到这里 -->
+        <button class="experience-btn" bindtap="goToHome">
+          立即体验序话
+        </button>
+      </view>
+    </view>
+
+    <!-- 内容详情 -->
+    <view class="detail-content">
+      <!-- 原始提示词部分 -->
+      <view class="prompt-section">
+        <view class="section-header">
+          <text class="section-title">原始提示词</text>
+          <view class="copy-btn" bindtap="copyContent" data-type="original">
+            <image src="/assets/icons/copy.png" mode="aspectFit"></image>
+          </view>
+        </view>
+        <text class="prompt-content" user-select="{{true}}">{{sharedContent.input}}</text>
+      </view>
+      
+      <!-- 点亮后的提示词部分 -->
+      <view class="prompt-section">
+        <view class="section-header">
+          <text class="section-title">点亮后的提示词</text>
+          <view class="action-buttons">
+                  <!-- 快速复制按钮（闪电图标）- 紧挨着标题 -->
+              <view wx:if="{{showQuickCopy}}" 
+                    class="copy-btn quick-copy-btn inline-lightning" 
+                    bindtap="handleQuickCopyPrompt">
+                <image class="copy-icon lightning-icon" 
+                      src="https://cdn.duyueai.com/prompt/lightning.png" 
+                      mode="aspectFit"></image>
+              </view>
+               <view class="copy-btn" bindtap="copyContent" data-type="result">
+            <image src="/assets/icons/copy.png" mode="aspectFit"></image>
+          </view>
+          </view>
+         
+        </view>
+        
+        <!-- 富文本渲染区域 -->
+        <view class="formatted-content">
+          <block wx:for="{{sharedContent.formattedResult.sections}}" wx:key="index">
+            <view class="section">
+              <!-- 渲染标题 -->
+              <text wx:if="{{item.title}}" 
+                    class="section-title level-{{item.level || 1}}"
+                    user-select="{{true}}">
+                {{item.title}}
+              </text>
+              
+              <!-- 渲染内容 -->
+              <view class="section-content">
+                <block wx:for="{{item.content}}" wx:key="idx" wx:for-item="contentItem">
+                  
+                  <!-- 分割线 -->
+                  <view wx:if="{{contentItem.type === 'divider'}}" class="markdown-divider"></view>
+                  
+                  <!-- 引用块 -->
+                  <view wx:elif="{{contentItem.type === 'quote'}}" class="markdown-quote">
+                    <view class="quote-line"></view>
+                    <text class="quote-text" user-select="{{true}}">{{contentItem.text}}</text>
+                  </view>
+                  
+                  <!-- 普通文本（支持行内格式） -->
+                  <view wx:else class="content-line">
+                    <text class="content-text" user-select="{{true}}" space="nbsp">
+                      <!-- 如果有格式化内容，使用格式化渲染 -->
+                      <block wx:if="{{contentItem.formatted && contentItem.formatted.length > 0}}">
+                        <block wx:for="{{contentItem.formatted}}" wx:key="segIdx" wx:for-item="segment">
+                          <text wx:if="{{segment.type === 'normal'}}" user-select="{{true}}">{{segment.text}}</text>
+                          <text wx:elif="{{segment.type === 'bold'}}" class="markdown-bold" user-select="{{true}}">{{segment.text}}</text>
+                          <text wx:elif="{{segment.type === 'italic'}}" class="markdown-italic" user-select="{{true}}">{{segment.text}}</text>
+                          <text wx:elif="{{segment.type === 'special'}}" class="special-mark" user-select="{{true}}">{{segment.text}}</text>
+                        </block>
+                      </block>
+                      <!-- 否则直接显示原文本 -->
+                      <block wx:else user-select="{{true}}">{{contentItem.text}}</block>
+                    </text>
+                  </view>
+                  
+                </block>
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+    </view>
+
+  </view>
+</view>

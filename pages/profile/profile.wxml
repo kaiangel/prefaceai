@@ -1,0 +1,189 @@
+<view class="profile-container">
+  <!-- 移除顶部自定义导航栏 -->
+
+  <!-- 用户信息卡片 -->
+  <view class="user-card">
+    <!-- 用户信息卡片中的用户信息部分 -->
+    <view class="user-info">
+      <button 
+        wx:if="{{isLoggedIn}}"
+        class="avatar-button"
+        open-type="chooseAvatar" 
+        bind:chooseavatar="onChooseAvatar"
+      >
+        <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+      </button>
+      <image 
+        wx:else 
+        class="avatar" 
+        src="{{userInfo.avatarUrl}}" 
+        mode="aspectFill" 
+      />
+      
+      <view class="user-detail">
+        <view class="nickname-wrapper {{isEditingNickname ? 'editing' : ''}}">
+          <view wx:if="{{isEditingNickname}}" class="nickname-edit-container">
+            <input 
+              class="nickname-input"
+              value="{{tempNickname}}"
+              bindinput="onNicknameInput"
+              bindconfirm="saveNickname"
+              bindblur="saveNickname"
+              focus="{{isEditingNickname}}"
+              maxlength="20"
+              confirm-type="done"
+            />
+           
+          </view>
+          <text 
+            wx:else 
+            class="nickname {{isLoggedIn ? 'editable' : ''}}"
+            bindtap="{{isLoggedIn ? 'startEditNickname' : ''}}"
+          >{{userInfo.nickName || '微信用户'}}</text>
+        </view>
+        <view class="member-tag {{app.globalData.isPro ? 'pro' : ''}}" wx:if="{{isLoggedIn}}">
+          <text>{{app.globalData.isPro ? 'MAX会员' : '免费会员'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 在 usage-stats 部分添加 loading 状态 -->
+    <view class="usage-stats" wx:if="{{isLoggedIn}}">
+      <!-- 将原来的不可点击的stat-item修改为: -->
+      <view class="stat-item {{!stats.promptCount && isLoggedIn ? 'clickable' : ''}}" bindtap="{{!stats.promptCount && isLoggedIn ? 'handlePromptCountClick' : ''}}">
+        <text class="stat-num">
+          <text wx:if="{{!statsLoading}}">{{stats.promptCount || 0}}<text class="stat-unit">粒</text></text>
+          <text wx:else>...</text>
+        </text>
+        <text class="stat-label">剩余点亮胶囊🧊</text>
+      </view>
+      <view class="stat-item clickable" bindtap="navigateToFavorites">
+        <text class="stat-num">{{stats.saveCount || 0}}</text>
+        <text class="stat-label">收藏</text>
+      </view>
+    </view>
+
+    <!-- 未登录状态显示登录按钮 -->
+    <view class="login-btn-wrapper" wx:if="{{!isLoggedIn}}">
+      <button class="login-btn" bindtap="handleLogin">立即登录</button>
+    </view>
+  </view>
+
+  <!-- 会员方案部分仅在登录状态显示 -->
+  <block wx:if="{{isLoggedIn}}">
+    <view class="section-title">会员方案</view>
+    <view class="plans-grid">
+      <view 
+        class="plan-card {{(!app.globalData.isPro && currentPlan === 'free') || (app.globalData.isPro && currentPlan !== 'pro') ? 'current' : ''}}" 
+        bindtap="selectPlan" 
+        data-plan="free"
+      >
+        <text class="plan-name">{{app.globalData.isPro ? '免费会员' : (currentPlan === 'free' ? '免费会员\n（当前使用）' : '免费会员')}}</text>
+        <text class="plan-price">¥0</text>
+        <text class="plan-period"></text>
+        <view class="plan-features">
+          <text>• 每日3粒点亮胶囊🧊
+          （每粒🧊 = 1次点亮）</text>
+          <text>• 第一梯队模型
+          （Qwen3-Plus）</text>
+          <text>• 单一领域角色</text>
+        </view>
+      </view>
+      <view 
+        class="plan-card {{app.globalData.isPro || currentPlan === 'pro' ? 'current' : ''}}" 
+        bindtap="selectPlan" 
+        data-plan="pro"
+      >
+        <text class="plan-name">{{app.globalData.isPro ? '序话MAX\n（当前使用）' : '序话MAX'}}</text>
+        <text class="plan-price">¥9.9</text>
+        <text class="plan-period"></text>
+        <view class="plan-features">
+          <text>• 168粒点亮胶囊🧊
+          （长期有效）</text>
+          <text>• 顶级模型
+          （Qwen3-Max）</text>
+          <text>• 全面的π型真实专家
+          （Agent三重专家）</text>
+          <text>• 额外加分项
+          （使AI跳出既定思维）</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 功能列表根据登录状态显示不同内容 -->
+  <view class="section-title">更多</view>
+  <view class="function-list">
+    <!-- 通用设置在两种状态下都显示 -->
+    <view class="function-item" bindtap="navigate" data-path="settings">
+      <image class="function-icon" src="/assets/icons/settings.png" />
+      <text>通用设置</text>
+      <text class="arrow">→</text>
+    </view>
+    
+    <!-- 反馈和关于在两种状态下都显示 -->
+    <view class="function-item" bindtap="navigate" data-path="feedback">
+      <image class="function-icon" src="/assets/icons/feedback.png" />
+      <text>意见反馈</text>
+      <text class="arrow">→</text>
+    </view>
+    
+    <view class="function-item" bindtap="showAbout">
+      <image class="function-icon" src="/assets/icons/about.png" />
+      <text>关于序话</text>
+      <text class="arrow">→</text>
+    </view>
+
+    <!-- 新增：分享应用 -->
+    <button class="function-item share-app-btn" 
+            open-type="share">
+      <image class="function-icon" src="/assets/icons/share.png" />
+      <text>分享应用</text>
+      <text class="arrow">→</text>
+    </button>
+
+    <!-- 把这两项的样式从option改为function-item -->
+    <view class="function-item" bindtap="showPrivacyPolicy">
+      <image class="function-icon" src="/assets/icons/privacy.png" />
+      <text>隐私政策</text>
+      <text class="arrow">→</text>
+    </view>
+
+    <view class="function-item" bindtap="showUserAgreement">
+      <image class="function-icon" src="/assets/icons/agreement.png" />
+      <text>用户协议</text>
+      <text class="arrow">→</text>
+    </view>
+  </view>
+
+  <view class="version">Version 0.9.6.8</view>
+
+  <!-- 放在最后 -->
+  <policy-modal 
+    show="{{showPolicyModal}}" 
+    type="{{policyType}}"
+    bind:close="onPolicyModalClose"
+  />
+
+  <!-- 客服二维码弹窗 -->
+  <view class="modal {{showServiceModal ? 'show' : ''}}">
+      <view class="modal-mask" bindtap="closeServiceModal"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">联系客服</text>
+          <view class="close-btn" bindtap="closeServiceModal">×</view>
+        </view>
+        <view class="modal-body service-modal">
+          <!-- 修改 src 为变量 -->
+          <image 
+            class="qrcode" 
+            src="{{qrCodeUrl}}" 
+            mode="aspectFit"
+            show-menu-by-longpress
+            binderror="handleImageError"
+          ></image>
+          <text class="tip-text">长按二维码添加序话运营</text>
+        </view>
+      </view>
+    </view>
+</view>

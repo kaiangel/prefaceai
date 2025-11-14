@@ -1,0 +1,601 @@
+.favorites-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 48rpx;
+  width: 100%;       /* 添加100%宽度 */
+  overflow-x: hidden;  /* 禁止横向滚动 */
+}
+
+/* 顶部导航 */
+.search-bar {
+  padding: 180rpx 32rpx 20rpx;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  gap: 20rpx;
+}
+
+.back-btn {
+  padding: 8rpx;
+}
+
+.back-arrow {
+  font-size: 40rpx;
+  color: #333;
+  font-weight: 600;
+  transform: scale(0.8, 1.2);
+}
+
+.page-title {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.loading-icon {
+  width: 80rpx;
+  height: 80rpx;
+  margin-bottom: 20rpx;
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.empty-icon {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 20rpx;
+  opacity: 0.5;
+}
+
+.favorites-list {
+  width: 100%;
+  height: calc(100vh - 280rpx);  /* 减去header高度，确保scroll-view有固定高度 */
+  padding: 32rpx;
+  box-sizing: border-box;  /* 确保padding不会导致溢出 */
+}
+
+.favorite-item {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  width: auto;        /* 移除固定宽度 */
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.item-date {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 新增：以下是新添加的样式 */
+.header-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.item-date {
+  font-size: 26rpx;
+  color: #999;
+  flex-shrink: 0;
+}
+
+/* 模型标签样式 */
+.model-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.2;
+  max-width: fit-content;
+}
+
+.model-text {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 不同模型类型的颜色区分 */
+.model-label[data-type="text"] {
+  background: rgba(67, 182, 146, 0.15);
+  color: #43B692;
+}
+
+.model-label[data-type="image"] {
+  background: rgba(63, 136, 197, 0.15);
+  color: #3F88C5;
+}
+
+.model-label[data-type="video"] {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9B59B6;
+}
+
+.remove-btn {
+  padding: 1rpx;
+}
+
+.remove-btn image {
+  width: 32rpx;
+  height: 32rpx;
+  opacity: 0.9;
+  filter: invert(70%) sepia(80%) saturate(1000%) hue-rotate(360deg) brightness(105%) contrast(105%);
+}
+
+.content-preview {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 详情弹窗 */
+.detail-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.detail-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;  /* 修改宽度为百分比 */
+  max-width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  z-index: 1001;
+  transform: translateY(20rpx);
+  transition: all 0.3s ease;
+  margin: 60rpx auto;  /* 上下都加margin，避免贴边 */
+}
+
+.detail-modal.show .modal-content {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.modal-title {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.close-btn {
+  font-size: 40rpx;
+  color: #999;
+  padding: 8rpx;
+}
+
+.modal-body {
+  /* 修改最大高度计算方式 */
+  max-height: 70vh;  /* 使用更小的比例 */
+  padding: 32rpx;
+  box-sizing: border-box;
+  overflow-y: auto;  /* 允许垂直滚动 */
+  -webkit-overflow-scrolling: touch;  /* 提供更好的滚动体验 */
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6rpx;  /* 更窄的滚动条 */
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3rpx;
+}
+
+.modal-body {
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.modal-body::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+.prompt-section {
+  margin-bottom: 32rpx;
+  width: 100%;
+  box-sizing: border-box;
+  /* 最后一个section不要margin-bottom */
+}
+
+.prompt-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.copy-btn {
+  padding: 8rpx;
+  margin-right: 16rpx; /* 为按钮和边缘增加间距 */
+}
+
+.copy-btn image {
+  width: 32rpx;
+  height: 32rpx;
+  opacity: 0.6;
+}
+
+.prompt-content {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  padding: 0 32rpx 32rpx 0;  /* 增加底部padding */
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 富文本渲染样式系统 */
+.formatted-content {
+  padding: 0;
+  background: transparent;
+  margin-top: 16rpx;
+}
+
+.formatted-content .section {
+  margin-bottom: 32rpx;
+  padding: 0;
+}
+
+.formatted-content .section:last-child {
+  margin-bottom: 0;
+}
+
+/* 分层标题系统：视觉层次清晰 */
+.formatted-content .section-title.level-1 {
+  font-size: 32rpx !important;
+  color: #43B692 !important;
+  font-weight: 600 !important;
+  margin: 24rpx 0 16rpx 0 !important;
+  padding: 0 !important;
+  border-bottom: 2rpx solid #43B692;
+  text-align: left !important;
+}
+
+.formatted-content .section-title.level-2 {
+  font-size: 30rpx !important;
+  color: #3F88C5 !important;
+  font-weight: 500 !important;
+  margin: 20rpx 0 12rpx 0 !important;
+  padding: 0 !important;
+  border-bottom: 1rpx solid #3F88C5;
+  text-align: left !important;
+}
+
+.formatted-content .section-title.level-3 {
+  font-size: 28rpx !important;
+  color: #2c3e50 !important;
+  font-weight: 500 !important;
+  margin: 16rpx 0 8rpx 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+/* 内容布局系统 */
+.formatted-content .section-content {
+  padding: 8rpx 0;
+  line-height: 1.8;
+}
+
+.formatted-content .content-line {
+  margin: 8rpx 0;
+  line-height: 1.8;
+}
+
+.formatted-content .content-text {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.8;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* 行内格式样式：语义化视觉表达 */
+.formatted-content .markdown-bold {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.formatted-content .markdown-italic {
+  font-style: italic;
+  color: #34495e;
+}
+
+.formatted-content .special-mark {
+  color: #43B692;
+  font-weight: 500;
+}
+
+/* 引用块样式：清晰的视觉分隔 */
+.formatted-content .markdown-quote {
+  display: flex;
+  align-items: flex-start;
+  margin: 12rpx 0;
+  padding: 12rpx 0 12rpx 24rpx;
+  background: rgba(67, 182, 146, 0.05);
+  border-radius: 6rpx;
+  position: relative;
+}
+
+.formatted-content .quote-line {
+  position: absolute;
+  left: 12rpx;
+  top: 0;
+  bottom: 0;
+  width: 3rpx;
+  background: #43B692;
+  border-radius: 2rpx;
+}
+
+.formatted-content .quote-text {
+  font-size: 24rpx;
+  color: #5d6d7e;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* 分割线样式：优雅的内容分隔 */
+.formatted-content .markdown-divider {
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, #bdc3c7, transparent);
+  margin: 24rpx 0;
+  border-radius: 1rpx;
+}
+
+/* 交互式按钮系统 */
+.title-with-lightning {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.inline-lightning {
+  background: rgba(67, 182, 146, 0.15);
+  border-radius: 6rpx;
+  padding: 8rpx;
+  transition: all 0.2s ease;
+}
+
+.inline-lightning:active {
+  background: rgba(67, 182, 146, 0.25);
+  transform: scale(0.95);
+}
+
+.inline-lightning .copy-icon {
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.lightning-icon {
+  opacity: 0.8;
+  filter: invert(67%) sepia(13%) saturate(1200%) hue-rotate(118deg) brightness(89%) contrast(84%);
+}
+
+/* 新增：操作按钮组样式 */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8rpx;
+  background: transparent;
+  border: none;
+  min-height: auto;
+  line-height: 1;
+}
+
+.action-btn::after {
+  border: none;
+}
+
+.action-icon {
+  width: 32rpx;
+  height: 32rpx;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  display: block;
+}
+
+.action-btn:active .action-icon {
+  opacity: 1;
+}
+
+/* 分享按钮特殊样式 */
+.share-item-btn {
+  background: transparent !important;
+  border: none !important;
+  width: 48rpx !important;
+  height: 48rpx !important;
+  padding: 8rpx !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+  max-width: 48rpx !important;
+  max-height: 48rpx !important;
+  min-width: 48rpx !important;
+  min-height: 48rpx !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative;
+  z-index: 1;
+}
+
+.share-item-btn::after {
+  border: none !important;
+  background: none !important;
+}
+
+.share-item-btn .action-icon {
+  opacity: 0.5;
+}
+
+.share-item-btn:active .action-icon {
+  opacity: 0.8;
+}
+
+/* 收藏/取消收藏按钮样式 */
+.remove-btn {
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 8rpx !important;
+  margin: 0 !important;
+  min-height: auto !important;
+  line-height: 1 !important;
+  width: 48rpx !important;
+  height: 48rpx !important;
+  box-sizing: border-box !important;
+  max-width: 48rpx !important;
+  max-height: 48rpx !important;
+  min-width: 48rpx !important;
+  min-height: 48rpx !important;
+  position: relative;
+  z-index: 2;
+}
+
+.remove-btn::after {
+  border: none !important;
+}
+
+.remove-btn .action-icon {
+  width: 32rpx;
+  height: 32rpx;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.remove-btn:active .action-icon {
+  opacity: 1;
+}
+
+/* 详情弹窗中的分享按钮样式 */
+.share-btn-replace-close {
+  background: rgba(67, 182, 146, 0.1) !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 80rpx !important;
+  height: 80rpx !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: auto !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease;
+}
+
+.share-btn-replace-close:active {
+  background: rgba(67, 182, 146, 0.2) !important;
+  transform: scale(0.95);
+}
+
+.share-btn-replace-close::after {
+  border: none !important;
+}
+
+.share-btn-replace-close image {
+  width: 32rpx;
+  height: 32rpx;
+  opacity: 0.8;
+}

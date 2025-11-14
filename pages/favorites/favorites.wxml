@@ -1,0 +1,180 @@
+<view class="favorites-container">
+  <!-- 顶部导航 -->
+  <view class="search-bar">
+    <view class="back-btn" bindtap="goBack">
+      <text class="back-arrow">←</text>
+    </view>
+    <view class="page-title">我的收藏</view>
+  </view>
+
+  <!-- 收藏列表 -->
+  <scroll-view
+    class="favorites-list"
+    scroll-y
+    enable-flex
+    bindscrolltolower="loadMore"
+  >
+    <!-- 🔑 参考历史页面：只在没有数据且正在加载时显示loading -->
+    <view class="loading-state" wx:if="{{loading && favorites.length === 0}}">
+      <image class="loading-icon" src="/assets/icons/loading.png" mode="aspectFit"></image>
+      <text>加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:elif="{{isEmpty}}">
+      <image class="empty-icon" src="/assets/icons/empty.png" mode="aspectFit"></image>
+      <text>还没有收藏的内容哦</text>
+    </view>
+    <view 
+      class="favorite-item"
+      wx:for="{{favorites}}"
+      wx:key="id"
+      bindtap="showDetail"
+      data-index="{{index}}"
+    >
+      <view class="item-header">
+        <view class="header-left">
+          <text class="item-date">{{item.formattedDate}}</text>
+          <!-- 新增：模型标签 -->
+          <view class="model-label" data-type="{{item.modelType}}">
+            <text class="model-text">{{item.modelLabel}}</text>
+          </view>
+        </view>
+        <view class="action-buttons">
+          <!-- 分享按钮 -->
+          <button class="action-btn share-item-btn" 
+                  open-type="share"
+                  data-index="{{index}}"
+                  data-type="friend"
+                  catchtap="stopPropagation">
+            <image 
+              class="action-icon" 
+              src="/assets/icons/share.png" 
+              mode="aspectFit"
+            ></image>
+          </button>
+          
+          <!-- 取消收藏按钮 -->
+          <view 
+            class="action-btn remove-btn"
+            catchtap="removeFavorite"
+            data-index="{{index}}"
+          >
+            <image class="action-icon" src="/assets/icons/delete.png" mode="aspectFit"></image>
+          </view>
+        </view>
+      </view>
+      <view class="item-content">
+        <text class="content-preview">{{item.originalPrompt}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 详情弹窗 -->
+  <view class="detail-modal {{showDetailModal ? 'show' : ''}}">
+    <view class="modal-mask" bindtap="closeDetail"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">详情</text>
+        
+        <!-- 分享按钮 -->
+        <button class="share-btn-replace-close" 
+                open-type="share" 
+                data-index="{{currentItem.index}}"
+                data-type="friend">
+          <image src="/assets/icons/share.png" mode="aspectFit"></image>
+        </button>
+        
+        <!-- 关闭按钮 -->
+        <view class="close-btn" bindtap="closeDetail">×</view>
+      </view>
+      
+      <scroll-view class="modal-body" scroll-y>
+        <view class="prompt-section">
+          <view class="section-header">
+            <text class="section-title">原始提示词</text>
+            <view 
+              class="copy-btn" 
+              bindtap="copyContent" 
+              data-type="original"
+            >
+              <image src="/assets/icons/copy.png" mode="aspectFit"></image>
+            </view>
+          </view>
+          <text class="prompt-content" user-select="{{true}}">{{currentItem.originalPrompt}}</text>
+        </view>
+        
+        <view class="prompt-section">
+          <!-- 增强的标题栏：集成快速复制功能 -->
+          <view class="section-header">
+            <!-- 左侧：标题和闪电按钮的组合 -->
+            <view class="title-with-lightning">
+              <text class="section-title">点亮后的提示词</text>
+              
+              <!-- 智能快速复制按钮：仅在检测到提示词时显示 -->
+              <view wx:if="{{showQuickCopy}}" 
+                    class="copy-btn quick-copy-btn inline-lightning" 
+                    bindtap="handleQuickCopyPrompt">
+                <image class="copy-icon lightning-icon" 
+                      src="https://cdn.duyueai.com/prompt/lightning.png" 
+                      mode="aspectFit"></image>
+              </view>
+            </view>
+            
+            <!-- 右侧：传统的全文复制功能 -->
+            <view class="copy-btn" bindtap="copyContent" data-type="optimized">
+              <image class="copy-icon" src="/assets/icons/copy.png" mode="aspectFit"></image>
+            </view>
+          </view>
+          
+          <!-- 富文本渲染引擎：将结构化数据转换为视觉呈现 -->
+          <view class="formatted-content">
+            <block wx:for="{{currentItem.formattedResult.sections}}" wx:key="index">
+              <view class="section">
+                <!-- 分层标题渲染：根据level应用不同样式 -->
+                <text wx:if="{{item.title}}" 
+                      class="section-title level-{{item.level || 1}}"
+                      user-select="{{true}}">
+                  {{item.title}}
+                </text>
+                
+                <!-- 内容区块渲染：支持多种内容类型 -->
+                <view class="section-content">
+                  <block wx:for="{{item.content}}" wx:key="idx" wx:for-item="contentItem">
+                    
+                    <!-- 分割线元素 -->
+                    <view wx:if="{{contentItem.type === 'divider'}}" class="markdown-divider"></view>
+                    
+                    <!-- 引用块元素：带有视觉边框和缩进 -->
+                    <view wx:elif="{{contentItem.type === 'quote'}}" class="markdown-quote">
+                      <view class="quote-line"></view>
+                      <text class="quote-text" user-select="{{true}}">{{contentItem.text}}</text>
+                    </view>
+                    
+                    <!-- 普通文本（支持行内格式） -->
+                    <view wx:else class="content-line">
+                      <text class="content-text" user-select="{{true}}" space="nbsp">
+                        <!-- 如果有格式化内容，使用格式化渲染 -->
+                        <block wx:if="{{contentItem.formatted && contentItem.formatted.length > 0}}">
+                          <block wx:for="{{contentItem.formatted}}" wx:key="segIdx" wx:for-item="segment">
+                            <text wx:if="{{segment.type === 'normal'}}" user-select="{{true}}">{{segment.text}}</text>
+                            <text wx:elif="{{segment.type === 'bold'}}" class="markdown-bold" user-select="{{true}}">{{segment.text}}</text>
+                            <text wx:elif="{{segment.type === 'italic'}}" class="markdown-italic" user-select="{{true}}">{{segment.text}}</text>
+                            <text wx:elif="{{segment.type === 'special'}}" class="special-mark" user-select="{{true}}">{{segment.text}}</text>
+                          </block>
+                        </block>
+                        <!-- 否则直接显示原文本 -->
+                        <block wx:else user-select="{{true}}">{{contentItem.text}}</block>
+                      </text>
+                    </view>
+                    
+                  </block>
+                </view>
+              </view>
+            </block>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>
