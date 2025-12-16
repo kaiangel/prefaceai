@@ -851,6 +851,100 @@ Page({
     }
   },
 
+  // 🛑 新增：处理停止生成的方法
+  handleStopGeneration: function() {
+    console.log('🛑 用户点击停止生成按钮');
+    
+    // 检查是否正在生成
+    if (!this.data.isGenerating) {
+      console.log('⚠️ 当前没有正在进行的生成任务');
+      return;
+    }
+
+    // 记录当前会话ID到终止黑名单
+    if (this.data.generationSessionId) {
+      if (!this.terminatedSessions) {
+        this.terminatedSessions = new Set();
+      }
+      this.terminatedSessions.add(this.data.generationSessionId);
+      console.log('🚫 会话已加入终止黑名单:', this.data.generationSessionId);
+    }
+
+    // 设置停止标记
+    this.setData({
+      isCompletelyTerminated: true,
+      userInitiatedStop: true,
+      shouldStopGeneration: true
+    });
+
+    // 中止当前请求
+    if (this.data.currentRequestTask) {
+      try {
+        this.data.currentRequestTask.abort();
+        console.log('✅ 已中止当前请求');
+      } catch (e) {
+        console.error('中止请求失败:', e);
+      }
+      this.setData({ currentRequestTask: null });
+    }
+
+    // 清理所有定时器
+    this.clearAllTimers();
+    console.log('✅ 已清理所有定时器');
+
+    // 清理打字相关状态
+    if (this.data.typingTimer) {
+      clearTimeout(this.data.typingTimer);
+      this.data.typingTimer = null;
+    }
+
+    // 清理缓冲区
+    if (this.pendingBuffer) {
+      this.pendingBuffer = '';
+    }
+
+    // 处理剩余缓冲内容（如果有的话）
+    if (this.data.bufferContent.length > 0) {
+      console.log('📝 处理剩余缓冲内容，长度:', this.data.bufferContent.length);
+      const finalContent = this.data.fullContent + this.data.bufferContent;
+      this.setData({
+        fullContent: finalContent,
+        result: this.formatResult(finalContent),
+        originalResponse: finalContent,
+        bufferContent: ''
+      });
+    }
+
+    // 更新UI状态
+    this.setData({
+      isGenerating: false,
+      isGenerationActive: false,
+      isTyping: false,
+      showCursor: false,
+      streamEndSignal: true,
+      contentReceiveComplete: true
+    });
+
+    console.log('🎉 生成已停止，最终内容长度:', this.data.fullContent.length);
+
+    // 显示提示
+    wx.showToast({
+      title: '已停止生成',
+      icon: 'success',
+      duration: 1500
+    });
+
+    // 🔑 手动停止时不保存历史记录
+    console.log('⚠️ 用户手动停止，不保存内容到历史记录');
+
+    // 显示滚动箭头
+    setTimeout(() => {
+      if (this.data.fullContent && this.data.fullContent.length > 0) {
+        this.setData({ showScrollArrow: true });
+      }
+    }, 100);
+  },
+
   // 1. 修改 startTypingEffect 方法中的打字暂停逻辑
   startTypingEffect: function() {
     if (!this.data.generationSessionId) {
