@@ -16,6 +16,11 @@
     "navigationStyle": "custom",
     "pageOrientation": "portrait"
   },
+  "usingComponents": {
+    "navigation-bar": "/components/navigation-bar/navigation-bar",
+    "policy-modal": "/components/policy-modal/policy-modal",
+    "reference-input": "/components/reference-input/reference-input"
+  },
   "tabBar": {
     "custom": true,
     "color": "#999999",

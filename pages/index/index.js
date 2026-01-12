@@ -238,7 +238,13 @@ Page({
     extractedPrompt: '', // 提取的完整提示词
     showQuickCopy: false, // 是否显示快速复制按钮
     promptExtracted: false, // 是否已提取完整提示词
-  },
+    
+    // 新增：输入模式切换
+    inputMode: 'idea', // 'idea' 或 'reference'
+    referenceImage: '', // 参考图片路径(本地)
+    referenceImageUrl: '', // 参考图片URL(服务器)
+    referenceText: '', // 参考模式下的输入文本
+  },
 
   // 新增：切换风格的方法
   switchStyle: function(e) {
@@ -368,6 +374,298 @@ Page({
 
     this.updateCurrentSelectionText(); // ✅ 在每个切换方法的最后添加
   },
+
+  // 新增：切换输入模式
+  switchInputMode: function(e) {
+    const mode = e.currentTarget.dataset.mode;
+    console.log('切换输入模式:', mode);
+    
+    // 重置所有状态
+    this.setData({
+      inputMode: mode,
+      // 重置输入内容
+      inputText: '',
+      // 重置参考模式相关
+      referenceImage: '',
+      referenceImageUrl: '',
+      referenceText: '',
+      // 重置结果显示
+      result: null,
+      showResult: false,
+      isGenerating: false
+    });
+    
+    // 如果切换到参考模式,重置组件
+    if (mode === 'reference') {
+      console.log('已切换到参考模式,重置组件');
+      // 延迟执行,确保组件已渲染
+      setTimeout(() => {
+        const referenceInput = this.selectComponent('#referenceInput');
+        if (referenceInput) {
+          referenceInput.reset();
+        }
+      }, 100);
+    } else {
+      console.log('已切换到想法模式');
+    }
+  },
+
+  // 新增：处理参考图片选择
+  onReferenceImageSelected: function(e) {
+    const imagePath = e.detail.imagePath;
+    console.log('参考图片已选择:', imagePath);
+    
+    this.setData({
+      referenceImage: imagePath
+    });
+  },
+
+  // 新增：处理图片上传完成
+  onReferenceImageUploaded: function(e) {
+    const imageUrl = e.detail.imageUrl;
+    console.log('图片上传成功,URL:', imageUrl);
+    
+    // 只保存URL,不自动生成描述
+    this.setData({
+      referenceImageUrl: imageUrl
+    });
+    
+    console.log('等待用户点击"点亮灵感"按钮');
+  },
+
+  // 新增：处理参考图片移除
+  onReferenceImageRemoved: function() {
+    console.log('参考图片已移除');
+    
+    this.setData({
+      referenceImage: ''
+    });
+  },
+
+  // 新增：处理参考模式输入变化
+  onReferenceInputChange: function(e) {
+    const text = e.detail.text;
+    console.log('参考模式输入变化:', text);
+    
+    this.setData({
+      referenceText: text
+    });
+  },
+
+  // 生成图片描述(SSE流式)
+  generateImageDescription: function(imageUrl, content = '') {
+    console.log('开始生成图片描述,imageUrl:', imageUrl, 'content:', content);
+    
+    // 获取openid
+    const openid = wx.getStorageSync('token');
+    
+    // 构建SSE请求URL,添加content参数
+    let url = `https://www.duyueai.com/describeImageStream?openid=${openid}&image_url=${encodeURIComponent(imageUrl)}`;
+    if (content) {
+      url += `&content=${encodeURIComponent(content)}`;
+    }
+    
+    console.log('请求URL:', url);
+    
+    // 初始化状态
+    this.setData({
+      isGenerating: true,
+      isGenerationActive: true,
+      fullContent: '',
+      bufferContent: '',
+      result: {
+        sections: [{
+          title: '',
+          level: 1,
+          content: []
+        }]
+      },
+      showResult: true,
+      showCursor: true
+    });
+    
+    // 设置超时检测
+    let lastDataTime = Date.now();
+    const timeoutChecker = setInterval(() => {
+      const now = Date.now();
+      if (now - lastDataTime > 30000) { // 30秒无数据
+        console.log('⏰ 30秒无数据,强制结束生成');
+        clearInterval(timeoutChecker);
+        this.completeImageDescriptionGeneration();
+      }
+    }, 5000);
+    
+    // 创建请求任务
+    const requestTask = wx.request({
+      url: url,
+      method: 'GET',
+      enableChunked: true,
+      success: (res) => {
+        console.log('SSE请求完成,状态码:', res.statusCode);
+        clearInterval(timeoutChecker);
+        // 延迟一点确保所有数据都处理完
+        setTimeout(() => {
+          this.completeImageDescriptionGeneration();
+        }, 500);
+      },
+      fail: (err) => {
+        console.error('SSE请求失败:', err);
+        clearInterval(timeoutChecker);
+        wx.showToast({
+          title: '生成失败',
+          icon: 'none'
+        });
+        this.setData({
+          isGenerating: false,
+          isGenerationActive: false,
+          showCursor: false
+        });
+      }
+    });
+    
+    // 监听数据块
+    let buffer = '';
+    requestTask.onChunkReceived((res) => {
+      lastDataTime = Date.now(); // 更新最后接收数据时间
+      
+      const chunk = utf8Decode(res.data);
+      buffer += chunk;
+      
+      // 处理SSE数据
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      
+      lines.forEach(line => {
+        if (line.startsWith('data: ')) {
+          const jsonStr = line.substring(6).trim();
+          
+          // 检查是否是结束信号
+          if (jsonStr === '[DONE]') {
+            console.log('✅ 收到[DONE]信号');
+            clearInterval(timeoutChecker);
+            this.completeImageDescriptionGeneration();
+            return;
+          }
+          
+          try {
+            const data = JSON.parse(jsonStr);
+            if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
+              const content = data.choices[0].delta.content;
+              
+              // 追加内容到fullContent
+              const newFullContent = this.data.fullContent + content;
+              this.setData({
+                fullContent: newFullContent
+              });
+              
+              // 更新显示结果
+              const currentResult = this.data.result;
+              const lastSection = currentResult.sections[currentResult.sections.length - 1];
+              
+              if (lastSection.content.length === 0) {
+                lastSection.content.push({
+                  type: 'text',
+                  text: content
+                });
+              } else {
+                const lastContent = lastSection.content[lastSection.content.length - 1];
+                lastContent.text += content;
+              }
+              
+              this.setData({
+                result: currentResult
+              });
+            }
+          } catch (e) {
+            console.error('解析SSE数据失败:', e, jsonStr);
+          }
+        }
+      });
+    });
+    
+    // 保存请求任务
+    this.setData({
+      currentRequestTask: requestTask
+    });
+  },
+
+  // 完成图片描述生成
+  completeImageDescriptionGeneration: function() {
+    console.log('✅ 完成图片描述生成');
+    
+    // 更新UI状态
+    this.setData({
+      isGenerating: false,
+      isGenerationActive: false,
+      showCursor: false,
+      currentRequestTask: null,
+      streamEndSignal: true,
+      contentReceiveComplete: true
+    });
+    
+    console.log('🎉 图片描述生成完成,内容长度:', this.data.fullContent.length);
+    
+    // 🔑 设置保存中状态
+    this.setData({
+      isSaving: true
+    });
+    console.log('📝 开始保存图片描述历史记录...');
+    
+    // 更新剩余次数
+    const app = getApp();
+    app.checkProStatus(true).catch(err => {
+      console.error('更新剩余次数失败:', err);
+    });
+    
+    // 🔑 主动保存历史记录
+    setTimeout(async () => {
+      try {
+        // 生成一个临时ID用于保存
+        const tempId = 'img_desc_' + Date.now();
+        
+        // 调用保存历史记录方法
+        await this.saveHistoryRecord(tempId);
+        
+        console.log('✅ 图片描述历史记录保存成功');
+        
+        // 延迟获取真实ID
+        setTimeout(async () => {
+          try {
+            const historyId = await app.getLatestPromptIdFromHistory();
+            if (historyId) {
+              const formattedId = app.formatPromptId(historyId);
+              if (formattedId) {
+                console.log('✅ 成功获取历史ID:', formattedId);
+                this.setData({ 
+                  currentPromptId: formattedId 
+                });
+                
+                // 检查收藏状态
+                this.checkFavoriteStatus();
+              }
+            }
+          } catch (err) {
+            console.error('获取历史ID失败:', err);
+          }
+          
+          // 结束保存状态
+          this.setData({
+            isSaving: false,
+            showScrollArrow: true
+          });
+        }, 2000);
+        
+      } catch (err) {
+        console.error('保存图片描述历史记录失败:', err);
+        
+        // 即使保存失败也要结束保存状态
+        this.setData({
+          isSaving: false,
+          showScrollArrow: true
+        });
+      }
+    }, 500);
+  },
 
   // 安全获取窗口信息的辅助函数
   getWindowInfoSafe: function() {
@@ -1344,8 +1642,28 @@ Page({
     });
   },
 
-  onGeneratePrompt: function() {    // ✅ 替换为这行
-    // 方法内容保持不变...
+  onGeneratePrompt: function() {    // ✅ 替换为这行
+    console.log('🚀 点击点亮灵感按钮');
+    
+    // 检查是否在参考模式
+    if (this.data.inputMode === 'reference') {
+      console.log('📸 参考模式:开始生成图片描述');
+      
+      // 检查是否有图片URL
+      if (!this.data.referenceImageUrl) {
+        wx.showToast({
+          title: '请先上传图片',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 调用图片描述生成,传递参考文本
+      this.generateImageDescription(this.data.referenceImageUrl, this.data.referenceText);
+      return;
+    }
+    
+    // 原有的想法模式逻辑
     if (!this.data.inputText.trim()) {
       wx.showToast({
         title: '请输入内容',

@@ -9,8 +9,8 @@
       <view class="sub-title">当你要AI真正懂你...</view>
     </view>
     
-    <!-- 模型选择区域 -->
-    <view class="model-selector">
+    <!-- 模型选择区域 - 只在"我有想法"模式下显示 -->
+    <view class="model-selector" wx:if="{{inputMode === 'idea'}}">
       <!-- 模型类别标签栏 -->
       <scroll-view class="model-tabs" scroll-x enable-flex scroll-with-animation>
         <view class="model-tab {{currentModelType === 'text' ? 'active' : ''}}" 
@@ -184,30 +184,59 @@
       </view>
     </view>
     
-    <!-- 输入区域 - 添加事件捕获阻止冒泡，但不影响textarea焦点 -->
-    <view class="input-area {{keyboardActive ? 'keyboard-focus' : ''}}" 
-          id="input-area"
-          catchtap="stopPropagation">
-          <textarea 
-            class="input-box" 
-            placeholder="{{currentPlaceholder}}"
-            placeholder-style="color: rgba(52, 73, 94, 0.5)"
-            maxlength="-1"
-            bindinput="onInputChange"
-            value="{{inputText}}"
-            bindfocus="onInputFocus"
-            bindblur="onInputBlur"
-            cursor="{{cursorPosition}}"
-            adjust-position="{{true}}"
-            cursor-spacing="150"
-            hold-keyboard="{{true}}"
-            confirm-type="done"
-            disable-default-padding="{{true}}"
-            show-confirm-bar="{{false}}"
-            auto-focus="{{false}}"
-            fixed="{{true}}"
-            bindkeyboardheightchange="onKeyboardHeightChange"
-          ></textarea>
+    <!-- 我有想法/我有参考 切换按钮 - 只在生图模式下显示 -->
+    <view class="mode-switch-container" wx:if="{{currentModelType === 'image'}}">
+      <view class="mode-switch-buttons">
+        <view class="mode-btn {{inputMode === 'idea' ? 'active' : ''}}" 
+              bindtap="switchInputMode" 
+              data-mode="idea">
+          <text>我有想法</text>
+        </view>
+        <view class="mode-btn {{inputMode === 'reference' ? 'active' : ''}}" 
+              bindtap="switchInputMode" 
+              data-mode="reference">
+          <text>我有参考</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 我有想法模式 - 原有输入区域 -->
+    <view class="input-mode-container {{inputMode === 'idea' ? 'show' : 'hide'}}">
+      <view class="input-area {{keyboardActive ? 'keyboard-focus' : ''}}" 
+            id="input-area"
+            catchtap="stopPropagation">
+            <textarea 
+              class="input-box" 
+              placeholder="{{currentPlaceholder}}"
+              placeholder-style="color: rgba(52, 73, 94, 0.5)"
+              maxlength="-1"
+              bindinput="onInputChange"
+              value="{{inputText}}"
+              bindfocus="onInputFocus"
+              bindblur="onInputBlur"
+              cursor="{{cursorPosition}}"
+              adjust-position="{{true}}"
+              cursor-spacing="150"
+              hold-keyboard="{{true}}"
+              confirm-type="done"
+              disable-default-padding="{{true}}"
+              show-confirm-bar="{{false}}"
+              auto-focus="{{false}}"
+              fixed="{{true}}"
+              bindkeyboardheightchange="onKeyboardHeightChange"
+            ></textarea>
+      </view>
+    </view>
+    
+    <!-- 我有参考模式 - 新组件 -->
+    <view class="input-mode-container {{inputMode === 'reference' ? 'show' : 'hide'}}">
+      <reference-input 
+        id="referenceInput"
+        bind:imageselected="onReferenceImageSelected"
+        bind:uploadcomplete="onReferenceImageUploaded"
+        bind:imageremoved="onReferenceImageRemoved"
+        bind:inputchange="onReferenceInputChange"
+      ></reference-input>
     </view>
     
     <!-- 按钮区域 -->
@@ -217,7 +246,7 @@
               class="inspire-btn"
               hover-class="inspire-btn-hover"
               bindtap="onGeneratePrompt"
-              disabled="{{!inputText}}"
+              disabled="{{inputMode === 'idea' ? !inputText : !referenceImageUrl}}"
       >
         <image src="/assets/icons/spark.png" mode="aspectFit"></image>
         点亮灵感

@@ -1,0 +1,61 @@
+<!-- components/reference-input/reference-input.wxml -->
+<view class="reference-container">
+  <!-- 顶部提示区域 -->
+  <view class="tips-area">
+    <text class="tips-title">上传一张图片，序话会为你生成：</text>
+    <view class="tips-list">
+      <view class="tip-item">
+        <text class="tip-dot">●</text>
+        <text class="tip-text">精确呈现该图的提示词</text>
+      </view>
+      <view class="tip-item">
+        <text class="tip-dot">●</text>
+        <text class="tip-text">图片的详细元素描述</text>
+      </view>
+      <view class="tip-item">
+        <text class="tip-dot">●</text>
+        <text class="tip-text">可替换元素的创意建议</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 图片上传区域 -->
+  <view class="upload-container">
+    <block wx:if="{{!uploadedImage}}">
+      <!-- 未上传状态 -->
+      <view class="upload-area" bindtap="handleChooseImage">
+        <view class="upload-content">
+          <!-- 上传图标 -->
+          <image class="upload-icon" src="/assets/icons/upload.png" mode="aspectFit"></image>
+          <!-- 文字提示 -->
+          <view class="upload-text-container">
+            <text class="upload-title">📸 点击上传参考图片</text>
+            <text class="upload-subtitle">支持 JPG、PNG、WEBP 格式</text>
+          </view>
+        </view>
+      </view>
+    </block>
+    <block wx:else>
+      <!-- 已上传状态 -->
+      <view class="preview-container">
+        <image class="preview-image" src="{{uploadedImage}}" mode="aspectFit"></image>
+        <view class="remove-btn" catchtap="handleRemoveImage">
+          <text class="remove-icon">✕</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 补充需求输入框 -->
+  <view class="input-area">
+    <textarea 
+      class="input-box" 
+      placeholder="在这里补充你的需求(可留白) 例如：- 保持风格,把人物换成女性 - 把背景从室内改成海边 - 增加一些科技感元素"
+      placeholder-style="color: rgba(52, 73, 94, 0.5)"
+      maxlength="-1"
+      bindinput="onInputChange"
+      value="{{inputText}}"
+      auto-height
+    ></textarea>
+  </view>
+</view>

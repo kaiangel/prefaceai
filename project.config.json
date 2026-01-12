@@ -7,6 +7,7 @@
     "include": []
   },
   "setting": {
+    "localPlugins": false,
     "urlCheck": false,
     "es6": true,
     "enhance": true,
@@ -44,7 +45,6 @@
     "showES6CompileOption": false,
     "useCompilerPlugins": false,
     "compileWorklet": false,
-    "localPlugins": false,
     "condition": false,
     "swc": false,
     "disableSWC": true
