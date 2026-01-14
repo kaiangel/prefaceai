@@ -65,7 +65,21 @@
             <image src="/assets/icons/copy.png" mode="aspectFit"></image>
           </view>
         </view>
-        <text class="prompt-content" user-select="{{true}}">{{sharedContent.input}}</text>
+        
+        <!-- 如果包含图片,显示图片 -->
+        <view wx:if="{{sharedContent.parsedInput.hasImage}}" class="input-with-image">
+          <image class="reference-image" 
+                 src="{{sharedContent.parsedInput.imageUrl}}" 
+                 mode="aspectFit"
+                 show-menu-by-longpress="{{true}}"></image>
+      
+          <text wx:if="{{sharedContent.parsedInput.text}}" 
+                class="prompt-content" 
+                user-select="{{true}}">{{sharedContent.parsedInput.text}}</text>
+        </view>
+        
+        <!-- 否则显示纯文本 -->
+        <text wx:else class="prompt-content" user-select="{{true}}">{{sharedContent.input}}</text>
       </view>
       
       <!-- 点亮后的提示词部分 -->

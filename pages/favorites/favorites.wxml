@@ -65,7 +65,15 @@
         </view>
       </view>
       <view class="item-content">
-        <text class="content-preview">{{item.originalPrompt}}</text>
+        <!-- 如果包含图片,显示缩略图 -->
+        <view wx:if="{{item.parsedInput.hasImage}}" class="preview-with-image">
+          <image class="preview-image" 
+                 src="{{item.parsedInput.imageUrl}}" 
+                 mode="aspectFill"></image>
+          <text wx:if="{{item.parsedInput.text}}" class="content-preview">{{item.parsedInput.text}}</text>
+        </view>
+        <!-- 否则显示纯文本 -->
+        <text wx:else class="content-preview">{{item.originalPrompt}}</text>
       </view>
     </view>
   </scroll-view>
@@ -101,7 +109,20 @@
               <image src="/assets/icons/copy.png" mode="aspectFit"></image>
             </view>
           </view>
-          <text class="prompt-content" user-select="{{true}}">{{currentItem.originalPrompt}}</text>
+          
+          <!-- 如果包含图片,显示图片 -->
+          <view wx:if="{{currentItem.parsedInput.hasImage}}" class="input-with-image">
+            <image class="reference-image" 
+                   src="{{currentItem.parsedInput.imageUrl}}" 
+                   mode="aspectFit"
+                   show-menu-by-longpress="{{true}}"></image>
+            <text wx:if="{{currentItem.parsedInput.text}}" 
+                  class="prompt-content" 
+                  user-select="{{true}}">{{currentItem.parsedInput.text}}</text>
+          </view>
+          
+          <!-- 否则显示纯文本 -->
+          <text wx:else class="prompt-content" user-select="{{true}}">{{currentItem.originalPrompt}}</text>
         </view>
         
         <view class="prompt-section">

@@ -155,30 +155,62 @@ Page({
     });
   },
 
-  // 显示详情弹窗 - 集成智能提示词检测
+  // 解析原始提示词内容,支持图片格式: [图片描述] URL
+  parseInputContent: function(input) {
+    if (!input) return { hasImage: false, text: '', imageUrl: '', imageDesc: '' };
+    
+    // 匹配格式: [图片描述] URL
+    const imagePattern = /\[([^\]]+)\]\s+(https?:\/\/[^\s]+)/;
+    const match = input.match(imagePattern);
+    
+    if (match) {
+      return {
+        hasImage: true,
+        imageDesc: match[1],
+        imageUrl: match[2],
+        text: input.replace(imagePattern, '').trim() // 移除图片部分后的剩余文本
+      };
+    }
+    
+    return {
+      hasImage: false,
+      text: input,
+      imageUrl: '',
+      imageDesc: ''
+    };
+  },
+
+  // 显示详情弹窗
   showDetail(e) {
     const { index } = e.currentTarget.dataset;
     const currentItem = this.data.favorites[index];
     
-    // 智能提示词分析：尝试从内容中提取可复用的提示词
+    // 解析原始提示词中的图片
+    const parsedInput = this.parseInputContent(currentItem.originalPrompt);
+    currentItem.parsedInput = parsedInput;
+    
+    // 提取提示词（仅对生图/生视频类型的内容）
     const extractedPrompt = this.extractPromptFromContent(currentItem.optimizedPrompt);
     const hasExtractedPrompt = extractedPrompt.length > 0;
     
     // 为分享功能添加索引信息
     currentItem.index = index;
     
-    // 状态同步更新：一次性设置所有相关状态
     this.setData({
       showDetailModal: true,
       currentItem: currentItem,
+      // 设置快速复制相关状态
       extractedPrompt: extractedPrompt,
       showQuickCopy: hasExtractedPrompt,
       promptExtracted: hasExtractedPrompt
     });
     
-    // 开发调试信息
     if (hasExtractedPrompt) {
-      console.log('收藏内容中检测到可提取的提示词，长度:', extractedPrompt.length);
+      console.log('收藏中检测到可提取的提示词');
+    }
+    
+    if (parsedInput.hasImage) {
+      console.log('收藏中检测到图片:', parsedInput.imageUrl);
     }
   },
 
@@ -1319,6 +1351,7 @@ Page({
         hasValidShareId: true,
         hasHistoryMatch: false,
         originalPrompt: item.content,
+        parsedInput: this.parseInputContent(item.content), // 解析图片内容
         optimizedPrompt: item.response,
         formattedResult: this.formatResult(item.response),
         timestamp: date.getTime(),

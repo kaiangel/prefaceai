@@ -326,10 +326,39 @@ Page({
     });
   },
 
+  // 解析原始提示词内容,支持图片格式: [图片描述] URL
+  parseInputContent: function(input) {
+    if (!input) return { hasImage: false, text: '', imageUrl: '', imageDesc: '' };
+    
+    // 匹配格式: [图片描述] URL
+    const imagePattern = /\[([^\]]+)\]\s+(https?:\/\/[^\s]+)/;
+    const match = input.match(imagePattern);
+    
+    if (match) {
+      return {
+        hasImage: true,
+        imageDesc: match[1],
+        imageUrl: match[2],
+        text: input.replace(imagePattern, '').trim() // 移除图片部分后的剩余文本
+      };
+    }
+    
+    return {
+      hasImage: false,
+      text: input,
+      imageUrl: '',
+      imageDesc: ''
+    };
+  },
+
   // 显示详情弹窗
   showDetail(e) {
     const { index } = e.currentTarget.dataset;
     const currentItem = this.data.records[index];
+    
+    // 解析原始提示词中的图片
+    const parsedInput = this.parseInputContent(currentItem.input);
+    currentItem.parsedInput = parsedInput;
     
     // 尝试提取提示词（仅对生图/生视频类型的内容）
     const extractedPrompt = this.extractPromptFromContent(currentItem.result);
@@ -349,6 +378,10 @@ Page({
     
     if (hasExtractedPrompt) {
       console.log('历史记录中检测到可提取的提示词');
+    }
+    
+    if (parsedInput.hasImage) {
+      console.log('历史记录中检测到图片:', parsedInput.imageUrl);
     }
   },
 
@@ -771,6 +804,7 @@ Page({
               shareId: record.share_id || record.prompt_id,  // 使用share_id字段
               createTime: record.created_at.split(' ')[0],
               input: record.content,
+              parsedInput: this.parseInputContent(record.content), // 解析图片内容
               result: record.response,
               formattedResult: this.formatResult(record.response),
               isFavorite: record.is_fav === 1,

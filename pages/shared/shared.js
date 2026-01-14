@@ -188,6 +188,10 @@ Page({
             // 格式化收藏数据为标准格式
             const formattedItem = this.formatFavoriteRecord(targetFavorite);
             
+            // 解析原始提示词中的图片
+            const parsedInput = this.parseInputContent(formattedItem.input);
+            formattedItem.parsedInput = parsedInput;
+            
             // 提取提示词并设置快速复制状态
             const extractedPrompt = this.extractPromptFromContent(formattedItem.result);
             const hasExtractedPrompt = extractedPrompt.length > 0;
@@ -242,6 +246,10 @@ Page({
           console.log('成功获取分享内容:', record);
           
           const formattedItem = this.formatHistoryRecord(record);
+          
+          // 解析原始提示词中的图片
+          const parsedInput = this.parseInputContent(formattedItem.input);
+          formattedItem.parsedInput = parsedInput;
           
           // 提取提示词并设置快速复制状态
           const extractedPrompt = this.extractPromptFromContent(formattedItem.result);
@@ -976,6 +984,31 @@ Page({
     }
     
     return '';
+  },
+
+  // 解析原始提示词内容,支持图片格式: [图片描述] URL
+  parseInputContent: function(input) {
+    if (!input) return { hasImage: false, text: '', imageUrl: '', imageDesc: '' };
+    
+    // 匹配格式: [图片描述] URL
+    const imagePattern = /\[([^\]]+)\]\s+(https?:\/\/[^\s]+)/;
+    const match = input.match(imagePattern);
+    
+    if (match) {
+      return {
+        hasImage: true,
+        imageDesc: match[1],
+        imageUrl: match[2],
+        text: input.replace(imagePattern, '').trim() // 移除图片部分后的剩余文本
+      };
+    }
+    
+    return {
+      hasImage: false,
+      text: input,
+      imageUrl: '',
+      imageDesc: ''
+    };
   },
 
   // 返回首页

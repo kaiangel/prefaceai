@@ -308,7 +308,7 @@
           <!-- 右侧工具按钮组：快速复制 + 分享 + 全局复制 -->
           <view class="tool-buttons">
             <!-- 快速复制按钮（仅生图/生视频模型显示） -->
-            <view wx:if="{{showQuickCopy && (currentModelType === 'image' || currentModelType === 'video')}}" 
+            <view wx:if="{{showQuickCopy && (currentModelType === 'image' || currentModelType === 'video' ||inputMode === 'reference')}}" 
                   class="tool-button quick-copy-tool" 
                   bindtap="handleQuickCopyPrompt">
               <image class="tool-icon" src="https://cdn.duyueai.com/prompt/lightning.png" mode="aspectFit"></image>
@@ -347,41 +347,37 @@
               </text>
               
               <!-- 渲染内容 -->
-              <view class="section-content">
-                <block wx:for="{{item.content}}" wx:key="idx" wx:for-item="contentItem">
-                  
-                  <!-- 分割线 -->
-                  <view wx:if="{{contentItem.type === 'divider'}}" class="markdown-divider"></view>
-                  
-                  <!-- 引用块 -->
-                  <view wx:elif="{{contentItem.type === 'quote'}}" class="markdown-quote">
-                    <view class="quote-line"></view>
-                    <text class="quote-text" user-select="{{true}}">{{contentItem.text}}</text>
-                  </view>
-                  
-                  <!-- 普通文本（支持行内格式） -->
-                  <view wx:else class="content-line">
-                    <text class="content-text" user-select="{{true}}" space="nbsp">
-                      <!-- 如果有格式化内容，使用格式化渲染 -->
-                      <block wx:if="{{contentItem.formatted && contentItem.formatted.length > 0}}">
-                        <block wx:for="{{contentItem.formatted}}" wx:key="segIdx" wx:for-item="segment">
-                          <text wx:if="{{segment.type === 'normal'}}" user-select="{{true}}">{{segment.text}}</text>
-                          <text wx:elif="{{segment.type === 'bold'}}" class="markdown-bold" user-select="{{true}}">{{segment.text}}</text>
-                          <text wx:elif="{{segment.type === 'italic'}}" class="markdown-italic" user-select="{{true}}">{{segment.text}}</text>
-                          <text wx:elif="{{segment.type === 'special'}}" class="special-mark" user-select="{{true}}">{{segment.text}}</text>
-                        </block>
-                      </block>
-                      <!-- 否则直接显示原文本 -->
-                      <block wx:else user-select="{{true}}">{{contentItem.text}}</block>
-                    </text>
+               <view class="section-content">
+                  <block wx:for="{{item.content}}" wx:key="idx" wx:for-item="contentItem">
                     
-                    <!-- 打字光标 -->
-                    <text wx:if="{{index === result.sections.length-1 && idx === item.content.length-1 && showCursor && isGenerating}}" 
-                          class="typing-cursor"></text>
-                  </view>
-                  
-                </block>
-              </view>
+                    <!-- 分割线 -->
+                    <view wx:if="{{contentItem.type === 'divider'}}" class="markdown-divider"></view>
+                    
+                    <!-- 引用块 -->
+                    <view wx:elif="{{contentItem.type === 'quote'}}" class="markdown-quote">
+                      <view class="quote-line"></view>
+                      <text class="quote-text" user-select="{{true}}">{{contentItem.text}}</text>
+                    </view>
+                    
+                    <!-- 普通文本（支持行内格式） -->
+                    <view wx:else class="content-line">
+                      <text class="content-text" user-select="{{true}}" space="nbsp">
+                        <!-- 如果有格式化内容，使用格式化渲染 -->
+                        <block wx:if="{{contentItem.formatted && contentItem.formatted.length > 0}}">
+                          <block wx:for="{{contentItem.formatted}}" wx:key="segIdx" wx:for-item="segment">
+                            <text wx:if="{{segment.type === 'normal'}}" user-select="{{true}}">{{segment.text}}</text>
+                            <text wx:elif="{{segment.type === 'bold'}}" class="markdown-bold" user-select="{{true}}">{{segment.text}}</text>
+                            <text wx:elif="{{segment.type === 'italic'}}" class="markdown-italic" user-select="{{true}}">{{segment.text}}</text>
+                            <text wx:elif="{{segment.type === 'special'}}" class="special-mark" user-select="{{true}}">{{segment.text}}</text>
+                          </block>
+                        </block>
+                        <!-- 否则直接显示原文本 -->
+                        <block wx:else user-select="{{true}}">{{contentItem.text}}</block>
+                      </text>
+                    </view>
+                    
+                  </block>
+                </view>
             </view>
           </block>
         </view>

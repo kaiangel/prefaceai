@@ -311,6 +311,32 @@
   user-select: text;
 }
 
+/* 图片输入容器 */
+.input-with-image {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+/* 参考图片样式 */
+.reference-image {
+  width: 100%;
+  max-height: 400rpx;
+  border-radius: 12rpx;
+  background: #f5f5f5;
+}
+
+/* 图片描述文字 */
+.image-description {
+  font-size: 24rpx;
+  color: #666;
+  font-style: italic;
+  padding: 8rpx 12rpx;
+  background: rgba(67, 182, 146, 0.1);
+  border-radius: 8rpx;
+  border-left: 3rpx solid #43B692;
+}
+
 /* 富文本样式（复用历史页面样式） */
 .formatted-content {
   font-size: 28rpx;
@@ -411,3 +437,52 @@
   justify-content: center;
 }
 
+/* 快速复制按钮特殊样式 */
+.quick-copy-btn {
+  background: rgba(67, 182, 146, 0.1);
+  border-radius: 8rpx;
+  transition: all 0.2s ease;
+}
+
+.quick-copy-btn:active {
+  background: rgba(67, 182, 146, 0.2);
+  transform: scale(0.95);
+}
+
+/* 闪电图标的颜色处理 */
+.lightning-icon {
+  opacity: 0.8;
+  filter: invert(67%) sepia(13%) saturate(1200%) hue-rotate(118deg) brightness(89%) contrast(84%);
+}
+
+/* 确保copy-icon基础样式正确 */
+.copy-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+/* 标题和闪电按钮的组合容器 */
+.title-with-lightning {
+  display: flex;
+  align-items: center;
+  gap: 12rpx; /* 标题和闪电按钮之间的间距 */
+}
+
+/* 行内闪电按钮样式 - 更小更精致 */
+.inline-lightning {
+  background: rgba(67, 182, 146, 0.15);
+  border-radius: 6rpx;
+  padding: 8rpx; /* 比普通按钮更小的内边距 */
+  transition: all 0.2s ease;
+}
+
+.inline-lightning:active {
+  background: rgba(67, 182, 146, 0.25);
+  transform: scale(0.95);
+}
+
+/* 行内闪电按钮中的图标 - 稍微小一点 */
+.inline-lightning .copy-icon {
+  width: 28rpx; /* 比普通复制按钮稍小 */
+  height: 28rpx;
+}

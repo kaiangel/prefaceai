@@ -471,6 +471,7 @@ Page({
     this.setData({
       isGenerating: true,
       isGenerationActive: true,
+      showScrollArrow:true,
       fullContent: '',
       bufferContent: '',
       result: {
@@ -548,40 +549,29 @@ Page({
           }
           
           try {
-            const data = JSON.parse(jsonStr);
-            if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
-              const content = data.choices[0].delta.content;
-              
-              // 追加内容到fullContent
-              const newFullContent = this.data.fullContent + content;
-              this.setData({
-                fullContent: newFullContent
-              });
-              
-              // 更新显示结果
-              const currentResult = this.data.result;
-              const lastSection = currentResult.sections[currentResult.sections.length - 1];
-              
-              if (lastSection.content.length === 0) {
-                lastSection.content.push({
-                  type: 'text',
-                  text: content
-                });
-              } else {
-                const lastContent = lastSection.content[lastSection.content.length - 1];
-                lastContent.text += content;
-              }
-              
-              this.setData({
-                result: currentResult
-              });
-            }
-          } catch (e) {
-            console.error('解析SSE数据失败:', e, jsonStr);
+          const data = JSON.parse(jsonStr);
+          if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
+            const content = data.choices[0].delta.content;
+            
+            // 追加内容到fullContent
+            const newFullContent = this.data.fullContent + content;
+            
+            // 🔑 使用 formatResult 进行 Markdown 格式化
+            const formattedResult = this.formatResult(newFullContent);
+            
+            this.setData({
+              fullContent: newFullContent,
+              result: formattedResult  // 使用格式化后的结果
+            });
+            
+            this.checkPromptExtraction(newFullContent);
           }
+        } catch (e) {
+          console.error('解析SSE数据失败:', e, jsonStr);
         }
-      });
+      }
     });
+  });
     
     // 保存请求任务
     this.setData({
@@ -2012,7 +2002,7 @@ Page({
   },
 
   // 添加缺失的结果格式化方法
-  formatResult: function(rawResult) {
+   formatResult(rawResult) {
     if (!rawResult || rawResult.trim() === '') {
       return { sections: [] };
     }
