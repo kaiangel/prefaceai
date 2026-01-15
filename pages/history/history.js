@@ -76,14 +76,16 @@ Page({
       // 解析模型标签，将风格用括号包裹
       const modelParts = item.modelLabel.split(' - ');
       let formattedModel = item.modelLabel;
+      const [scene, model, style] = modelParts;
       if (modelParts.length >= 3) {
         // 格式：场景 - 模型 - 风格 -> 模型场景（风格）
-        const [scene, model, style] = modelParts;
         formattedModel = `${model}${scene}（${style}）`;
       }
 
-      const shareTitle = `分享的灵感 - ${shortPrompt} - ${formattedModel}`;
-
+      let shareTitle = `分享的灵感 - ${shortPrompt} - ${formattedModel}`;
+      if(scene=="图生文"){
+        shareTitle  = `GPT Image生图`;
+      }
       return {
         title: shareTitle,
         path: sharePath,

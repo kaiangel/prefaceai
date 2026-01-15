@@ -51,7 +51,7 @@ const utf8Decode = function(uint8Array) {
     return String.fromCharCode.apply(null, uint8Array);
   }
 };
-console.log('🔧 已加载UTF8解码工具函数，支持微信小程序真机环境');
+// console.log('🔧 已加载UTF8解码工具函数，支持微信小程序真机环境');
 // 日志管理器
 const LogManager = {
   // 记录已输出的日志，避免重复
@@ -65,9 +65,9 @@ const LogManager = {
     if (!this.loggedMessages.has(message)) {
       this.loggedMessages.add(message); // 修复了这里的bug，应该是add而不是has
       if (data !== undefined) {
-        console.log(message, data);
+        // console.log(message, data);
       } else {
-        console.log(message);
+        // console.log(message);
       }
       return true;
     }
@@ -81,9 +81,7 @@ const LogManager = {
         this.chunkCounter === 5 || 
         this.chunkCounter % 10 === 0) {
       
-      console.log(`接收数据块 #${this.chunkCounter}: ${
-        text.length > 50 ? text.substring(0, 50) + '...' : text
-      }`);
+      
     }
     this.chunkCounter++;
   },
@@ -92,7 +90,7 @@ const LogManager = {
   reset: function() {
     this.loggedMessages.clear();
     this.chunkCounter = 0;
-    console.log("开始新的生成...");
+    // console.log("开始新的生成...");
   },
   
   // 添加错误记录方法
@@ -135,7 +133,6 @@ Page({
     debugMode: false,  // 设置为true时会输出更多日志
     currentModelType: 'text', // 'text', 'image', 'video'
     currentModel: 'non-reasoning', // 默认选择推理模型
-
     keyboardActive: false,
     // 新增：输入框准备状态跟踪
     inputReady: true,  // 标记输入框是否已经完全准备好（避免焦点事件中的异步干扰）
@@ -252,7 +249,7 @@ Page({
     this.setData({
         currentStyle: styleId
     });
-    console.log('切换到风格:', styleId);
+    // console.log('切换到风格:', styleId);
 
     this.updateCurrentSelectionText(); // ✅ 在每个切换方法的最后添加
   },
@@ -315,7 +312,7 @@ Page({
 
   // 2. 检查当前是否为生图或生视频模型
   isImageOrVideoModel: function() {
-    return this.data.currentModelType === 'image' || this.data.currentModelType === 'video';
+    return this.data.currentModelType === 'image' || this.data.currentModelType === 'video'||this.data.inputMode=='reference' ;
   },
 
   // 3. 重置快速复制相关状态
@@ -378,7 +375,7 @@ Page({
   // 新增：切换输入模式
   switchInputMode: function(e) {
     const mode = e.currentTarget.dataset.mode;
-    console.log('切换输入模式:', mode);
+    // console.log('切换输入模式:', mode);
     
     // 重置所有状态
     this.setData({
@@ -397,7 +394,7 @@ Page({
     
     // 如果切换到参考模式,重置组件
     if (mode === 'reference') {
-      console.log('已切换到参考模式,重置组件');
+      // console.log('已切换到参考模式,重置组件');
       // 延迟执行,确保组件已渲染
       setTimeout(() => {
         const referenceInput = this.selectComponent('#referenceInput');
@@ -406,14 +403,14 @@ Page({
         }
       }, 100);
     } else {
-      console.log('已切换到想法模式');
+      // console.log('已切换到想法模式');
     }
   },
 
   // 新增：处理参考图片选择
   onReferenceImageSelected: function(e) {
     const imagePath = e.detail.imagePath;
-    console.log('参考图片已选择:', imagePath);
+    // console.log('参考图片已选择:', imagePath);
     
     this.setData({
       referenceImage: imagePath
@@ -423,19 +420,19 @@ Page({
   // 新增：处理图片上传完成
   onReferenceImageUploaded: function(e) {
     const imageUrl = e.detail.imageUrl;
-    console.log('图片上传成功,URL:', imageUrl);
+    // console.log('图片上传成功,URL:', imageUrl);
     
     // 只保存URL,不自动生成描述
     this.setData({
       referenceImageUrl: imageUrl
     });
     
-    console.log('等待用户点击"点亮灵感"按钮');
+    // console.log('等待用户点击"点亮灵感"按钮');
   },
 
   // 新增：处理参考图片移除
   onReferenceImageRemoved: function() {
-    console.log('参考图片已移除');
+    // console.log('参考图片已移除');
     
     this.setData({
       referenceImage: ''
@@ -445,7 +442,7 @@ Page({
   // 新增：处理参考模式输入变化
   onReferenceInputChange: function(e) {
     const text = e.detail.text;
-    console.log('参考模式输入变化:', text);
+    // console.log('参考模式输入变化:', text);
     
     this.setData({
       referenceText: text
@@ -454,7 +451,7 @@ Page({
 
   // 生成图片描述(SSE流式)
   generateImageDescription: function(imageUrl, content = '') {
-    console.log('开始生成图片描述,imageUrl:', imageUrl, 'content:', content);
+    // console.log('开始生成图片描述,imageUrl:', imageUrl, 'content:', content);
     
     // 获取openid
     const openid = wx.getStorageSync('token');
@@ -465,15 +462,22 @@ Page({
       url += `&content=${encodeURIComponent(content)}`;
     }
     
-    console.log('请求URL:', url);
+    // console.log('请求URL:', url);
+    
+    // 🔑 生成会话ID，用于appendToBuffer验证
+    const sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_img_desc';
+    console.log('🚀 开始图片描述生成会话:', sessionId);
     
     // 初始化状态
     this.setData({
-      isGenerating: true,
+      generationSessionId: sessionId,  // 🔑 添加会话ID
       isGenerationActive: true,
+      lastStateChangeTime: Date.now(),
+      isGenerating: true,
       showScrollArrow:true,
       fullContent: '',
       bufferContent: '',
+      isTyping: false,  // 🔑 重置打字状态
       result: {
         sections: [{
           title: '',
@@ -482,15 +486,25 @@ Page({
         }]
       },
       showResult: true,
-      showCursor: true
+      showCursor: true,
+      streamEndSignal: false,
+      currentRequestTask: null,
+      lineBuffer: '',
+      isCompletelyTerminated: false,
+      userInitiatedStop: false  // 🔑 重置用户停止标记
     });
+    
+    // 重置跟踪变量
+    this.hasReceivedAnyContent = false;
+    this.lastDataReceivedTime = Date.now();
+    this.pendingBuffer = '';
     
     // 设置超时检测
     let lastDataTime = Date.now();
     const timeoutChecker = setInterval(() => {
       const now = Date.now();
       if (now - lastDataTime > 30000) { // 30秒无数据
-        console.log('⏰ 30秒无数据,强制结束生成');
+        // console.log('⏰ 30秒无数据,强制结束生成');
         clearInterval(timeoutChecker);
         this.completeImageDescriptionGeneration();
       }
@@ -502,7 +516,7 @@ Page({
       method: 'GET',
       enableChunked: true,
       success: (res) => {
-        console.log('SSE请求完成,状态码:', res.statusCode);
+        // console.log('SSE请求完成,状态码:', res.statusCode);
         clearInterval(timeoutChecker);
         // 延迟一点确保所有数据都处理完
         setTimeout(() => {
@@ -523,6 +537,7 @@ Page({
         });
       }
     });
+      let  a =''
     
     // 监听数据块
     let buffer = '';
@@ -535,14 +550,13 @@ Page({
       // 处理SSE数据
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
-      
       lines.forEach(line => {
         if (line.startsWith('data: ')) {
           const jsonStr = line.substring(6).trim();
           
           // 检查是否是结束信号
           if (jsonStr === '[DONE]') {
-            console.log('✅ 收到[DONE]信号');
+            // console.log('✅ 收到[DONE]信号');
             clearInterval(timeoutChecker);
             this.completeImageDescriptionGeneration();
             return;
@@ -550,21 +564,12 @@ Page({
           
           try {
           const data = JSON.parse(jsonStr);
+          
           if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
             const content = data.choices[0].delta.content;
-            
-            // 追加内容到fullContent
-            const newFullContent = this.data.fullContent + content;
-            
-            // 🔑 使用 formatResult 进行 Markdown 格式化
-            const formattedResult = this.formatResult(newFullContent);
-            
-            this.setData({
-              fullContent: newFullContent,
-              result: formattedResult  // 使用格式化后的结果
-            });
-            
-            this.checkPromptExtraction(newFullContent);
+          
+            this.appendToBuffer(content);
+          
           }
         } catch (e) {
           console.error('解析SSE数据失败:', e, jsonStr);
@@ -581,7 +586,7 @@ Page({
 
   // 完成图片描述生成
   completeImageDescriptionGeneration: function() {
-    console.log('✅ 完成图片描述生成');
+    // console.log('✅ 完成图片描述生成');
     
     // 更新UI状态
     this.setData({
@@ -593,13 +598,13 @@ Page({
       contentReceiveComplete: true
     });
     
-    console.log('🎉 图片描述生成完成,内容长度:', this.data.fullContent.length);
+    // console.log('🎉 图片描述生成完成,内容长度:', this.data.fullContent.length);
     
     // 🔑 设置保存中状态
     this.setData({
       isSaving: true
     });
-    console.log('📝 开始保存图片描述历史记录...');
+    // console.log('📝 开始保存图片描述历史记录...');
     
     // 更新剩余次数
     const app = getApp();
@@ -616,7 +621,7 @@ Page({
         // 调用保存历史记录方法
         await this.saveHistoryRecord(tempId);
         
-        console.log('✅ 图片描述历史记录保存成功');
+        // console.log('✅ 图片描述历史记录保存成功');
         
         // 延迟获取真实ID
         setTimeout(async () => {
@@ -625,7 +630,7 @@ Page({
             if (historyId) {
               const formattedId = app.formatPromptId(historyId);
               if (formattedId) {
-                console.log('✅ 成功获取历史ID:', formattedId);
+                // console.log('✅ 成功获取历史ID:', formattedId);
                 this.setData({ 
                   currentPromptId: formattedId 
                 });
@@ -676,15 +681,15 @@ Page({
   logDebug: function(message, data) {
     if (this.data.debugMode) {
       if (data) {
-        console.log(message, data);
+        // console.log(message, data);
       } else {
-        console.log(message);
+        // console.log(message);
       }
     }
   },
 
   onLoad() {
-    console.log('页面开始加载');
+    // console.log('页面开始加载');
     
     // 第一阶段：基础组件初始化
     this.navbar = this.selectComponent('#navbar');
@@ -725,7 +730,7 @@ Page({
         
         // 只恢复5分钟内保存的内容
         if (timeDiff < 5 * 60 * 1000) {
-          console.log('💾 恢复保存的内容，时间差:', Math.round(timeDiff/1000) + 's');
+          // console.log('💾 恢复保存的内容，时间差:', Math.round(timeDiff/1000) + 's');
           
           // 恢复内容
           this.setData(preservedData);
@@ -747,7 +752,7 @@ Page({
   
   // 新增：确保输入框准备就绪的方法
   ensureInputReady: function() {
-    console.log('确保输入框准备就绪');
+    // console.log('确保输入框准备就绪');
     
     // 通过查询输入框来"激活"它
     const query = wx.createSelectorQuery();
@@ -758,7 +763,7 @@ Page({
     });
     query.exec((res) => {
       if (res && res[0]) {
-        console.log('输入框已准备就绪:', res[0]);
+        // console.log('输入框已准备就绪:', res[0]);
         // 设置一个内部标记，表示输入框已经准备好
         this.setData({
           inputReady: true
@@ -771,7 +776,7 @@ Page({
   performModelVisibilityCheck: function() {
     // 检查默认模型是否可见，如果不可见则自动切换
     if (this.data.currentModel === 'midjourney' && !this.data.modelVisibility.midjourney) {
-      console.log('自动切换：Midjourney已隐藏，切换到GPT Image');
+      // console.log('自动切换：Midjourney已隐藏，切换到GPT Image');
       this.setData({
         currentModel: 'GPT Image',
         currentPlaceholder: this.data.modelPlaceholders['GPT Image']
@@ -779,7 +784,7 @@ Page({
     }
   
     if (this.data.currentModel === 'hunyuan' && !this.data.modelVisibility.hunyuan) {
-      console.log('自动切换：腾讯混元已隐藏，切换到可灵AI');
+      // console.log('自动切换：腾讯混元已隐藏，切换到可灵AI');
       this.setData({
         currentModel: 'keling',
         currentPlaceholder: this.data.modelPlaceholders['keling']
@@ -788,7 +793,7 @@ Page({
   },
 
   onShow() {
-    console.log('页面显示');
+    // console.log('页面显示');
     
     // 页面显示时也检查登录状态，处理从其他页面返回的情况
     this.checkInitialLoginStatus();
@@ -814,7 +819,7 @@ Page({
     if (typeof this.getTabBar === 'function') {
       const tabBar = this.getTabBar();
       if (tabBar) {
-        console.log('设置首页TabBar状态，索引:', index);
+        // console.log('设置首页TabBar状态，索引:', index);
         tabBar.setSelectedIndex(index);
       } else {
         console.warn('TabBar组件未找到');
@@ -824,56 +829,56 @@ Page({
 
   // 修改onUnload方法，清理所有定时器
   onUnload() {
-    console.log('页面卸载，开始清理所有资源');
+    // console.log('页面卸载，开始清理所有资源');
     
     // 🔑 修复：清理会话终止黑名单的正确方式
     if (this.terminatedSessions) {
       this.terminatedSessions.clear();
       this.terminatedSessions = null;
-      console.log('页面卸载，清理会话终止黑名单');
+      // console.log('页面卸载，清理会话终止黑名单');
     }
 
     // 🔑 新增：清理打字暂停定时器
     if (this.typingPauseTimer) {
-      console.log('页面卸载，清理打字暂停定时器');
+      // console.log('页面卸载，清理打字暂停定时器');
       clearTimeout(this.typingPauseTimer);
       this.typingPauseTimer = null;
     }
 
     // 🔧 关键修复：清理状态守护机制
     if (this.stateGuardTimer) {
-      console.log('页面卸载，清理状态守护定时器');
+      // console.log('页面卸载，清理状态守护定时器');
       clearInterval(this.stateGuardTimer);
       this.stateGuardTimer = null;
     }
     
     if (this.data.typingTimer) {
-      console.log('页面卸载，清理打字定时器');
+      // console.log('页面卸载，清理打字定时器');
       clearTimeout(this.data.typingTimer);
       this.data.typingTimer = null;
     }
     
     // 清理统一完成检查定时器
     if (this.unifiedCompletionTimer) {
-      console.log('页面卸载，清理统一完成检查定时器');
+      // console.log('页面卸载，清理统一完成检查定时器');
       clearInterval(this.unifiedCompletionTimer);
       this.unifiedCompletionTimer = null;
     }
     
     if (this.dataCompletionTimer) {
-      console.log('页面卸载，清理数据完成检查定时器');
+      // console.log('页面卸载，清理数据完成检查定时器');
       clearInterval(this.dataCompletionTimer);
       this.dataCompletionTimer = null;
     }
     
     if (this.safetyTimer) {
-      console.log('页面卸载，清理安全定时器');
+      // console.log('页面卸载，清理安全定时器');
       clearTimeout(this.safetyTimer);
       this.safetyTimer = null;
     }
     
     if (this.data.currentRequestTask) {
-      console.log('页面卸载，中止请求');
+      // console.log('页面卸载，中止请求');
       this.data.currentRequestTask.abort();
       this.data.currentRequestTask = null;
     }
@@ -887,7 +892,7 @@ Page({
     this.hasReceivedAnyContent = null;
     this.outsideClickHandler = null;
     
-    console.log('页面卸载清理完成');
+    // console.log('页面卸载清理完成');
   },
 
   // 焦点保护机制 - 在布局调整过程中保护输入框焦点
@@ -906,7 +911,7 @@ Page({
 
   // 新增：输入框准备完成事件处理
   //   onInputReady: function(e) {
-  //     console.log('输入框组件已准备完成');
+  //     // console.log('输入框组件已准备完成');
   //     this.setData({
   //       inputReady: true
   //     });
@@ -914,11 +919,11 @@ Page({
 
   // 修改现有的onInputFocus方法
   onInputFocus: function(e) {
-    console.log('输入框获得焦点，启动外部点击监听');
+    // console.log('输入框获得焦点，启动外部点击监听');
     
     // 🔑 修复：如果页面正在初始化，延迟处理
     if (this.pageInitializing) {
-      console.log("页面正在初始化，延迟处理焦点事件");
+      // console.log("页面正在初始化，延迟处理焦点事件");
       setTimeout(() => {
         if (!this.pageInitializing) {
           this.onInputFocus(e);
@@ -928,7 +933,7 @@ Page({
     }    
     // 输入框现在在初始化时就设置为准备好，避免异步干扰焦点事件
     //     if (!this.data.inputReady) {
-    //       console.log('输入框尚未准备好，异步执行准备检查');
+    //       // console.log('输入框尚未准备好，异步执行准备检查');
     //       // 延迟执行DOM查询，避免阻塞焦点事件
     //       setTimeout(() => {
     //         this.ensureInputReady();
@@ -965,7 +970,7 @@ Page({
 
   // 同时修改onInputBlur方法，重置光标位置
   onInputBlur: function(e) {
-    console.log('输入框失去焦点，停止外部点击监听');
+    // console.log('输入框失去焦点，停止外部点击监听');
     
     // 重置光标位置为不设置状态
     this.setData({
@@ -993,7 +998,7 @@ Page({
 
   // 启用外部点击捕获 - 当输入框获得焦点时调用
   enableOutsideClickCapture: function() {
-    console.log('启用外部点击捕获机制');
+    // console.log('启用外部点击捕获机制');
     
     // 为页面容器添加点击事件监听
     // 注意：这里我们使用capture模式来确保能够捕获到点击事件
@@ -1013,7 +1018,7 @@ Page({
 
   // 禁用外部点击捕获 - 当输入框失去焦点时调用
   disableOutsideClickCapture: function() {
-    console.log('禁用外部点击捕获机制');
+    // console.log('禁用外部点击捕获机制');
     
     // 清理事件监听器引用
     this.outsideClickHandler = null;
@@ -1026,15 +1031,15 @@ Page({
 
   // 处理外部点击事件的核心逻辑
   handleOutsideClick: function(e) {
-    console.log('检测到外部点击事件');
+    // console.log('检测到外部点击事件');
     
     // 确保当前确实在输入状态且应该响应外部点击
     if (!this.data.shouldCaptureOutsideClicks || !this.data.isInputFocused) {
-      console.log('当前状态不需要处理外部点击');
+      // console.log('当前状态不需要处理外部点击');
       return;
     }
     
-    console.log('执行输入框失焦操作');
+    // console.log('执行输入框失焦操作');
     
     // 🔑 修复：使用DOM查询直接让textarea失焦
     const query = wx.createSelectorQuery();
@@ -1046,10 +1051,10 @@ Page({
       if (res && res[0] && res[0].node) {
         // 直接调用blur方法让textarea失焦
         res[0].node.blur();
-        console.log('已通过DOM操作让输入框失焦');
+        // console.log('已通过DOM操作让输入框失焦');
       } else {
         // 备用方案：手动触发blur状态更新
-        console.log('使用备用方案触发失焦');
+        // console.log('使用备用方案触发失焦');
         this.setData({
           isInputFocused: false,
           keyboardActive: false,
@@ -1090,7 +1095,7 @@ Page({
   // 防止输入区域的点击触发外部点击处理
   // 🔑 新增：简单的阻止冒泡方法
   stopPropagation: function(e) {
-    console.log("✋ 输入区域被点击，阻止事件冒泡");
+    // console.log("✋ 输入区域被点击，阻止事件冒泡");
     // 仅阻止事件冒泡，不做其他处理
     // 这样点击输入区域不会触发外部点击处理
     e.stopPropagation && e.stopPropagation();
@@ -1099,14 +1104,11 @@ Page({
 
   // 🔑 简化的页面点击处理方法
   handlePageClick: function(e) {
-    console.log('🔍 页面被点击', {
-      keyboardActive: this.data.keyboardActive,
-      isInputFocused: this.data.isInputFocused
-    });
+  
     
     // 如果键盘已激活，直接收起键盘
     if (this.data.keyboardActive && this.data.isInputFocused) {
-      console.log('🎯 执行键盘收起操作');
+      // console.log('🎯 执行键盘收起操作');
       
       // 🔑 关键修复：手动触发onInputBlur事件
       this.onInputBlur({ detail: { value: this.data.inputText } });
@@ -1114,24 +1116,24 @@ Page({
   },
 
   preventOutsideClickOnInput: function(e) {
-    console.log('输入区域被点击，阻止外部点击处理');
+    // console.log('输入区域被点击，阻止外部点击处理');
     // 这个方法的存在本身就足够了，它会阻止事件冒泡
     // 无需额外的处理逻辑
   },
   
   // 🔑 添加缺失的键盘高度监听方法
   onKeyboardHeightChange: function(e) {
-    console.log("键盘高度变化:", e.detail.height);
+    // console.log("键盘高度变化:", e.detail.height);
     const keyboardHeight = e.detail.height;
     
     if (keyboardHeight > 0) {
-      console.log("键盘弹出，高度:", keyboardHeight);
+      // console.log("键盘弹出，高度:", keyboardHeight);
       this.setData({
         keyboardActive: true,
         keyboardHeight: keyboardHeight
       });
     } else {
-      console.log("键盘收起");
+      // console.log("键盘收起");
       this.setData({
         keyboardActive: false,
         keyboardHeight: 0
@@ -1141,11 +1143,11 @@ Page({
 
   // 🛑 新增：处理停止生成的方法
   handleStopGeneration: function() {
-    console.log('🛑 用户点击停止生成按钮');
+    // console.log('🛑 用户点击停止生成按钮');
     
     // 检查是否正在生成
     if (!this.data.isGenerating) {
-      console.log('⚠️ 当前没有正在进行的生成任务');
+      // console.log('⚠️ 当前没有正在进行的生成任务');
       return;
     }
 
@@ -1155,7 +1157,7 @@ Page({
         this.terminatedSessions = new Set();
       }
       this.terminatedSessions.add(this.data.generationSessionId);
-      console.log('🚫 会话已加入终止黑名单:', this.data.generationSessionId);
+      // console.log('🚫 会话已加入终止黑名单:', this.data.generationSessionId);
     }
 
     // 设置停止标记
@@ -1169,7 +1171,7 @@ Page({
     if (this.data.currentRequestTask) {
       try {
         this.data.currentRequestTask.abort();
-        console.log('✅ 已中止当前请求');
+        // console.log('✅ 已中止当前请求');
       } catch (e) {
         console.error('中止请求失败:', e);
       }
@@ -1178,7 +1180,7 @@ Page({
 
     // 清理所有定时器
     this.clearAllTimers();
-    console.log('✅ 已清理所有定时器');
+    // console.log('✅ 已清理所有定时器');
 
     // 清理打字相关状态
     if (this.data.typingTimer) {
@@ -1193,7 +1195,7 @@ Page({
 
     // 处理剩余缓冲内容（如果有的话）
     if (this.data.bufferContent.length > 0) {
-      console.log('📝 处理剩余缓冲内容，长度:', this.data.bufferContent.length);
+      // console.log('📝 处理剩余缓冲内容，长度:', this.data.bufferContent.length);
       const finalContent = this.data.fullContent + this.data.bufferContent;
       this.setData({
         fullContent: finalContent,
@@ -1213,7 +1215,7 @@ Page({
       contentReceiveComplete: true
     });
 
-    console.log('🎉 生成已停止，最终内容长度:', this.data.fullContent.length);
+    // console.log('🎉 生成已停止，最终内容长度:', this.data.fullContent.length);
 
     // 显示提示
     wx.showToast({
@@ -1223,7 +1225,7 @@ Page({
     });
 
     // 🔑 手动停止时不保存历史记录
-    console.log('⚠️ 用户手动停止，不保存内容到历史记录');
+    // console.log('⚠️ 用户手动停止，不保存内容到历史记录');
 
     // 显示滚动箭头
     setTimeout(() => {
@@ -1236,26 +1238,26 @@ Page({
   // 1. 修改 startTypingEffect 方法中的打字暂停逻辑
   startTypingEffect: function() {
     if (!this.data.generationSessionId) {
-      console.log('🔤 无有效生成会话，跳过打字效果');
+      // console.log('🔤 无有效生成会话，跳过打字效果');
       return;
     }
 
     if (this.data.isTyping) {
-      console.log('🔤 打字效果已在运行，跳过启动');
+      // console.log('🔤 打字效果已在运行，跳过启动');
       return;
     }
     
     if (this.data.shouldStopGeneration || this.data.userInitiatedStop) {
-      console.log('🛑 检测到停止信号，禁止启动打字效果');
+      // console.log('🛑 检测到停止信号，禁止启动打字效果');
       return;
     }
     
     if (this.data.bufferContent.length === 0) {
-      console.log('📝 缓冲区为空，暂无内容进行打字显示');
+      // console.log('📝 缓冲区为空，暂无内容进行打字显示');
       return;
     }
     
-    console.log('🚀 启动打字效果，缓冲区内容长度:', this.data.bufferContent.length);
+    // console.log('🚀 启动打字效果，缓冲区内容长度:', this.data.bufferContent.length);
 
     this.setData({ 
       isTyping: true,
@@ -1265,14 +1267,13 @@ Page({
     
     const typeNextChar = () => {
       if (this.data.shouldStopGeneration || this.data.userInitiatedStop) {
-        console.log('🛑 打字过程中检测到停止信号，终止打字');
+        // console.log('🛑 打字过程中检测到停止信号，终止打字');
         this.setData({ 
           isTyping: false,
           showCursor: false 
         });
         return;
       }
-      
       if (this.data.bufferContent.length > 0) {
         // 正常打字逻辑
         const char = this.data.bufferContent.charAt(0);
@@ -1311,7 +1312,7 @@ Page({
         
       } else {
         // 🎯 关键修改：打字暂停逻辑
-        console.log('📝 打字暂停 - 缓冲区为空，启动6.8秒完成检测');
+        // console.log('📝 打字暂停 - 缓冲区为空，启动6.8秒完成检测');
         
         this.setData({ 
           isTyping: false,
@@ -1330,7 +1331,7 @@ Page({
   startTypingPauseCompletion: function(retryCount = 0) {
     // 动态等待时间：首次6.8秒，之后每次重试增加2秒，最多12秒
     const waitTime = retryCount === 0 ? 6800 : Math.min(6800 + retryCount * 2000, 12000);
-    console.log(`⏰ 启动打字暂停完成检测 (${waitTime/1000}秒倒计时) - 重试次数: ${retryCount}`);
+    // console.log(`⏰ 启动打字暂停完成检测 (${waitTime/1000}秒倒计时) - 重试次数: ${retryCount}`);
     
     // 清除可能存在的旧检测定时器
     if (this.typingPauseTimer) {
@@ -1349,19 +1350,11 @@ Page({
       const hasNewContent = currentContentLength > pauseContentLength;
       const hasBufferContent = this.data.bufferContent.length > 0;
       const wasStoppedByUser = this.data.userInitiatedStop || this.data.shouldStopGeneration;
-      
-      console.log(`⏰ ${waitTime/1000}秒打字暂停检测结果:`, {
-        hasNewContent,
-        hasBufferContent,
-        wasStoppedByUser,
-        contentLength: currentContentLength,
-        timePassed: Math.round((currentTime - pauseStartTime) / 1000) + 's',
-        retryCount
-      });
+  
       
       if (hasNewContent || hasBufferContent) {
         // 有新内容，恢复打字
-        console.log('🔄 检测到新内容，恢复打字效果');
+        // console.log('🔄 检测到新内容，恢复打字效果');
         if (!this.data.isTyping && !wasStoppedByUser) {
           this.startTypingEffect();
         }
@@ -1369,15 +1362,15 @@ Page({
         // 没有新内容且未被用户停止
         if (retryCount < 2 && currentContentLength < 100) {
           // 内容少于100字符且重试次数小于2，继续重试
-          console.log(`⏳ 内容较少(${currentContentLength}字符)，进行第${retryCount + 1}次重试`);
+          // console.log(`⏳ 内容较少(${currentContentLength}字符)，进行第${retryCount + 1}次重试`);
           this.startTypingPauseCompletion(retryCount + 1);
         } else {
           // 内容足够或超过重试次数，执行完成
-          console.log(`✅ 检测完成 - 内容长度: ${currentContentLength}，重试次数: ${retryCount}`);
+          // console.log(`✅ 检测完成 - 内容长度: ${currentContentLength}，重试次数: ${retryCount}`);
           this.completeGenerationFromTypingPause();
         }
       } else {
-        console.log('⏳ 打字暂停检测：生成已停止或被用户终止');
+        // console.log('⏳ 打字暂停检测：生成已停止或被用户终止');
       }
       
       // 清理定时器引用
@@ -1387,7 +1380,7 @@ Page({
 
   // 3. 新增：从打字暂停触发的完成方法
   completeGenerationFromTypingPause: function() {
-    console.log('🎯 从打字暂停触发完成生成');
+    // console.log('🎯 从打字暂停触发完成生成');
     
     // 清理打字暂停定时器
     if (this.typingPauseTimer) {
@@ -1416,8 +1409,8 @@ Page({
       
       // 确保提取的内容有足够长度且不为空
       if (extractedPrompt.length > 30) {
-        console.log('✅ 成功提取完整提示词，长度:', extractedPrompt.length);
-        console.log('提示词预览:', extractedPrompt.substring(0, 100) + '...');
+        // console.log('✅ 成功提取完整提示词，长度:', extractedPrompt.length);
+        // console.log('提示词预览:', extractedPrompt.substring(0, 100) + '...');
         
         this.setData({
           extractedPrompt: extractedPrompt,
@@ -1471,29 +1464,29 @@ Page({
   appendToBuffer: function(text) {
     // 🔑 新增：检查会话ID有效性，防止处理已终止会话的数据
     if (this.terminatedSessions && this.terminatedSessions.has(this.data.generationSessionId)) {
-      console.log('🚫 检测到已终止会话的数据，直接丢弃:', this.data.generationSessionId);
+       console.log('🚫 检测到已终止会话的数据，直接丢弃:', this.data.generationSessionId);
       return;
     }
 
     // 🔑 新增：检查完全终止标记
     if (this.data.isCompletelyTerminated) {
-      console.log('🛑 appendToBuffer检测到终止标记，丢弃数据');
+   console.log('🛑 appendToBuffer检测到终止标记，丢弃数据');
       return;
     }
 
     // 🔑 新增：检查会话ID是否存在，无会话ID的数据一律丢弃
     if (!this.data.generationSessionId) {
-      console.log('🚫 无有效会话ID，丢弃数据');
+    console.log('🚫 无有效会话ID，丢弃数据');
       return;
     }
 
     const now = Date.now();
-    console.log('📨 接收数据，更新时间戳:', now, '内容长度:', text.length);
+//     console.log('📨 接收数据，更新时间戳:', now, '内容长度:', text.length);
     
     // 首次接收内容标记，取消超时检查
     if (!this.hasReceivedAnyContent) {
       this.hasReceivedAnyContent = true;
-      console.log('✅ 首次接收到内容，取消超时检查');
+       console.log('✅ 首次接收到内容，取消超时检查');
     }
 
     // 更新时间戳（这个必须立即更新）
@@ -1515,11 +1508,11 @@ Page({
     // 2. 否则等待30ms批量处理，提高响应性和性能的平衡
     const isFirstContent = this.data.fullContent === '' && this.data.bufferContent === '';
     if (isFirstContent || this.pendingBuffer.length >= 8) {
-      console.log('📦 立即处理缓冲内容，长度:', this.pendingBuffer.length);
+//       console.log('📦 立即处理缓冲内容，长度:', this.pendingBuffer.length);
       this.flushPendingBuffer();
     } else {
       this.bufferFlushTimer = setTimeout(() => {
-        console.log('📦 批量处理缓冲内容，长度:', this.pendingBuffer.length);
+        // console.log('📦 批量处理缓冲内容，长度:', this.pendingBuffer.length);
         this.flushPendingBuffer();
       }, 30);
     }
@@ -1527,6 +1520,7 @@ Page({
 
   // 新增的 flushPendingBuffer 方法 - 批量刷新缓冲区
   flushPendingBuffer: function() {
+    console.log('🚿 [Flush] 开始flush, pendingBuffer长度:', this.pendingBuffer ? this.pendingBuffer.length : 0);
     if (!this.pendingBuffer) return;
     
     // 清理定时器引用
@@ -1539,6 +1533,8 @@ Page({
     const newBufferContent = this.data.bufferContent + this.pendingBuffer;
     const isFirstContent = this.data.fullContent === '' && this.data.bufferContent === '';
     
+    console.log('🚿 [Flush] 合并后bufferContent长度:', newBufferContent.length, 'isFirstContent:', isFirstContent);
+    
     // 批量更新状态，减少渲染次数
     this.setData({
       bufferContent: newBufferContent,
@@ -1550,7 +1546,7 @@ Page({
     
     // 🔑 打字暂停恢复逻辑：如果正在等待打字暂停完成，取消等待并立即恢复
     if (this.typingPauseTimer) {
-      console.log('🔄 新数据到达，取消打字暂停等待，立即恢复打字');
+      console.log('🔄 新数据到达,取消打字暂停等待,立即恢复打字');
       clearTimeout(this.typingPauseTimer);
       this.typingPauseTimer = null;
     }
@@ -1558,16 +1554,17 @@ Page({
     // 启动或恢复打字效果
     if (!this.data.isTyping && newBufferContent.length > 0 && !this.data.userInitiatedStop) {
       this.startTypingEffect();
-    }
+    } else {
+    }
   },
 
   // 3. 强化 completeGeneration 方法 - 确保状态正确更新
   completeGeneration: function() {
-    console.log('✅ 执行completeGeneration，会话:', this.data.generationSessionId);
+    // console.log('✅ 执行completeGeneration，会话:', this.data.generationSessionId);
     
     // 🔧 添加状态验证，防止重复调用
     if (!this.data.isGenerationActive && !this.data.isGenerating) {
-      console.log('⚠️ 生成已完成，跳过重复调用');
+      // console.log('⚠️ 生成已完成，跳过重复调用');
       return;
     }
     
@@ -1582,7 +1579,7 @@ Page({
     
     // 处理剩余缓冲内容
     if (this.data.bufferContent.length > 0) {
-      console.log('📝 处理剩余缓冲内容，长度:', this.data.bufferContent.length);
+      // console.log('📝 处理剩余缓冲内容，长度:', this.data.bufferContent.length);
       const finalContent = this.data.fullContent + this.data.bufferContent;
       this.setData({
         fullContent: finalContent,
@@ -1605,14 +1602,14 @@ Page({
       lastStateChangeTime: Date.now()
     });
     
-    console.log('🎉 生成完成! 最终内容长度:', this.data.fullContent.length);
-    console.log('🎉 UI状态已更新: isGenerating =', this.data.isGenerating);
+    // console.log('🎉 生成完成! 最终内容长度:', this.data.fullContent.length);
+    // console.log('🎉 UI状态已更新: isGenerating =', this.data.isGenerating);
 
     // 🔑 设置保存中状态
     this.setData({
       isSaving: true
     });
-    console.log('📝 开始保存历史记录...');
+    // console.log('📝 开始保存历史记录...');
     
     // 后续处理
     this.handlePostGeneration();
@@ -1633,11 +1630,30 @@ Page({
   },
 
   onGeneratePrompt: function() {    // ✅ 替换为这行
-    console.log('🚀 点击点亮灵感按钮');
-    
+    // console.log('🚀 点击点亮灵感按钮');
+        // 登录状态检查
+      // 获取openid并严格检查
+    const app = getApp();
+    const openid = app.globalData.openid || wx.getStorageSync('token');
+    if (!openid) {
+      console.error('Missing openid, 需要重新登录');
+      wx.showModal({
+        title: '登录状态异常',
+        content: '您的登录状态已失效，需要重新登录',
+        confirmText: '去登录',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/pages/login/login'
+            });
+          }
+        }
+      });
+      return;
+    }
     // 检查是否在参考模式
     if (this.data.inputMode === 'reference') {
-      console.log('📸 参考模式:开始生成图片描述');
+      // console.log('📸 参考模式:开始生成图片描述');
       
       // 检查是否有图片URL
       if (!this.data.referenceImageUrl) {
@@ -1667,29 +1683,11 @@ Page({
   
     // 生成全新的会话ID，确保与之前的会话完全隔离
     const sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + Math.floor(Math.random() * 10000);
-    console.log('🚀 开始全新生成会话:', sessionId);
+    // console.log('🚀 开始全新生成会话:', sessionId);
   
-    // 获取openid并严格检查
-    const app = getApp();
-    const openid = app.globalData.openid || wx.getStorageSync('token');
+  
   
-    // 登录状态检查
-    if (!openid) {
-      console.error('Missing openid, 需要重新登录');
-      wx.showModal({
-        title: '登录状态异常',
-        content: '您的登录状态已失效，需要重新登录',
-        confirmText: '去登录',
-        success: (res) => {
-          if (res.confirm) {
-            wx.navigateTo({
-              url: '/pages/login/login'
-            });
-          }
-        }
-      });
-      return;
-    }
+
   
     // 重置日志状态
     LogManager.reset();
@@ -1704,9 +1702,9 @@ Page({
     // 💡 立即保存会话ID与标签的映射关系
     if (this.data.currentSelectionText) {
       app.saveSessionLabel(sessionId, this.data.currentSelectionText);
-      console.log("🏷️ 保存会话标签映射:", sessionId, "->", this.data.currentSelectionText);
+      // console.log("🏷️ 保存会话标签映射:", sessionId, "->", this.data.currentSelectionText);
     } else {
-      console.log("⚠️ 未找到currentSelectionText，无法保存标签映射");
+      // console.log("⚠️ 未找到currentSelectionText，无法保存标签映射");
     }
     // 严格的状态初始化 - 使用原子操作避免竞态条件
     this.setData({ 
@@ -1751,19 +1749,19 @@ Page({
     // 调用API
     this.callStreamAPI();
     
-    console.log('🚀 强化完成检测已启动，UI已预热');
+    // console.log('🚀 强化完成检测已启动，UI已预热');
   },
   
   // 🔑 **新增**：确保干净的开始
   ensureCleanStart: function() {
-    console.log('🧹 确保干净的开始');
+    // console.log('🧹 确保干净的开始');
     
     // 中止任何可能存在的连接
     if (this.data.currentRequestTask) {
       try {
         this.data.currentRequestTask.abort();
       } catch (e) {
-        console.log('清理残留连接失败:', e);
+        // console.log('清理残留连接失败:', e);
       }
       this.setData({ currentRequestTask: null });
     }
@@ -1776,12 +1774,12 @@ Page({
     this.hasReceivedAnyContent = false;
     this.terminatedSessions = null;
     
-    console.log('✅ 开始状态已清理');
+    // console.log('✅ 开始状态已清理');
   },
 
   // 新增：处理生成后续工作的方法
   handlePostGeneration: function() {
-    console.log('处理生成后续工作');
+    // console.log('处理生成后续工作');
     
     // 如果生成完成但没有ID，尝试再次获取
     if (!this.data.currentPromptId) {
@@ -1791,7 +1789,7 @@ Page({
         this.setData({
           currentPromptId: app.lastGeneratedPromptId
         });
-        console.log('从app缓存恢复ID:', app.lastGeneratedPromptId);
+        // console.log('从app缓存恢复ID:', app.lastGeneratedPromptId);
       }
     }
 
@@ -1799,12 +1797,12 @@ Page({
     getApp().recordGeneration(this.data.fullContent, this.data.currentSelectionText);
     
     if ((!this.data.currentPromptId || this.data.currentPromptId === "chatcmpl-customid") && this.data.fullContent) {
-      console.log('生成完成但ID不存在，尝试获取ID');
+      // console.log('生成完成但ID不存在，尝试获取ID');
       
       // 首先检查是否可以从最后一个JSON块中获取
       if (this.lastJsonData && (this.lastJsonData.id || this.lastJsonData.prompt_id)) {
         const id = this.lastJsonData.id || this.lastJsonData.prompt_id;
-        console.log('从最后一个JSON数据中获取ID:', id);
+        // console.log('从最后一个JSON数据中获取ID:', id);
         this.setData({ currentPromptId: id });
       } 
       // 否则尝试获取最近生成的ID
@@ -1825,11 +1823,7 @@ Page({
     // 生成完成2秒后主动获取有效ID
     setTimeout(async () => {
       if ((!this.data.currentPromptId || this.data.currentPromptId === "chatcmpl-customid") && this.data.fullContent) {
-        console.log("🔍 需要获取真实历史记录ID", {
-          currentId: this.data.currentPromptId,
-          sessionId: this.data.generationSessionId,
-          contentLength: this.data.fullContent?.length
-        });
+   
         
         const app = getApp();
         try {
@@ -1842,18 +1836,18 @@ Page({
 
             const formattedId = app.formatPromptId(nextId);
             if (formattedId) {
-              console.log('成功获取历史ID:', historyId, '格式化为:', formattedId);
+              // console.log('成功获取历史ID:', historyId, '格式化为:', formattedId);
               
               
               // 🔗 关键：建立历史记录ID与会话ID的关联
               if (this.data.generationSessionId) {
                 app.saveHistorySessionMapping(nextId, this.data.generationSessionId);
-                console.log("🔗 建立映射关系:", nextId, "->", this.data.generationSessionId);
+                // console.log("🔗 建立映射关系:", nextId, "->", this.data.generationSessionId);
               }
               // 保存历史记录ID与标签的映射关系
               if (this.data.currentSelectionText) {
                 app.saveHistoryLabel(nextId, this.data.currentSelectionText);
-                console.log("保存历史标签映射:", nextId, this.data.currentSelectionText);
+                // console.log("保存历史标签映射:", nextId, this.data.currentSelectionText);
               }
 
               this.setData({ currentPromptId: formattedId });
@@ -1865,15 +1859,10 @@ Page({
         } catch (err) {
           console.error('获取历史ID失败:', err);
         // 添加详细的错误诊断信息
-        console.log("📊 诊断信息:", {
-          hasContent: !!this.data.fullContent,
-          contentLength: this.data.fullContent?.length,
-          sessionId: this.data.generationSessionId,
-          openid: app.globalData.openid
-        });        }
+             }
       }
       
-      console.log('最终ID状态:', this.data.currentPromptId);
+      // console.log('最终ID状态:', this.data.currentPromptId);
     }, 5000);
 
     // 生成完成后延迟显示箭头
@@ -1886,12 +1875,12 @@ Page({
 
   // 🔑 新增：主动保存历史记录到后端
   saveHistoryRecord: function(promptId) {
-    console.log('🔄 获取历史记录中的真实ID，临时ID:', promptId);
+    // console.log('🔄 获取历史记录中的真实ID，临时ID:', promptId);
 
     // 获取历史记录中的最新记录，确保获取真实的prompt_id和share_id
     const app = getApp();
     if (!app.globalData.openid) {
-      console.log('未登录，无法获取历史记录');
+      // console.log('未登录，无法获取历史记录');
       return;
     }
 
@@ -1904,38 +1893,38 @@ Page({
         limit: 1
       },
       success: (res) => {
-        console.log('获取最新历史记录响应:', res.data);
+        // console.log('获取最新历史记录响应:', res.data);
 
         if (res.data.code === 0 && Array.isArray(res.data.data) && res.data.data.length > 0) {
           const latestRecord = res.data.data[0];
-          console.log('最新历史记录:', latestRecord);
+          // console.log('最新历史记录:', latestRecord);
 
           // 更新为真实的ID
           if (latestRecord.prompt_id) {
-            console.log('获取到历史记录 - prompt_id:', latestRecord.prompt_id, 'share_id:', latestRecord.share_id);
+            // console.log('获取到历史记录 - prompt_id:', latestRecord.prompt_id, 'share_id:', latestRecord.share_id);
 
             // 🔑 关键：尝试不同的share_id字段名
             const realShareId = latestRecord.share_id || latestRecord.shareId || latestRecord.prompt_id;
-            console.log('检查share_id字段 - share_id:', latestRecord.share_id, 'shareId:', latestRecord.shareId, '使用:', realShareId);
+            // console.log('检查share_id字段 - share_id:', latestRecord.share_id, 'shareId:', latestRecord.shareId, '使用:', realShareId);
 
             this.setData({
               currentPromptId: latestRecord.prompt_id,
               currentShareId: realShareId
             });
 
-            console.log('设置ID - currentPromptId:', latestRecord.prompt_id, 'currentShareId:', realShareId);
+            // console.log('设置ID - currentPromptId:', latestRecord.prompt_id, 'currentShareId:', realShareId);
           }
         }
 
         // 通知历史页面刷新
         wx.setStorageSync('needRefreshHistory', true);
-        console.log('✅ 已通知历史页面刷新');
+        // console.log('✅ 已通知历史页面刷新');
 
         // 🔑 完成保存，恢复按钮状态
         this.setData({
           isSaving: false
         });
-        console.log('📝 历史记录保存完成，按钮恢复可用');
+        // console.log('📝 历史记录保存完成，按钮恢复可用');
       },
       fail: (err) => {
         console.error('获取历史记录失败:', err);
@@ -1946,19 +1935,19 @@ Page({
         this.setData({
           isSaving: false
         });
-        console.log('⚠️ 保存失败，按钮恢复可用');
+        // console.log('⚠️ 保存失败，按钮恢复可用');
       }
     });
   },
 
   // 添加缺失的登录状态检查方法
   checkInitialLoginStatus: function() {
-    console.log('检查初始登录状态');
+    // console.log('检查初始登录状态');
     const app = getApp();
     const openid = app.globalData.openid || wx.getStorageSync('token');
 
     if (!openid) {
-      console.log('未登录状态，允许浏览但不能生成内容');
+      // console.log('未登录状态，允许浏览但不能生成内容');
       // 🔑 移除强制跳转，允许未登录用户浏览
       // 设置登录状态标记，供其他功能判断使用
       this.setData({
@@ -1967,7 +1956,7 @@ Page({
       return;
     }
 
-    console.log('登录状态正常，openid:', openid);
+    // console.log('登录状态正常，openid:', openid);
     this.setData({
       isLoggedIn: true
     });
@@ -1977,12 +1966,12 @@ Page({
   checkScrollArrow: function() {
     // 如果有生成的内容，显示滚动箭头
     if (this.data.showResult && this.data.fullContent && this.data.fullContent.length > 0) {
-      console.log('显示滚动箭头，内容长度:', this.data.fullContent.length);
+      // console.log('显示滚动箭头，内容长度:', this.data.fullContent.length);
       this.setData({
         showScrollArrow: true
       });
     } else {
-      console.log('隐藏滚动箭头');
+      // console.log('隐藏滚动箭头');
       this.setData({
         showScrollArrow: false
       });
@@ -2238,17 +2227,17 @@ Page({
   // 添加缺失的收藏状态检查方法
   checkFavoriteStatus: function() {
     if (!this.data.currentPromptId) {
-      console.log('无有效ID，跳过收藏状态检查');
+      // console.log('无有效ID，跳过收藏状态检查');
       return;
     }
     
-    console.log('检查收藏状态，ID:', this.data.currentPromptId);
+    // console.log('检查收藏状态，ID:', this.data.currentPromptId);
     const app = getApp();
     
     try {
       const isFavorited = app.checkIsFavorite(this.data.currentPromptId);
       this.setData({ isFavorited });
-      console.log('收藏状态检查完成:', isFavorited);
+      // console.log('收藏状态检查完成:', isFavorited);
     } catch (error) {
       console.error('检查收藏状态失败:', error);
       // 出错时默认为未收藏
@@ -2258,7 +2247,7 @@ Page({
 
   // 添加缺失的定时器清理方法
   clearAllTimers: function() {
-    console.log('清理所有定时器');
+    // console.log('清理所有定时器');
     
     if (this.data.typingTimer) {
       clearTimeout(this.data.typingTimer);
@@ -2320,7 +2309,7 @@ Page({
     
     // 根据当前选择的模型确定使用的API端点
     const apiEndpoint = this.getApiEndpoint(modelName, this.data.currentStyle);
-    console.log(`使用API端点: ${apiEndpoint}，模型: ${modelName}，风格: ${this.data.currentStyle}`);
+    // console.log(`使用API端点: ${apiEndpoint}，模型: ${modelName}，风格: ${this.data.currentStyle}`);
     
     // 记录最后一次数据接收时间
     this.lastDataReceivedTime = Date.now();
@@ -2328,7 +2317,7 @@ Page({
     // 设置生成超时检查
     this.safetyTimer = setTimeout(() => {
       if (this.data.isGenerating) {
-        console.log('安全检查：生成时间超过236秒，强制完成');
+        // console.log('安全检查：生成时间超过236秒，强制完成');
         this.completeGeneration();
       }
     }, 236000); // 236秒安全超时
@@ -2337,12 +2326,12 @@ Page({
     if (this.data.currentSelectionText) {
       const app = getApp();
       app.saveContentLabel(content, this.data.currentSelectionText, this.data.generationSessionId);
-      console.log("🔑 保存内容标签映射:", content.substring(0, 20) + "...", "->", this.data.currentSelectionText);
+      // console.log("🔑 保存内容标签映射:", content.substring(0, 20) + "...", "->", this.data.currentSelectionText);
     }
     
     // 记录请求开始时间
     const requestStartTime = Date.now();
-    console.log('🔔 请求开始时间:', requestStartTime);
+    // console.log('🔔 请求开始时间:', requestStartTime);
     let firstChunkReceived = false;
     
     const requestTask = wx.request({
@@ -2368,7 +2357,7 @@ Page({
             'insightful': 'juicy' // 有料风格：传juicy
           };
           const styleParam = styleMapping[this.data.currentStyle] || '';
-          console.log(`风格参数映射: ${this.data.currentStyle} -> '${styleParam}'`);
+          // console.log(`风格参数映射: ${this.data.currentStyle} -> '${styleParam}'`);
           return styleParam ? { style: styleParam } : {};
         })())
       },
@@ -2378,13 +2367,13 @@ Page({
           this.handleError(`请求失败: ${res.statusCode}`);
           return;
         }
-        console.log('API调用成功，状态码:', res.statusCode);
+        // console.log('API调用成功，状态码:', res.statusCode);
       },
       fail: (err) => {
         console.error('请求失败:', err);
         
         if (retryCount < maxRetries) {
-          console.log(`请求失败，${retryCount + 1}/${maxRetries} 次重试...`);
+          // console.log(`请求失败，${retryCount + 1}/${maxRetries} 次重试...`);
           setTimeout(() => {
             this.callStreamAPI(retryCount + 1);
           }, 1000 * (retryCount + 1));
@@ -2404,32 +2393,32 @@ Page({
         if (!firstChunkReceived) {
           const firstChunkTime = Date.now();
           const timeToFirstChunk = firstChunkTime - requestStartTime;
-          console.log(`✅ 从请求到第一次拿到数据耗时: ${timeToFirstChunk}ms`);
+          // console.log(`✅ 从请求到第一次拿到数据耗时: ${timeToFirstChunk}ms`);
           firstChunkReceived = true;
         }
         // 🔑 **新增**：多重检查确保数据有效性
         
         // 检查1：是否已被完全终止
         if (this.data.isCompletelyTerminated) {
-          console.log('🛑 检测到完全终止标记，忽略接收的数据');
+          // console.log('🛑 检测到完全终止标记，忽略接收的数据');
           return;
         }
         
         // 检查2：会话ID是否匹配当前会话
         if (!this.data.generationSessionId) {
-          console.log('🚫 无有效会话ID，忽略数据');
+          // console.log('🚫 无有效会话ID，忽略数据');
           return;
         }
         
         // 检查3：是否在终止黑名单中
         if (this.terminatedSessions && this.terminatedSessions.has(this.data.generationSessionId)) {
-          console.log('🚫 会话在终止黑名单中，忽略数据:', this.data.generationSessionId);
+          // console.log('🚫 会话在终止黑名单中，忽略数据:', this.data.generationSessionId);
           return;
         }
         
         // 检查4：请求任务是否仍然有效
         if (!this.data.currentRequestTask) {
-          console.log('🚫 无有效请求任务，忽略数据');
+          // console.log('🚫 无有效请求任务，忽略数据');
           return;
         }
         
@@ -2470,19 +2459,19 @@ Page({
   processChunk: function(text) {
     // 🔑 新增：检查会话ID有效性
     if (this.terminatedSessions && this.terminatedSessions.has(this.data.generationSessionId)) {
-      console.log('🚫 processChunk检测到已终止会话，停止处理:', this.data.generationSessionId);
+      // console.log('🚫 processChunk检测到已终止会话，停止处理:', this.data.generationSessionId);
       return;
     }
 
     // 🔑 新增：检查完全终止标记
     if (this.data.isCompletelyTerminated) {
-      console.log('🛑 processChunk检测到终止标记，停止处理');
+      // console.log('🛑 processChunk检测到终止标记，停止处理');
       return;
     }
 
     // 🔑 新增：检查会话ID是否存在
     if (!this.data.generationSessionId) {
-      console.log('🚫 processChunk无有效会话ID，停止处理');
+      // console.log('🚫 processChunk无有效会话ID，停止处理');
       return;
     }
 
@@ -2662,7 +2651,7 @@ Page({
         
         // 只有清理后仍有内容的文本才添加到显示缓冲区
         if (cleanedText.length > 0) {
-          console.log('添加清理后的纯文本到缓冲区:', cleanedText.substring(0, 50) + '...');
+          // console.log('添加清理后的纯文本到缓冲区:', cleanedText.substring(0, 50) + '...');
           this.appendToBuffer(cleanedText);
         }
       }
@@ -2722,12 +2711,12 @@ Page({
     let text = '';
     if (typeof response.data === 'string') {
       text = response.data;
-      console.log('🔄 流式数据类型: string, 长度:', text.length);
+      // console.log('🔄 流式数据类型: string, 长度:', text.length);
     } else if (response.data instanceof ArrayBuffer) {
       // 🔧 使用polyfill后的TextDecoder，真机兼容
       const decoder = new TextDecoder('utf-8');
       text = decoder.decode(response.data);
-      console.log('🔄 流式数据类型: ArrayBuffer, 解码后长度:', text.length);
+      // console.log('🔄 流式数据类型: ArrayBuffer, 解码后长度:', text.length);
       
       // 调试信息：检查解码结果
       if (text.includes('�')) {
@@ -2742,7 +2731,7 @@ Page({
 
   // 添加流式数据处理方法
   processStreamData: function(text) {
-    console.log('处理流式数据:', text.substring(0, 100) + '...');
+    // console.log('处理流式数据:', text.substring(0, 100) + '...');
     
     // 检查是否包含JSON数据
     try {
@@ -2764,24 +2753,24 @@ Page({
   // 添加JSON数据处理方法
   processJsonData: function(jsonData) {
     try {
-      console.log('处理JSON数据:', jsonData);
+      // console.log('处理JSON数据:', jsonData);
       
       // 保存最后的JSON数据
       this.lastJsonData = jsonData;
       
       // ID提取逻辑
       if (jsonData.id && !this.data.currentPromptId) {
-        console.log("从JSON数据中提取到ID:", jsonData.id);
+        // console.log("从JSON数据中提取到ID:", jsonData.id);
         this.setData({ currentPromptId: jsonData.id });
       }
       
       if (jsonData.prompt_id && !this.data.currentPromptId) {
-        console.log("从JSON数据中提取到prompt_id:", jsonData.prompt_id);
+        // console.log("从JSON数据中提取到prompt_id:", jsonData.prompt_id);
         this.setData({ currentPromptId: jsonData.prompt_id });
       }
       
       if (jsonData.response && jsonData.response.id && !this.data.currentPromptId) {
-        console.log("从response对象中提取到ID:", jsonData.response.id);
+        // console.log("从response对象中提取到ID:", jsonData.response.id);
         this.setData({ currentPromptId: jsonData.response.id });
       }
       
@@ -2792,19 +2781,19 @@ Page({
         // 获取内容部分
         if (choice.delta && choice.delta.content) {
           const content = choice.delta.content;
-          console.log(`添加流式内容: "${content.length > 20 ? content.substring(0, 20) + '...' : content}"`);
+          // console.log(`添加流式内容: "${content.length > 20 ? content.substring(0, 20) + '...' : content}"`);
           this.appendToBuffer(content);
         }
         
         // 保存ID（OpenAI格式的ID通常在最外层）
         if (jsonData.id && !this.data.currentPromptId) {
-          console.log("从OpenAI响应中提取到ID:", jsonData.id);
+          // console.log("从OpenAI响应中提取到ID:", jsonData.id);
           this.setData({ currentPromptId: jsonData.id });
         }
         
         // 结束检测
         if (choice.finish_reason === 'stop') {
-          console.log('检测到OpenAI结束标记，设置流结束信号');
+          // console.log('检测到OpenAI结束标记，设置流结束信号');
           setTimeout(() => {
             this.setData({ streamEndSignal: true });
           }, 1000);
@@ -2813,7 +2802,7 @@ Page({
       
       // 处理其他格式的响应
       if (jsonData.content && typeof jsonData.content === 'string') {
-        console.log(`添加直接内容: "${jsonData.content.length > 20 ? jsonData.content.substring(0, 20) + '...' : jsonData.content}"`);
+        // console.log(`添加直接内容: "${jsonData.content.length > 20 ? jsonData.content.substring(0, 20) + '...' : jsonData.content}"`);
         this.appendToBuffer(jsonData.content);
       }
       
@@ -2824,10 +2813,10 @@ Page({
 
   // 添加新方法来专门获取内容ID  
   retrieveContentId: function(originalInput) {
-    console.log("尝试获取内容ID...");
+    // console.log("尝试获取内容ID...");
     
     // 暂时跳过此API调用，因为端点不存在
-    console.log("API端点不存在，跳过获取内容ID");
+    // console.log("API端点不存在，跳过获取内容ID");
     
     // 直接尝试从app的方法获取历史记录ID
     const app = getApp();
@@ -2836,7 +2825,7 @@ Page({
         if (historyId) {
           const formattedId = app.formatPromptId(historyId);
           if (formattedId) {
-            console.log('从历史记录获取到ID:', formattedId);
+            // console.log('从历史记录获取到ID:', formattedId);
             this.setData({ currentPromptId: formattedId });
             this.checkFavoriteStatus();
           }
@@ -2849,7 +2838,7 @@ Page({
 
   // 添加收藏方法
   toggleFavorite: async function() {
-    console.log('尝试收藏，当前ID:', this.data.currentPromptId);
+    // console.log('尝试收藏，当前ID:', this.data.currentPromptId);
     
     if (!this.data.result || !this.data.fullContent) {
       wx.showToast({
@@ -2878,7 +2867,7 @@ Page({
       const timestamp = Date.now();
       const contentHash = this.simpleHash(this.data.fullContent.substring(0, 100));
       idToUse = `local_${timestamp}_${contentHash}`;
-      console.log('生成本地ID用于收藏:', idToUse);
+      // console.log('生成本地ID用于收藏:', idToUse);
       // 保存这个ID供后续使用
       this.setData({ currentPromptId: idToUse });
     }
@@ -3021,20 +3010,20 @@ Page({
 
   // 添加事件阻止冒泡方法
   stopPropagation: function(e) {
-    console.log("阻止分享按钮事件冒泡");
+    // console.log("阻止分享按钮事件冒泡");
     e.stopPropagation && e.stopPropagation();
     return false;
   },
 
   // 保留原分享方法作为备用（现在使用原生按钮分享）
   handleShare: function() {
-    console.log('备用分享方法被调用');
+    // console.log('备用分享方法被调用');
     // 现在主要使用原生按钮分享，这个方法保留作为备用
   },
 
   // 添加滚动到底部的方法
   scrollToBottom: function() {
-    console.log('执行滚动到底部');
+    // console.log('执行滚动到底部');
     
     // 简单粗暴的方法：直接滚动到很大的位置值
     try {
@@ -3058,16 +3047,16 @@ Page({
 
   // 添加分享到朋友的方法
   onShareAppMessage: function(res) {
-    console.log('分享给朋友', res);
+    // console.log('分享给朋友', res);
     
     // 如果是从原生分享按钮触发的分享（与历史记录逻辑一致）
     if (res.from === 'button' && res.target && res.target.dataset) {
       const dataset = res.target.dataset;
-      console.log('使用原生按钮分享，数据:', dataset);
+      // console.log('使用原生按钮分享，数据:', dataset);
       
       // 获取分享数据 - 优先使用真实的share_id
       const shareId = dataset.shareId || this.data.currentShareId || this.data.currentPromptId;
-      console.log('分享ID获取 - dataset.shareId:', dataset.shareId, 'currentShareId:', this.data.currentShareId, '最终使用:', shareId);
+      // console.log('分享ID获取 - dataset.shareId:', dataset.shareId, 'currentShareId:', this.data.currentShareId, '最终使用:', shareId);
       const modelType = dataset.modelType || this.data.currentModelType;
       const modelName = dataset.modelName || this.data.currentModel;
       const style = dataset.style || this.data.currentStyle;
@@ -3103,7 +3092,7 @@ Page({
     
     // 如果没有内容，返回默认分享
     if (!this.data.fullContent) {
-      console.log('无可分享内容，使用默认分享');
+      // console.log('无可分享内容，使用默认分享');
       return {
         title: '序话 - AI提示词优化工具',
         path: '/pages/index/index',
@@ -3135,7 +3124,7 @@ Page({
         let shareHistory = wx.getStorageSync('share_history') || {};
         shareHistory[shareId] = shareContent;
         wx.setStorageSync('share_history', shareHistory);
-        console.log('分享内容已保存，ID:', shareId);
+        // console.log('分享内容已保存，ID:', shareId);
       } catch (e) {
         console.error('保存分享内容失败:', e);
       }
@@ -3154,11 +3143,11 @@ Page({
 
   // 添加分享到朋友圈的方法  
   onShareTimeline: function() {
-    console.log('分享到朋友圈');
+    // console.log('分享到朋友圈');
     
     // 如果是从分享按钮触发的分享
     if (this.data.shareFromButton && this.data.currentPromptId && this.data.fullContent) {
-      console.log('使用按钮分享到朋友圈，ID:', this.data.currentPromptId);
+      // console.log('使用按钮分享到朋友圈，ID:', this.data.currentPromptId);
       
       // 重置分享标记
       this.setData({
@@ -3195,7 +3184,7 @@ Page({
     
     // 如果没有内容，返回默认分享
     if (!this.data.fullContent) {
-      console.log('无可分享内容，使用默认分享');
+      // console.log('无可分享内容，使用默认分享');
       return {
         title: '序话 - AI提示词优化工具',
         query: '',
