@@ -914,7 +914,7 @@ Page({
   // 复制内容
   copyContent(e) {
     const { type } = e.currentTarget.dataset;
-    const content = this.data.sharedContent?.[type === 'original' ? 'input' : 'result'];
+    let content = this.data.sharedContent?.[type === 'original' ? 'input' : 'result'];
     
     if (!content) {
       wx.showToast({
@@ -923,6 +923,10 @@ Page({
       });
       return;
     }
+
+    // 去除 [图片描述] URL 格式的内容
+    const imagePattern = /\[([^\]]+)\]\s+(https?:\/\/[^\s]+)/g;
+    content = content.replace(imagePattern, '').trim();
 
     wx.setClipboardData({
       data: content,
@@ -945,8 +949,12 @@ Page({
       return;
     }
     
+    // 去除 [图片描述] URL 格式的内容
+    const imagePattern = /\[([^\]]+)\]\s+(https?:\/\/[^\s]+)/g;
+    const cleanedPrompt = this.data.extractedPrompt.replace(imagePattern, '').trim();
+    
     wx.setClipboardData({
-      data: this.data.extractedPrompt,
+      data: cleanedPrompt,
       success: () => {
         wx.showToast({
           title: '提示词已复制',

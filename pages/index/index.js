@@ -2989,8 +2989,12 @@ Page({
       return;
     }
     
+    // 去除 [图片描述] URL 格式的内容
+    const imagePattern = /\[([^\]]+)\]\s+(https?:\/\/[^\s]+)/g;
+    const cleanedContent = this.data.originalResponse.replace(imagePattern, '').trim();
+    
     wx.setClipboardData({
-      data: this.data.originalResponse,
+      data: cleanedContent,
       success: () => {
         wx.showToast({
           title: '已全局复制',

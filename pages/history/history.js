@@ -47,6 +47,33 @@ Page({
     });
   },
 
+  // 提取图生文场景的主体对象描述
+  extractSubjectDescription: function(result) {
+    if (!result || typeof result !== 'string') {
+      return '';
+    }
+    
+    // 匹配 "【主体对象】" 或 "主体对象" 后面的 "画面主体是" 之后的内容
+    const patterns = [
+      /【主体对象】[\s\S]*?画面主体是\s*([^\n【]+)/,
+      /主体对象[\s\S]*?画面主体是\s*([^\n【]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = result.match(pattern);
+      if (match && match[1]) {
+        let description = match[1].trim();
+        // 限制长度，超过30字符用省略号
+        if (description.length > 30) {
+          description = description.substring(0, 30) + '......';
+        }
+        return description;
+      }
+    }
+    
+    return '';
+  },
+
   // 分享给朋友
   onShareAppMessage(options) {
     console.log('📤 历史记录分享给朋友:', options);
@@ -84,7 +111,13 @@ Page({
 
       let shareTitle = `分享的灵感 - ${shortPrompt} - ${formattedModel}`;
       if(scene=="图生文"){
-        shareTitle  = `GPT Image生图`;
+        // 尝试从结果中提取主体对象描述
+        const subjectDesc = this.extractSubjectDescription(item.result);
+        if (subjectDesc) {
+          shareTitle = `分享的灵感 - 识图 - ${subjectDesc}`;
+        } else {
+          shareTitle = `分享的灵感 - 识图 - GPT Image生图`;
+        }
       }
       return {
         title: shareTitle,
@@ -127,7 +160,21 @@ Page({
         formattedModel = `${model}${scene}（${style}）`;
       }
 
-      const shareTitle = `分享的灵感 - ${shortPrompt} - ${formattedModel}`;
+      let shareTitle = `分享的灵感 - ${shortPrompt} - ${formattedModel}`;
+      
+      // 特殊处理图生文场景
+      if (modelParts.length >= 3) {
+        const [scene] = modelParts;
+        if (scene === "图生文") {
+          // 尝试从结果中提取主体对象描述
+          const subjectDesc = this.extractSubjectDescription(item.result);
+          if (subjectDesc) {
+            shareTitle = `分享的灵感 - 识图 - ${subjectDesc}`;
+          } else {
+            shareTitle = `分享的灵感 - 识图 - GPT Image生图`;
+          }
+        }
+      }
 
       return {
         title: shareTitle,
@@ -310,8 +357,12 @@ Page({
       return;
     }
     
+    // 去除 [图片描述] URL 格式的内容
+    const imagePattern = /\[([^\]]+)\]\s+(https?:\/\/[^\s]+)/g;
+    const cleanedPrompt = this.data.extractedPrompt.replace(imagePattern, '').trim();
+    
     wx.setClipboardData({
-      data: this.data.extractedPrompt,
+      data: cleanedPrompt,
       success: () => {
         wx.showToast({
           title: '提示词已复制',
@@ -632,7 +683,7 @@ Page({
   // 复制内容
   copyContent(e) {
     const { type } = e.currentTarget.dataset;
-    const content = this.data.currentItem?.[type === 'original' ? 'input' : 'result'];
+    let content = this.data.currentItem?.[type === 'original' ? 'input' : 'result'];
     
     if (!content) {
       wx.showToast({
@@ -641,6 +692,10 @@ Page({
       });
       return;
     }
+
+    // 去除 [图片描述] URL 格式的内容
+    const imagePattern = /\[([^\]]+)\]\s+(https?:\/\/[^\s]+)/g;
+    content = content.replace(imagePattern, '').trim();
 
     wx.setClipboardData({
       data: content,
@@ -880,7 +935,11 @@ Page({
 
   copyResult(e) {
     const index = e.currentTarget.dataset.index;
-    const result = this.data.records[index].result;
+    let result = this.data.records[index].result;
+    
+    // 去除 [图片描述] URL 格式的内容
+    const imagePattern = /\[([^\]]+)\]\s+(https?:\/\/[^\s]+)/g;
+    result = result.replace(imagePattern, '').trim();
     
     wx.setClipboardData({
       data: result,
