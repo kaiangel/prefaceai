@@ -978,7 +978,10 @@ Page({
     }
     
     // 查找第一个"###"的位置
-    const firstHashIndex = content.indexOf('###');
+    let firstHashIndex = content.indexOf('###');
+     if (firstHashIndex === -1) {
+       firstHashIndex = content.indexOf('##');;
+    }
     
     if (firstHashIndex !== -1) {
       // 提取"###"之前的所有内容作为完整提示词

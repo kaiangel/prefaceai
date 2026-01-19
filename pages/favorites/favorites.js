@@ -464,7 +464,10 @@ Page({
     }
     
     // 寻找内容分界标记：###通常用来分隔提示词和说明文字
-    const firstHashIndex = content.indexOf('###');
+    let firstHashIndex = content.indexOf('###');
+     if (firstHashIndex === -1) {
+       firstHashIndex = content.indexOf('##');;
+    }
     
     if (firstHashIndex !== -1) {
       // 提取分界线之前的内容作为纯净提示词

@@ -1401,7 +1401,10 @@ Page({
   // 5. 新增：提示词检测的核心方法
   checkPromptExtraction: function(currentContent) {
     // 查找第一个"###"的位置
-    const firstHashIndex = currentContent.indexOf('###');
+   let firstHashIndex = content.indexOf('###');
+     if (firstHashIndex === -1) {
+       firstHashIndex = content.indexOf('##');;
+    }
     
     if (firstHashIndex !== -1) {
       // 提取"###"之前的所有内容作为完整提示词
