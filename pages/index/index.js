@@ -3015,6 +3015,33 @@ Page({
     });
   },
 
+  // 提取图生文场景的主体对象描述
+  extractSubjectDescription: function(result) {
+    if (!result || typeof result !== 'string') {
+      return '';
+    }
+    
+    // 匹配 "【主体对象】" 或 "主体对象" 后面的 "画面主体是" 之后的内容
+    const patterns = [
+      /【主体对象】[\s\S]*?画面主体是\s*([^\n【]+)/,
+      /主体对象[\s\S]*?画面主体是\s*([^\n【]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = result.match(pattern);
+      if (match && match[1]) {
+        let description = match[1].trim();
+        // 限制长度，超过30字符用省略号
+        if (description.length > 30) {
+          description = description.substring(0, 30) + '......';
+        }
+        return description;
+      }
+    }
+    
+    return '';
+  },
+
   // 添加事件阻止冒泡方法
   stopPropagation: function(e) {
     // console.log("阻止分享按钮事件冒泡");
@@ -3180,7 +3207,21 @@ Page({
         formattedModel = `${model}${scene}（${style}）`;
       }
 
-      const shareTitle = `分享的灵感 - ${shortPrompt} - ${formattedModel}`;
+      let shareTitle = `分享的灵感 - ${shortPrompt} - ${formattedModel}`;
+      
+      // 特殊处理图生文场景
+      if (modelParts.length >= 3) {
+        const [scene] = modelParts;
+        if (scene === "图生文") {
+          // 尝试从结果中提取主体对象描述
+          const subjectDesc = this.extractSubjectDescription(this.data.fullContent);
+          if (subjectDesc) {
+            shareTitle = `分享的灵感 - 识图 - ${subjectDesc}`;
+          } else {
+            shareTitle = `分享的灵感 - 识图 - GPT Image生图`;
+          }
+        }
+      }
 
       return {
         title: shareTitle,
