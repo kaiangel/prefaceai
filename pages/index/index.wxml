@@ -58,7 +58,7 @@
             <view class="card-icon image-icon">
               <image class="icon-image" src="{{modelIcons['GPT Image']}}" mode="cover"></image>
             </view>
-            <view class="card-name">GPT Image</view>
+            <view class="card-name">DALL·E</view>
           </view>
           
           <view class="model-card {{currentModel === 'flux' ? 'active' : ''}}" 
