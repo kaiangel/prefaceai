@@ -1401,9 +1401,9 @@ Page({
   // 5. 新增：提示词检测的核心方法
   checkPromptExtraction: function(currentContent) {
     // 查找第一个"###"的位置
-   let firstHashIndex = content.indexOf('###');
+   let firstHashIndex = currentContent.indexOf('###');
      if (firstHashIndex === -1) {
-       firstHashIndex = content.indexOf('##');;
+       firstHashIndex = currentContent.indexOf('##');;
     }
     
     if (firstHashIndex !== -1) {
