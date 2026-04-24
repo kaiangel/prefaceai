@@ -9,52 +9,56 @@
       "Bash(xxd:*)",
       "Bash(node:*)",
       "Bash(echo:*)",
-      "WebSearch",
-      "WebFetch(domain:developers.weixin.qq.com)",
-      "Read(//Users/kaisbabybook/WeChatProjects/xuhuanb/pages/index/**)",
-      "Read(//Users/kaisbabybook/WeChatProjects/xuhuanb/**)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(chmod:*)",
+      "Bash(touch:*)",
       "Bash(for:*)",
-      "Bash(do echo \"压缩 $file...\")",
-      "Bash(sips:*)",
-      "Bash(/dev/null)",
-      "Bash(done)",
+      "Bash(do:*)",
+      "Bash(done:*)",
       "Bash(awk:*)",
       "Bash(find:*)",
-      "WebFetch(domain:github.com)",
-      "Read(//Users/kaisbabybook/AIFun/Claude Research/**)",
-      "Read(//Users/kaisbabybook/AIFun/**)",
-      "Read(//Users/kaisbabybook/.claude/**)",
-      "Bash(curl -s \"https://api.github.com/repos/davila7/claude-code-templates\")",
-      "Bash(curl -s https://api.github.com/repos/ginobefun/deep-reading-analyst-skill)",
+      "Bash(git:*)",
+      "Bash(pytest:*)",
+      "Bash(pip3:*)",
       "Bash(curl *)",
+      "WebSearch",
+      "WebFetch(domain:developers.weixin.qq.com)",
+      "WebFetch(domain:github.com)",
       "WebFetch(domain:agentskills.so)",
       "WebFetch(domain:www.aitmpl.com)",
       "WebFetch(domain:docs.aitmpl.com)",
-      "Bash(git clone *)",
-      "Read(//tmp/cos-install/.claude/**)",
-      "Bash(mkdir -p ~/.claude/skills)",
-      "Bash(cp -r /tmp/cos-install/.claude/skills/* ~/.claude/skills/)",
-      "Bash(rm -rf /tmp/cos-install)",
-      "Bash(cp -r /tmp/wondelai-install/.claude/skills/* ~/.claude/skills/)",
-      "Bash(rm -rf /tmp/wondelai-install)",
-      "Bash(cp -r ~/.claude/skills/gstack/office-hours ~/.claude/skills/gstack-office-hours)",
-      "Bash(cp -r ~/.claude/skills/gstack/plan-ceo-review ~/.claude/skills/gstack-plan-ceo-review)",
-      "Bash(cp -r /tmp/pmsp/plugins/pm-superpowers/skills/* ~/.claude/skills/)",
-      "Bash(rm -rf /tmp/pmsp)",
-      "Bash(mv ~/.claude/skills/strategy ~/.claude/skills/pm-strategy)",
-      "Bash(sed -i.bak 's/^name: strategy$/name: pm-strategy/' ~/.claude/skills/pm-strategy/SKILL.md)",
-      "Bash(rm ~/.claude/skills/pm-strategy/SKILL.md.bak)",
-      "Bash(cp -r /tmp/cos-restore/.claude/skills/strategy ~/.claude/skills/strategy)",
-      "Bash(rm -rf /tmp/cos-restore)",
-      "Bash(git fetch *)",
-      "Bash(git rev-list *)",
-      "Bash(git checkout *)",
-      "Bash(git rm *)",
-      "Bash(git add *)",
-      "Bash(git commit -m ' *)",
-      "Bash(git pull *)",
-      "Bash(git commit -m 'chore: update local Claude Code permissions from skill install *)"
+      "Read(//Users/kaisbabybook/AIFun/**)",
+      "Read(//Users/kaisbabybook/.claude/**)",
+      "Read(//Users/kaisbabybook/AIFun/Claude Research/**)"
     ],
     "deny": []
+  },
+  "hooks": {
+    "PreCommit": [
+      {
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/kaisbabybook/WeChatProjects/xuhua-wx && python3 -m pytest tests/test_architecture.py tests/test_quality_gates.py -x -q --timeout=120 2>&1 | tail -20"
+          }
+        ]
+      }
+    ],
+    "PrePush": [
+      {
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/kaisbabybook/WeChatProjects/xuhua-wx && python3 -m pytest tests/ -x -q --timeout=300 2>&1 | tail -30"
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   }
 }

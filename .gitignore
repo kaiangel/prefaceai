@@ -19,3 +19,9 @@ node_modules/
 
 # 本地备份文件(不应进入仓库)
 *.bak
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
