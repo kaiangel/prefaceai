@@ -175,3 +175,61 @@
 - 同一问题有**新状态变更**(如修复)时,**追加子条目**而非删除原记录
 - 重大问题升级 / 降级时说明理由
 - 已完全解决的问题保留记录,标记 `✅ 已解决 (日期)`
+
+---
+
+## 🟡 黄色警报(Session 3 新发现)
+
+### YELLOW-004 · TOCTOU 竞争条件 — 用户次数扣减可能 lost update
+
+- **发现日期**: 2026-04-24 Session 3(@tester 分析 sumai/stream.py 时发现)
+- **位置**:
+  - `sumai/stream.py:1753` `validate_request_and_user()`(SELECT limit_num-used_num)
+  - `sumai/stream.py save_content_prompt_stream()`(UPDATE used_num)
+- **现状**: 两个操作是**独立 DB 连接**,中间无事务保护
+- **风险**: 并发用户(如 5 个同时请求)可能都通过 validate(看到 count=1)后各自扣减,实际只扣 1 次但消耗 5 次额度 → **用户多扣次数 / 少扣次数**(取决于 InnoDB 行级锁具体行为)
+- **Sensor**: `sumai/tests/test_rate_limiting.py::test_race_condition_sensor`(xfail 状态,修复后自动变绿)
+- **解决方案**: 
+  - **选项 A**:用 `SELECT ... FOR UPDATE` + 同一 transaction 保护
+  - **选项 B**:合并 validate 和 save 为单一原子 UPDATE(减少往返)
+  - **选项 C**:用 Redis 原子操作做限流层(额外一层保护)
+- **优先级**: P1(Stage 2 前修复,否则付费用户可能投诉次数被多扣)
+- **负责**: @backend
+
+---
+
+## 🟢 灰色 / 技术债(Session 3 新增)
+
+### GRAY-006 · pages/index/index.js 含 3038 个 U+00A0 非断空格
+
+- **发现日期**: 2026-04-24 Session 3(@frontend 写 Stage 1 UX 时发现)
+- **现状**: 整个 index.js 的缩进几乎全用 U+00A0(非断空格),而非标准 U+0020 空格
+- **来源**: pre-existing — Session 2 之前的代码就这样(可能是 copy-paste 时从富文本编辑器带进来的)
+- **影响**:
+  - Edit 工具匹配字符串时多次失败(string 匹配不上)
+  - 微信小程序编译器容忍(代码能正常运行)
+  - 但降低代码可维护性,未来 agent 改动困难
+- **解决方案**: 用 sed 或 Python 批量替换 `U+00A0` → `U+0020`,然后 `node --check` 验证
+- **优先级**: P3(Stage 2+ 重构期统一清理)
+- **负责**: @frontend
+
+---
+
+## 🔴 红色警报状态更新(Session 3 追加)
+
+### RED-001 · 状态变更 2026-04-24
+
+- **从**: 未处理,Anthropic 是主力
+- **到**: ✅ **大部分完成**(@backend Wave 1)
+  - `sumai/stream.py`:新增 `get_openai_client_and_config()` 用 Qwen 3.6,`/test123` 端点迁移
+  - `sumai/stream_en.py`:新增 `get_openai_client_and_config()`,10 个端点 + 11 个 generate() 迁移
+  - **附带 bug 修复**:stream_en.py 有 4 个端点原本调用不存在的 `get_openai_client_and_config`(pre-existing bug,现已一并修复)
+  - `get_claude_client_and_config()` 函数保留(标 deprecated,RED-002 时清理)
+- **剩余**: RED-002 Wave 2 时把 Anthropic 导入 + API Key 硬编码一并清理
+
+### RED-002 · 新增子项(Session 3 发现)
+
+除原有凭证硬编码外,新增:
+- **Flask `app.secret_key = '123456qwerty'`**(`mainv2.py:55`)— 弱密钥!PC Web session 可被伪造。Wave 2 用 `secrets.token_urlsafe(32)` 生成强随机替换,并外移到 .env。
+
+---

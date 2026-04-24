@@ -71,3 +71,50 @@
 ---
 
 (新决策往下追加)
+
+### D009 - GitHub 前端仓库迁移到 kaiangel/prefaceai(Session 3)
+- **决策者**: Founder
+- **日期**: 2026-04-24 Session 3
+- **背景**: 复用 Founder 个人账号下旧仓库 `kaiangel/prefaceai`(之前存微信小程序旧代码,决定清空复用),不继续用 `shunshunyue/xuhua-wx`
+- **执行**: `git remote set-url origin git@github.com:kaiangel/prefaceai.git && git push -u origin main --force`(覆盖旧代码)
+- **结果**: xuhua-wx 本地 main HEAD `722bcd4` 已 push,远程 main 指向此 commit
+
+### D010 - 通义万相方案 Y + 下架 hunyuan(Session 3)
+- **决策者**: Founder
+- **日期**: 2026-04-24 Session 3
+- **背景**: 查证发现前端 wanxiang 按钮调 `/wanxiangStream`(不存在)→ 404;前端 hunyuan 按钮调 `/hunyuanStream`(实际是通义万相 2.2 的 system prompt — 命名错位)
+- **决策**: 方案 Y(后端规范化)+ 下架 hunyuan
+  - sumai 新建 `/wanxiangStream`(复制 `/hunyuanStream` 实现)
+  - sumai 可删 `/hunyuanStream`(hunyuan 前端下架后无调用)
+  - 前端删除 hunyuan 按钮相关配置(modelNames / modelDescriptions / baseEndpoints)
+- **理由**: 用户说 hunyuan 没在用 + 保留通义万相(真实体现合规境内模型聚合)
+- **状态**: Wave 2 实施
+
+### D011 - Qwen 差异化:免费用 Flash 3.6 / Pro 用 Plus 3.6(Session 3)
+- **决策者**: Founder
+- **日期**: 2026-04-24 Session 3
+- **背景**: Session 2 发现 "qwen-plus-latest Pro 和免费仅 max_tokens 不同" 差异化弱
+- **决策**:
+  - 免费用户: `qwen3.6-flash-2026-04-16`(更快、更便宜、阶梯定价,2 元起/百万 tokens)
+  - Pro 用户: `qwen3.6-plus-2026-04-02`(编程能力对标 Claude Opus 4.5,1M context)
+  - max_tokens 保持不变(Pro=8630 / 免费=4096)
+- **结果**: 真实产品差异化(模型不同 + max_tokens 不同)+ 合规(全 Qwen 境内)+ 成本可控
+- **执行**: Wave 1 @backend 已完成
+
+### D012 - Stage 1 启动方式:方案 B 并行(Session 3)
+- **决策者**: Founder
+- **日期**: 2026-04-24 Session 3
+- **决策**: Stage 1 前端先行(UX 不依赖后端)+ 后端 system prompt 等 RED-001 迁移完成再改
+- **理由**: 避免在 Claude + Qwen 两套 prompt 上都加 complexity 档,效率最高
+- **执行**: Wave 1 @frontend 已完成前端部分;Wave 2 补后端 complexity 三档
+
+### D013 - 红色警报 RED-001/002/003 处理:方案 B 并行(Session 3)
+- **决策者**: Founder
+- **日期**: 2026-04-24 Session 3
+- **决策**: Stage 1 开工同时,背景处理红色警报,不串行
+- **理由**: Stage 1 纯前端 UX 改动不依赖 sumai,可并行
+- **状态**: RED-001 大部分完成(Wave 1);RED-002/003 Wave 2 + Founder 外部操作
+
+---
+
+(新决策往下追加)

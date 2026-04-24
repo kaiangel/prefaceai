@@ -241,6 +241,20 @@ Page({
     referenceImage: '', // 参考图片路径(本地)
     referenceImageUrl: '', // 参考图片URL(服务器)
     referenceText: '', // 参考模式下的输入文本
+
+    // Stage 1: 任务复杂度三档
+    currentComplexity: 'quick', // 默认：快速想法
+    complexityOptions: [
+      { id: 'quick',        name: '快速想法', emoji: '🔸', color: '#43B692' },
+      { id: 'standard',     name: '深度创作', emoji: '🔹', color: '#3F88C5' },
+      { id: 'professional', name: '专业项目', emoji: '💎', color: '#F4A460' }
+    ],
+  },
+
+  // Stage 1: 切换任务复杂度（仅 UI 层，不改 API 请求逻辑，Wave 2 再加 complexity 参数）
+  switchComplexity: function(e) {
+    var id = e.currentTarget.dataset.id;
+    this.setData({ currentComplexity: id });
   },
 
   // 新增：切换风格的方法

@@ -57,3 +57,74 @@
 
 ---
 
+
+### 🚀 Session 3 · Stage 1 准备 + 红色警报处理启动
+
+- **来自**: PM Lead(Coordinator, Opus 4.7 主会话)
+- **时间**: 2026-04-24 Session 3
+- **背景**: Founder 已批准 5 大决策:
+  - **D009**: GitHub 迁移 shunshunyue/xuhua-wx → kaiangel/prefaceai(force push 完成)
+  - **D010**: 通义万相方案 Y(后端规范化)+ 下架 hunyuan
+  - **D011**: Qwen 差异化 — 免费用 qwen3.6-flash-2026-04-16,Pro 用 qwen3.6-plus-2026-04-02
+  - **D012**: Stage 1 启动方式 — 方案 B 并行(前端先行 + 后端等 Qwen 迁移)
+  - **D013**: 红色警报 RED-001/002/003 处理方式 — 方案 B 并行(和 Stage 1 同时推进)
+
+#### Wave 1 · 立即并行 4 个 Sonnet teammate
+
+| teammate | 任务 | 规模 |
+|---|---|---|
+| @backend | RED-001: Anthropic → Qwen 3.6 迁移 (sumai/stream.py + stream_en.py,约 12 端点) | 大任务 |
+| @devops | RED-003 简化 + sumai .DS_Store 清理 (sumai/.gitignore 加 cert/ 和 .DS_Store + git rm --cached) | 小任务 |
+| @tester | 补 sumai/tests/test_rate_limiting.py + 5 个建议测试的占位 stub | 中任务 |
+| @frontend | Stage 1 前端 UX 先行(首页 Hero + 三档复杂度按钮 UI) | 中任务 |
+
+#### Wave 2 · 等 Wave 1 完成后
+
+- @backend: RED-002 凭证外移 .env(mainv2.py / note.py / pay_stripe.py)
+- @backend: 方案 Y 实施(sumai 新建 /wanxiangStream + 前端删 hunyuan)
+- @backend + @frontend: Stage 1 后端 complexity 三档 system prompt(基于 Qwen 版本)
+- @pm: Stage 1 文案 + @resonance 协作
+
+#### 重要约束(所有 teammate 必读)
+- Sonnet 4.6 执行(D002)
+- Teammate 不能再 spawn 子子 agent(D008)
+- 如果 Write 被 deny(主要是 .claude/ 和 .team-brain/),把内容 SendMessage 给 PM,PM 代 Write
+- 文档更新: current / context-for-others / completed 三件套完整更新(subagent 如果被 deny,汇报给 PM)
+
+---
+
+
+### ✅ Wave 1 · 4/4 全部完成 + 审查通过
+
+- **来自**: PM Lead(Coordinator, Opus 4.7 主会话)
+- **时间**: 2026-04-24 Session 3
+
+#### 各 teammate 审查结果
+
+| teammate | 结果 | 关键产出 |
+|---|---|---|
+| @backend | ✅ 通过 | stream.py + stream_en.py 约 30 处 Qwen 迁移 + 附带修复 4 个 pre-existing bug(stream_en.py 调用不存在函数)|
+| @devops | ✅ 通过 | sumai/.gitignore 加规则 + 13 个文件去 track(4 个 .DS_Store + 9 个 cert)+ RED-003 guide 280 行 |
+| @tester | ✅ 通过 | 5 个新测试文件 520 行(15 个 active + 14 个 stub)+ 2 个关键发现(TOCTOU / pre-existing fail)|
+| @frontend | ✅ 通过 | Stage 1 UX(Hero + 三档选择器 + 专业项目视觉强调)+ 微信小程序规范全绿 |
+
+#### PM 代做的事(subagent 权限受限时)
+
+- 修复 pre-existing fail `test_qwen_model_name_is_correct_in_config` 的期望值
+- 代写 @tester + @frontend 的 progress 三件套(它们 Session 3 时间戳没更新,推断 .claude/ 写入被 deny)
+
+#### 新增 KNOWN_ISSUES
+
+- **YELLOW-004** TOCTOU 竞争条件(@tester 分析发现,P1,Wave 2 修)
+- **GRAY-006** index.js 含 3038 U+00A0(pre-existing,Stage 2+ 清理)
+- **RED-002 新增子项** app.secret_key 弱密钥(Agent α 历史发现 + 本次 Wave 2 处理)
+
+#### 下一步:Wave 2 规划(等 Founder 批准)
+
+- @backend · RED-002 凭证外移 .env + app.secret_key 强化
+- @backend · 方案 Y 实施(新建 /wanxiangStream + 前端删 hunyuan)
+- @backend + @frontend · Stage 1 后端 complexity 三档 system prompt
+- @tester · 回归全量测试
+
+---
+

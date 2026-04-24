@@ -6,9 +6,28 @@
     <!-- 标题区域 -->
     <view class="title-area">
       <view class="main-title">序话</view>
-      <view class="sub-title">当你要AI真正懂你...</view>
+      <view class="sub-title">专业创作者的 AI Prompt 工作台</view>
     </view>
-    
+
+    <!-- 任务复杂度选择器 -->
+    <view class="complexity-selector">
+      <view class="complexity-options">
+        <view
+          wx:for="{{complexityOptions}}"
+          wx:key="id"
+          class="complexity-option {{currentComplexity === item.id ? 'active' : ''}} complexity-{{item.id}}"
+          bindtap="switchComplexity"
+          data-id="{{item.id}}"
+        >
+          <text class="complexity-emoji">{{item.emoji}}</text>
+          <text class="complexity-name">{{item.name}}</text>
+        </view>
+      </view>
+      <view class="complexity-hint" wx:if="{{currentComplexity === 'professional'}}">
+        <text class="complexity-hint-text">💎 专业项目会生成更长、更结构化的 prompt，适合沉淀和复用</text>
+      </view>
+    </view>
+
     <!-- 模型选择区域 - 只在"我有想法"模式下显示 -->
     <view class="model-selector" wx:if="{{inputMode === 'idea'}}">
       <!-- 模型类别标签栏 -->
@@ -202,7 +221,7 @@
     
     <!-- 我有想法模式 - 原有输入区域 -->
     <view class="input-mode-container {{inputMode === 'idea' ? 'show' : 'hide'}}">
-      <view class="input-area {{keyboardActive ? 'keyboard-focus' : ''}}" 
+      <view class="input-area {{keyboardActive ? 'keyboard-focus' : ''}} {{currentComplexity === 'professional' ? 'input-area-professional' : ''}}"
             id="input-area"
             catchtap="stopPropagation">
             <textarea 
@@ -290,7 +309,11 @@
 
     <!-- 结果展示区域 -->
     <view class="result-area {{showResult ? 'show' : ''}}" wx:if="{{result}}">
-      <view class="result-card">
+      <view class="result-card {{currentComplexity === 'professional' ? 'result-card-professional' : ''}}">
+        <!-- 专业项目徽标 -->
+        <view class="professional-badge" wx:if="{{currentComplexity === 'professional'}}">
+          <text>💎 专业项目</text>
+        </view>
         <view class="result-header">
           <text class="result-title">点亮结果</text>
           

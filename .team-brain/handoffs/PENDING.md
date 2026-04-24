@@ -5,118 +5,125 @@
 
 ---
 
-## 当前待交接(2026-04-24 Session 2 后)
+## 当前待交接(2026-04-24 Session 3 Wave 1 后)
 
-### P0 红色警报处理(Stage 1 开工前必须对齐)
+### ✅ Wave 1 完成项(2026-04-24 Session 3)
 
-#### [B1-a] 迁移 sumai 主力模型 Anthropic → Qwen Flash 3.6
-- **背景**: RED-001,Anthropic 是境外服务 + API Key 硬编码,与合规决策 D006 冲突
-- **具体**:
-  - 把 `sumai/stream.py` 和 `sumai/stream_en.py` 里的 `claude-haiku-4-5` 迁移到 `qwen3.6-flash-2026-04-16`
-  - `qwen3-vl-plus`(图生 prompt)可升级到 `qwen3-vl-flash-2026-01-22`(更快更省)
-  - 预期 12+ 端点改动
-  - **必须**: 迁移前做 prompt 质量 A/B 对比,确保 Qwen 输出不劣于 Claude
-- **负责**: @backend
-- **优先级**: P0(合规底线)
-- **前置**: 无
-- **预估工作量**: 1-2 天(包括 prompt 适配测试)
+- ✅ **[B1-a] RED-001 Anthropic → Qwen 3.6 迁移**(stream.py + stream_en.py 约 30 处,test_qwen_model_name 已同步修)
+- ✅ **[B1-c 部分] RED-003 gitignore + 13 文件 untrack**(git-filter-repo 外部操作由 Founder 执行,`sumai/docs/RED-003_git_history_cleanup_guide.md` 已提供)
+- ✅ **[B4] sumai/CLAUDE.md**(Session 2 完成)
+- ✅ **[B5] sumai 测试骨架**(Session 2 建立 + Session 3 新增 test_rate_limiting + 4 stub)
+- ✅ **[Stage1-prep-2] 三档复杂度 UX 草稿**(Wave 1 @frontend 完成,已上线等后端跟进)
+- ✅ **GitHub 迁移**(xuhua-wx → kaiangel/prefaceai main,sumai → 101.132.69.232:sumai.git master)
 
-#### [B1-b] 凭证外移到 .env + 环境变量
-- **背景**: RED-002,所有 API Key/密码/Secret 硬编码在 sumai 代码里
+---
+
+## Wave 2 待启动(等 Founder 指令)
+
+### P0 红色警报剩余
+
+#### [B1-b] RED-002 凭证外移 .env
+- **背景**: 所有 API Key/密码/Secret 硬编码在 sumai 代码里
+- **新增发现**(Session 3): `app.secret_key = '123456qwerty'` Flask session 弱密钥,PC Web 可被伪造 session cookie
 - **具体**:
   - 创建 `sumai/.env.example`(列变量名不列值)
-  - 重构代码使用 `python-dotenv` 加载
-  - 更新 `sumai/.gitignore` 确保 `.env` 不进 git
+  - 重构 `mainv2.py` / `note.py` / `pay_stripe.py` 等用 `python-dotenv` 加载
+  - **强密钥替换**: `app.secret_key` 用 `secrets.token_hex(32)` 生成强密钥
+  - 更新 `sumai/.gitignore` 确保 `.env` 不进 git(已部分完成)
   - 生产服务器配置迁移(Supervisor env 或 systemd env)
 - **负责**: @backend + @devops
 - **优先级**: P0
 - **前置**: 无
 - **预估工作量**: 1 天
 
-#### [B1-c] 清理 git 历史中的生产证书 + 轮换
-- **背景**: RED-003,`sumai/cert/*.key` / `*.pem` / `*.p12` 已提交到 git
+#### [B1-c 剩余] RED-003 git 历史清理 + 证书轮换
+- **已完成**(Session 3): gitignore 补救 + 13 文件 untrack
+- **未完成**: 
+  - Founder 外部执行 `git-filter-repo` 清历史(破坏性 + 影响所有 clone 者)
+  - **最高优先级**: 轮换微信支付商户证书
+  - 轮换 TLS 证书(duyueai.com / api.xuhuaai.com / prefaceai.net)
+- **指南**: `sumai/docs/RED-003_git_history_cleanup_guide.md`
+
+### P1 黄色警报
+
+#### [B2-a] YELLOW-001 /wanxiangStream 方案 Y 实施(D010)
+- **决策**: 后端规范化 + 下架 hunyuan(Founder 决定)
 - **具体**:
-  - 把 `cert/*.{key,pem,p12}` 加到 `sumai/.gitignore`
-  - 用 `git-filter-repo` 或 `BFG Repo-Cleaner` 从 git 历史中清除(⚠️ 会改 commit hash,影响其他已 clone 的开发环境)
-  - 轮换所有泄露的证书和私钥(域名 TLS + 微信支付商户)
-- **负责**: @devops(需外部协助)
-- **优先级**: P0
-- **前置**: 确认没有其他开发者在 clone sumai 仓库本地版本(避免 rebase 冲突)
-- **预估工作量**: 半天(核心清理)+ 证书轮换(需外部服务)
-
-### P1 黄色警报处理
-
-#### [B2-a] 确认 `/wanxiangStream` 处理方式(生产当前 404)
-- **背景**: YELLOW-001,前端调用后端没实现
-- **具体动作**:
-  - Founder 手动在小程序选"通义万相"模式尝试生成视频,double-check 确认是坏的
-  - 决策: 补后端(@backend 在 sumai 加端点) vs 下架(@frontend 从模型列表移除)
-- **优先级**: P1(影响用户体验 + 品牌)
-- **前置**: Founder 验证
-- **预估工作量**: 1 小时(验证)+ 视决策定(1 天补后端 / 1 小时下架)
-
-#### [B2-b] 清理 `/recent_generation` 前端调用 — 🟡 **Founder 决策: 先不管**(2026-04-24)
-- **背景**: YELLOW-003,app.js:521 调用失败返回 null,用户无感
-- **当前状态**: 优先级降为 P3,留作未来顺手清
-- **负责**: @backend(未来 Stage 2+ 重构期顺手处理)
-
-#### [B2-c] 清理 `/labelSync` 前端调用 — ✅ **2026-04-24 已完成**
-- **背景**: YELLOW-002,前端假同步,实际靠 `/history` 带 style 字段跨设备同步
-- **已执行**:
-  - ✅ 删 `app.js` 的 `syncLabelToCloud` / `getLabelFromCloud` 函数定义(原 L419-476)
-  - ✅ 删调用点 L262(`saveSessionLabel` 内)+ L287(`getSessionLabel` 的云端回退块)
-  - ✅ 保留 NOTE 注释指向 YELLOW-002 记录
-  - ✅ app.js 从 995 行减至 922 行
-  - ✅ pytest 18/18 PASS + node --check 通过
-- **决策者**: Founder(2026-04-24)
-- **后续**: sumai 后端的 `/labelSync` 端点残留可以在某次 sumai 重构时清理(非紧急)
-
-### P1 Stage 1 开工前准备
-
-#### [B4] 为 sumai 写 CLAUDE.md
-- **背景**: GRAY-002,sumai 10000+ 行代码无 CLAUDE.md,agent 难工作
-- **具体**: 基于 `.team-brain/analysis/sumai-deep-dive-2026-04-24.md` 写
-- **负责**: Coordinator(本 session 进行中,Sonnet agent 辅助)
+  - @backend: sumai 新建 `/wanxiangStream` 端点,system prompt 对应通义万相
+  - @backend: 删 `/hunyuanStream` 端点(没在用)
+  - @frontend: 从模型列表移除 "混元",保留 "通义万相"
 - **优先级**: P1
-- **状态**: 🟡 本 session 进行中
+- **前置**: Founder 生产线上 404 double-check
+- **预估工作量**: 半天
 
-#### [B5] 为 sumai 补测试骨架
-- **背景**: GRAY-001,sumai 零自动化测试
-- **具体**: pytest + pytest-flask + unittest.mock,覆盖 8 个维度(架构/端点/业务/SSE/LLM/支付/上传/schema)
-- **负责**: Coordinator(本 session 进行中,Sonnet agent 辅助)
+#### [B2-b] /recent_generation — 🟡 Founder 决策: 先不管(2026-04-24)
+- 留作 Stage 2+ 顺手清
+
+#### [B2-c] /labelSync 前端 — ✅ 2026-04-24 已完成
+
+### P1 Stage 1 后端跟进
+
+#### [Stage1-prep-3] "专业项目" system prompt 三档配置
+- **背景**: 前端三档选择器已上线(D012 方案 B 先行),后端未跟进
+- **前端契约**: `complexity` 字段(enum: quick/standard/professional),透传 `generateContent()` body
+- **后端 fallback**: 未收到 → `standard`
+- **具体**:
+  - @backend: 在 stream.py + stream_en.py 各 generate() 函数解析 complexity
+  - 三档 system prompt:快速(短)/ 标准(当前默认)/ 专业(长 + 结构化 + 模板尾注)
+  - 确保 complexity 在所有 12+ 端点都支持
 - **优先级**: P1
-- **状态**: 🟡 本 session 进行中
+- **前置**: RED-001 ✅ 已完成
+- **预估工作量**: 1 天
 
-### P2 Stage 1 真正开工前的前置
+### P1 测试跟进
 
-#### [Stage1-prep-1] 与 Co-founder 对齐
-- Stage 1 首期时长(建议 2 周)
-- Stage 1 具体成功指标("专业项目"档选择率 >30% + 付费转化率提升 X%)
-- 开工时间表
-- **(Founder 已说不需要对齐,留作备忘)**
+#### [T1] TOCTOU test 激活
+- **背景**: YELLOW-004 新增,Session 3 @tester 发现
+- **具体**: @backend 修 TOCTOU(SELECT FOR UPDATE + 同 transaction)后,@tester 移除 xfail 标记
+- **优先级**: P1(Stage 2 前必修)
+- **负责**: @backend + @tester
+- **预估工作量**: 半天
 
-#### [Stage1-prep-2] 设计三档复杂度 UX 草稿
-- 快速想法 / 深度创作 / 专业项目
-- 首页 Hero 文案新定位(3 个候选)
-- **负责**: @frontend + @resonance + @pm(协同)
+#### [T2] 回归全量测试
+- **背景**: RED-001 迁移后确保没破坏
+- **具体**: `cd sumai && pytest tests/ -v`(当前 89 passed / 111 skipped)
+- **已完成**: Session 3 已运行一次 ✅
+- **负责**: @tester(Wave 2 前再跑一次)
 
-#### [Stage1-prep-3] 设计 "专业项目" system prompt 三档配置
-- 需要**先在 sumai 完成 B1-a(Qwen 迁移)** 再做此任务(否则要在 Claude 和 Qwen 两套 prompt 上都改)
-- **负责**: @backend
+### P2 Stage 1 真正开工前
+
+#### [Stage1-prep-1] Co-founder 对齐
+- **Founder 已说不需要对齐,留作备忘**
 
 ### P2 其他整理(Stage 2 之后)
 
 - **[GRAY-003]** 序话小程序代码重构: Markdown 渲染去重 + 模型检测去重
 - **[GRAY-004]** sumai 废弃文件清理(`claude_*.py` / `app.py_back` / `deepseek/` / `bigmodel/` / `moonshot.py`)→ 移到 `sumai/legacy/` 或删除
 - **[GRAY-005]** 前端生成状态机重构(合并 isGenerating / isGenerationActive / isCompletelyTerminated)
+- **[GRAY-006]** `pages/index/index.js` 3038 个 U+00A0 统一清理(Session 3 新增)
+
+---
+
+## Founder 外部任务(Wave 1 后)
+
+1. **真机验证三档**(iPhone SE 375px / iPhone 14 Pro Max 428px)
+2. **通义万相线上 404 double-check**
+3. **git-filter-repo 外部操作**(影响所有 clone 者,指南在 sumai/docs/)
+4. **微信支付商户证书轮换**(最高优先级,RED-003 前置)
+5. **Wave 2 启动决策**
 
 ---
 
 ## 历史记录(完成的交接)
 
 - 2026-04-22: Session 1 战略讨论完成 ✅
-- 2026-04-24: PORTING Phase 1-4 完成 ✅
-- 2026-04-24: GitHub 与本地对齐 ✅
-- 2026-04-24: sumai 克隆到本地 + Explore 深度扫描 ✅
-- 2026-04-24: KNOWN_ISSUES.md 创建 ✅
-- 2026-04-24: sumai-deep-dive-2026-04-24.md 归档 ✅
+- 2026-04-24 Session 2: PORTING Phase 1-4 完成 ✅
+- 2026-04-24 Session 2: GitHub 与本地对齐 ✅
+- 2026-04-24 Session 2: sumai 克隆到本地 + Explore 深度扫描 ✅
+- 2026-04-24 Session 2: KNOWN_ISSUES.md 创建 ✅
+- 2026-04-24 Session 2: sumai-deep-dive-2026-04-24.md 归档 ✅
+- 2026-04-24 Session 2: sumai/CLAUDE.md 编写完成 ✅
+- 2026-04-24 Session 3: GitHub 迁移 kaiangel/prefaceai ✅
+- 2026-04-24 Session 3: Wave 1 全部完成(4 teammate 并行) ✅
+- 2026-04-24 Session 3: D009-D013 决策登记 ✅
+- 2026-04-24 Session 3: app.js labelSync 僵尸代码清理 ✅
