@@ -257,9 +257,6 @@ App({
     } catch (e) {
       console.error('保存会话标签失败:', e);
     }
-
-    // 🌐 同步到云端（解决多端同步问题）
-    this.syncLabelToCloud('session', sessionId, { label: label, timestamp: Date.now() });
   },
 
   // 获取会话ID的标签
@@ -283,19 +280,6 @@ App({
       console.error('获取会话标签失败:', e);
     }
 
-    // 🌐 如果本地没有，尝试从云端获取（异步，用于后续缓存）
-    this.getLabelFromCloud('session', sessionId).then(cloudData => {
-      if (cloudData && cloudData.label) {
-        console.log('🌐 从云端获取到会话标签，缓存到本地:', sessionId, cloudData.label);
-        this.globalData.sessionLabels[sessionId] = cloudData.label;
-        try {
-          wx.setStorageSync('sessionLabels', this.globalData.sessionLabels);
-        } catch (e) {
-          console.error('缓存云端标签失败:', e);
-        }
-      }
-    });
-    
     return null;
   },
 
@@ -415,67 +399,10 @@ App({
     return hash.toString();
   },
 
-  // 🌐 云端同步映射数据（解决多端同步问题）
-  syncLabelToCloud: function(type, key, data) {
-    const openid = this.globalData.openid;
-    if (!openid || !key || !data) return;
-
-    // 发送到云端保存
-    wx.request({
-      url: 'https://www.duyueai.com/labelSync',
-      method: 'POST',
-      data: {
-        openid: openid,
-        sync_type: type,  // 'session', 'content', 'history'
-        sync_key: key,
-        sync_data: JSON.stringify(data),
-        timestamp: Date.now()
-      },
-      header: {
-        'Content-Type': 'application/json'
-      },
-      success: (res) => {
-        console.log('🌐 标签数据已同步到云端:', type, key);
-      },
-      fail: (err) => {
-        console.log('⚠️ 云端同步失败:', err);
-      }
-    });
-  },
-
-  // 🌐 从云端获取映射数据
-  getLabelFromCloud: function(type, key) {
-    const openid = this.globalData.openid;
-    if (!openid || !key) return Promise.resolve(null);
-
-    return new Promise((resolve) => {
-      wx.request({
-        url: 'https://www.duyueai.com/labelSync',
-        method: 'GET',
-        data: {
-          openid: openid,
-          sync_type: type,
-          sync_key: key
-        },
-        success: (res) => {
-          if (res.data && res.data.code === 0 && res.data.data) {
-            try {
-              const data = JSON.parse(res.data.data.sync_data);
-              console.log('🌐 从云端获取到标签数据:', type, key, data);
-              resolve(data);
-            } catch (e) {
-              resolve(null);
-            }
-          } else {
-            resolve(null);
-          }
-        },
-        fail: () => resolve(null)
-      });
-    });
-  },
-
   // 在小程序启动时加载标签映射
+  // NOTE: YELLOW-002 已清理 — syncLabelToCloud / getLabelFromCloud 已删除
+  // 原因: 后端 /labelSync 是半成品(POST 假成功/GET 永远 404),跨设备同步实际靠 /history 带的 style 字段
+  // 详见 .team-brain/knowledge/KNOWN_ISSUES.md YELLOW-002
   loadHistoryLabels: function() {
     try {
       const historyLabels = wx.getStorageSync('historyLabels') || {};

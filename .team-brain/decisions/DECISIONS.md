@@ -33,6 +33,41 @@
 - **理由**: 微信小程序合规要求
 - **影响范围**: 千问、豆包、混元、Kimi、智谱、MiniMax、小米 MiMo 等
 
+### D007 - Sumai 后端代码以嵌套 git repo 方式共存于 xuhua-wx 目录
+- **决策者**: Founder
+- **日期**: 2026-04-24
+- **背景**: sumai 是序话的真实后端代码(clone 自 `101.132.69.232:/home/git/sumai.git`,部署到 `https://www.duyueai.com`)。为了让 Claude Code Agent 能跨仓库做 API 契约分析,Founder 把 sumai clone 到 `/Users/kaisbabybook/WeChatProjects/xuhua-wx/sumai/`。
+- **策略**:
+  - `sumai/` 是**独立 git 仓库**(保留自己 `.git/`)
+  - xuhua-wx 的 `.gitignore` 已排除 `/sumai/`,避免嵌套 commit
+  - sumai 的改动各自 push 到 sumai repo
+  - xuhua-wx 的改动 push 到 `shunshunyue/xuhua-wx`
+- **影响**:
+  - Backend agent 白名单扩展到 `sumai/**`(一个 Backend 管全栈)
+  - Tester agent 测试范围扩展到 sumai 后端 + xuhua-wx 前端
+  - 所有 Claude Code agent 可 Read sumai 代码,但 **.env 等敏感文件不读**
+
+### D008 - Coordinator 兼任 PM Lead(subagent 层级限制)
+- **决策者**: Founder
+- **日期**: 2026-04-24
+- **背景**: 实测发现 subagent 不能再 spawn 子子 agent。原 xhteam skill 设计"PM 作为 subagent 再 spawn teammates"不可行。
+- **新架构**:
+  ```
+  Founder (你)
+      ↓
+  Coordinator + PM Lead (主会话 Opus 4.7)
+     - 战略把关(Coordinator 原职)
+     - 规划 / 拆解 / spawn teammates / 审查(PM 原职)
+      ↓
+  Teammates (subagents 一级,不能再 spawn)
+     - @backend / @frontend / @tester / @devops / @resonance
+  ```
+- **影响**:
+  - `.claude/agents/pm.md` 的"PM 作为独立 Lead"部分调整为"PM 是思维框架,由主会话承担执行"
+  - xhteam skill 的"PM 作为 Agent Team Lead"由主会话(Coordinator)履行
+  - 实际 spawn / 审查 / 修复循环都在主会话里完成
+- **保留**: pm.md 的产品决策视角、需求过滤器、Beachhead 把关等职责仍然是 PM 角色的核心(主会话以 PM 视角工作时遵循)
+
 ---
 
 (新决策往下追加)

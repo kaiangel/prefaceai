@@ -25,3 +25,7 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+
+# Sumai 后端代码(独立 git repo,clone 自 101.132.69.232:/home/git/sumai.git)
+# 不参与 xuhua-wx 的 git 追踪,sumai 的改动 push 到 sumai 自己的 repo
+/sumai/

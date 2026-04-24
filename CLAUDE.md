@@ -14,7 +14,8 @@
 | 版本 | v0.9.6.8 |
 | 平台 | 微信小程序(境内合规) |
 | App ID | wx748c6d66700c159a |
-| 后端 | https://www.duyueai.com（远程，不在本仓库） |
+| 后端源码 | `sumai/`（本地,独立 git repo,clone 自 101.132.69.232:/home/git/sumai.git） |
+| 后端部署 | https://www.duyueai.com（sumai 部署至此） |
 | 技术栈 | JavaScript(ES2018) + WXML + WXSS，无 npm / 无 TS / 无构建工具 |
 | 代码规模 | ~8,000 行 JS，主要集中在 pages/index/index.js（3,229 行） |
 | AI 模型数 | 16 个（3 文本 + 5 图像 + 7 视频 + 1 Agent） |
@@ -30,8 +31,8 @@
 |------|------|---------|
 | Founder (A) | 🟢 | 产品 vibe coding（前端 + 后端 + 运维） |
 | Founder (B, Co-founder) | 🟢 | 技术架构、商业化架构、数据库 |
-| Coordinator (Opus 4.7) | 🟢 | 多 Agent 系统初始化 |
-| PM | 🟢 | 等待分配 |
+| Coordinator + PM Lead (Opus 4.7, 主会话) | 🟢 | D008 后兼任,直接 spawn teammates |
+| PM（思维框架,主会话承担执行） | — | 见 pm.md,主会话以此视角工作 |
 | Backend | 🟢 | 等待分配 |
 | Frontend | 🟢 | 等待分配 |
 | Tester | 🟢 | 等待分配 |
@@ -48,6 +49,8 @@
 | D004 | 不引入 GitHub Actions CI / 不加 eslint PostToolUse hook | 2026-04-24 |
 | D005 | Beachhead 锁定 "设计师 + 内容创作者 + 日常完成复杂任务人群" | 2026-04-24 |
 | D006 | 多模型限定中国大陆境内（千问/豆包/混元/Kimi/智谱/MiniMax/MiMo 等） | 2026-04-24 |
+| D007 | Sumai 后端以嵌套 git repo 方式共存于 xuhua-wx/sumai/，两个仓库独立 push | 2026-04-24 |
+| D008 | Coordinator 兼任 PM Lead（因 subagent 不能再 spawn 子子 agent） | 2026-04-24 |
 
 ### 协调相关文件
 
@@ -244,6 +247,38 @@ xuhua-wx/
 
 ---
 
+## Coordinator 兼 PM Lead 的工作模式（D008 后的架构）
+
+**背景**: 实测发现 subagent 不能再 spawn 子子 agent。所以原 xhteam 设计的"PM 作为 subagent 再 spawn teammates"走不通。
+
+**新架构**:
+```
+Founder (你)
+    ↓
+Coordinator + PM Lead (主会话 Opus 4.7)
+    ├─ 战略把关(Coordinator 原职)
+    ├─ 规划 / 拆解任务(PM 原职)
+    ├─ spawn teammates(PM 原职,由主会话执行)
+    ├─ 审查产出(PM 原职)
+    └─ 修复循环(PM 原职)
+    ↓
+Teammates (subagents,一级,不能再 spawn)
+  - @backend / @frontend / @tester / @devops / @resonance
+```
+
+**实际操作要点**:
+- 当 Founder 说 `/xhteam [任务]` 或直接下达任务 → 主会话(我)按 PM 视角开始工作
+- 主会话读完上下文后 → 规划 → 暂停等 Founder 确认 → spawn teammates
+- teammate 完成 → 主会话(以 PM 视角)审查 → 修复循环(最多 2 轮)
+- 最终主会话汇报 Founder
+
+**PM 角色文件 `.claude/agents/pm.md` 的用途调整**:
+- 不作为独立 spawn 的 subagent
+- 作为**主会话以 PM 视角工作时的思维框架**
+- 产品决策、需求过滤器、Beachhead 把关等仍然是 PM 角色的核心职责
+
+---
+
 ## 子代理行为规范（Harness V2）
 
 1. **Spawn 前判断 Opus vs Sonnet**: 执行类（写配置/文档/Schema/脚本）→ Sonnet 4.6；深度推理/产品设计 → Opus 4.6；**Founder 明确决定本项目所有 spawn 用 Sonnet 4.6**
@@ -270,15 +305,34 @@ xuhua-wx/
 
 ---
 
-## 已知的代码问题（待重构，Phase 2 之后）
+## 已知的代码问题（完整清单见 `.team-brain/knowledge/KNOWN_ISSUES.md`）
 
-1. **Markdown 渲染逻辑在 4 个文件中重复**（index / history / favorites / shared）— 应提取到共享 util
-2. **模型检测逻辑在 3 个文件中重复** — 同样需要抽象
-3. **ESLint 规则为空** — 无代码质量保障
-4. **无共享 util 模块**
-5. **feedback 页面的提交功能未实现**
-6. **生成状态管理过度复杂**（isGenerating / isGenerationActive / isCompletelyTerminated 并存）
-7. **分享功能依赖未实现的后端 `/api/shared/{id}`** - `pages/shared/shared.js` 已就绪，等后端
+### 🔴 红色警报(合规 / 安全底线)
+
+- **RED-001**: sumai 主力模型是 Anthropic Claude（境外）—— 与 D006 合规决策冲突,待迁移到 Qwen Flash 3.6
+- **RED-002**: 所有凭证硬编码在 sumai 源代码(`.env` 未使用) —— 待外移到环境变量
+- **RED-003**: 生产证书和微信支付私钥**已提交到 git**（`sumai/cert/*.key` / `*.pem` / `*.p12`） —— 待清理 git 历史 + 轮换证书
+
+### 🟡 黄色警报(孤儿 / 半成品)
+
+- **YELLOW-001**: `/wanxiangStream`(通义万相视频)前端调用但后端没实现，生产环境 404
+- **YELLOW-002**: `/labelSync` 半成品(POST 假成功 / GET 恒 404),跨设备 label 同步实际靠 `/history`
+- **YELLOW-003**: `/recent_generation` 孤儿,前端静默失败,用户无感
+
+### 🟢 灰色 / 技术债
+
+- **GRAY-001**: sumai 无自动化测试(git pull + supervisorctl restart 盲飞部署)
+- **GRAY-002**: sumai 无 CLAUDE.md(10000+ 行代码让 agent 难工作)
+- **GRAY-003**: 序话小程序代码重复 — Markdown 渲染在 4 个文件中(index/history/favorites/shared)、模型检测逻辑在 3 个文件中
+- **GRAY-004**: sumai 多个废弃文件混淆(`claude_*.py` / `app.py_back` / `deepseek/` / `bigmodel/` / `moonshot.py`)
+- **GRAY-005**: 前端生成状态机过度复杂(`isGenerating` / `isGenerationActive` / `isCompletelyTerminated` 并存)
+
+### 其他(小程序前端)
+
+- **ESLint 规则为空** —— 无代码质量保障
+- **无共享 util 模块**
+- **feedback 页面的提交功能未实现**
+- **分享功能依赖未实现的后端 `/api/shared/{id}`** - `pages/shared/shared.js` 已就绪，等后端
 
 ---
 

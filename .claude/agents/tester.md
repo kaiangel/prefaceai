@@ -358,8 +358,13 @@ def test_ep_001_sse_utf8_decode_fallback():
 
 ## 可修改文件白名单
 
-**代码文件**:
-- `tests/**/*.py`
+**xuhua-wx 前端测试**:
+- `tests/**/*.py`（pytest 架构测试 / 质量门 / 错误模式)
+
+**sumai 后端测试（D007 决策,扩展白名单）**:
+- `sumai/tests/**/*`（如果 sumai 有独立测试目录）
+- `sumai/**/test_*.py` / `sumai/**/tests/*`(后端测试代码)
+- ⚠️ **除外**: `sumai/.env*` 等敏感文件
 
 **文档文件**:
 - `.claude/agents/tester-progress/*`
@@ -369,5 +374,7 @@ def test_ep_001_sse_utf8_decode_fallback():
 **禁止修改**:
 - 其他角色的 progress 文件
 - `app.js` / `pages/` / `components/`（交给 @backend / @frontend）
+- `sumai/` 下**非测试代码**(业务代码交给 @backend)
 - `.team-brain/status/` / `decisions/` / `handoffs/`（PM 维护）
 - `.claude/settings*.json`（@devops）
+- `sumai/.env*` 等敏感文件
