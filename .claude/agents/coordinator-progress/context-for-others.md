@@ -1,15 +1,46 @@
 # Coordinator(统筹者) - 给其他角色的上下文
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-24 Session 3 Wave 1 完成
+> 上次更新: 2026-04-24 Session 3 Wave 2 Round 2 完成
 > 角色: coordinator
 
 ---
 
-## 当前状态速览（2026-04-24 Session 3 后）
+## 当前状态速览（2026-04-24 Session 3 Wave 2 Round 2 后）
 
-**Wave 1**: ✅ 全部完成,4 个 teammate 并行产出通过审查
-**下一阶段**: Wave 2(RED-002 + 方案 Y + Stage 1 后端)— 待 Founder 启动指令
+**Wave 1**: ✅ 完成并 push(xuhua-wx 619d191 / sumai a31163c)
+**Wave 2 Round 1**: ✅ 完成(RED-002 凭证外移 + 基线 + env 指南草稿)
+**Wave 2 Round 2**: ✅ 完成(TOCTOU 基础 + 方案 Y + hunyuan 清除 + env 指南定稿)
+**Wave 2 Round 3**: ⏳ 最后一轮,等 Founder 对 complexity 三档产品方向确认
+
+---
+
+## Wave 2 关键变化(给所有 Agent)
+
+### 新函数契约(sumai/stream.py)
+
+- `validate_and_deduct(data, cost=1)` L1764:替代旧 `validate_request_and_user` + `save_content_prompt_stream` 的额度检查和扣次数部分。SELECT FOR UPDATE + 同事务 commit,消除 TOCTOU
+- `save_prompt_record(content, response, openid, ...)` L1905:只 INSERT prompt_base,不再扣次数
+- 旧 `validate_request_and_user` + `save_content_prompt_stream` 保留,Round 3 删
+
+### 端点切换状态
+
+- 已切新 API:`/botPromptStream`、`/aiAgentStream`、`/wanxiangStream`(新建)
+- 未切(Round 3):reasoningStream / fluxStream / midjourneyStream / jimengpicStream / lovartpicStream / dalleStream / runwayStream / kelingStream / jimengvidStream / lovartvidStream / sora2Stream / describeImageStream + stream_en.py 全部
+
+### 方案 Y 已实施(D010)
+
+- sumai 新建 `/wanxiangStream` + `/wanxiangStreamEN`(复制原 /hunyuanStream 内容,实际是通义万相 system prompt)
+- sumai 删 `/hunyuanStream` + `/hunyuanStreamEN`,留下架注释
+- 前端 `pages/index/index.js`、`wxml`、`config/cdn.js` 的 hunyuan 引用全部清除
+- 前端 favorites/history/shared 的 modelNames 映射保留 `hunyuan: '腾讯混元'` 做历史数据兼容
+
+### 凭证管理(D016 / RED-002)
+
+- sumai 主文件(mainv2/note/pay_stripe/stream/stream_en)凭证已 `os.getenv()` 外移
+- 开发者本地 `.env`(不入 git)
+- 生产部署指南:`sumai/docs/RED-002_env_migration_guide.md`(772 行完整 checklist)
+- **FLASK_SECRET_KEY 切换会让 PC Web 用户全部登出**(小程序不受影响)
 
 ---
 

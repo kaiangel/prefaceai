@@ -68,17 +68,19 @@
 
 ## 🟡 黄色警报(功能残缺 / 孤儿端点)
 
-### YELLOW-001 · `/wanxiangStream`(通义万相视频生成)孤儿调用
+### YELLOW-001 · `/wanxiangStream`(通义万相视频生成)孤儿调用 · ✅ 已解决 2026-04-24 23:45
 
 - **发现日期**: 2026-04-24
-- **位置**: 前端 `pages/index/index.js:272` 调用,后端 sumai 没实现
-- **现状**: 生产环境上**"通义万相"视频生成功能 404 失败**
-- **验证**: 需手动在小程序选"通义万相"模式下尝试生成视频,确认失败
-- **解决方案**:
-  - **选项 A**: 在 sumai 补 `/wanxiangStream` 端点
-  - **选项 B**: 从前端模型列表中**下架**"通义万相"(如果没需求)
-- **优先级**: P1(影响功能 + 品牌形象 — 用户选中后 404)
-- **负责**: Founder 决策(继续还是下架)→ @backend 或 @frontend 执行
+- **原位置**: 前端 `pages/index/index.js:272` 调用,后端 sumai 没实现
+- **方案**: 方案 Y (D010) — 后端规范化
+- **状态**: ✅ **已解决**(@backend W2-2 · Wave 2 Round 2)
+  - `sumai/stream.py`: `/wanxiangStream` 新建(复制原 `/hunyuanStream` 实现,system prompt 内容即通义万相 2.2,命名错位已修复)
+  - `sumai/stream.py`: `/hunyuanStream` 删除,留 downgrade 注释
+  - `sumai/stream_en.py`: 同理处理 `/wanxiangStreamEN` + `/hunyuanStreamEN`
+  - `pytest` 基线 91 passed 持平(删除 hunyuan 的 4 个 test 影响在本地 pytest 环境被 skip 遮蔽,Round 3 @tester 在生产 venv 跑全量回归时需更新那 4 个 test)
+- **剩余**(Round 3):
+  - @frontend W2-3: 前端路由核查(pages/index/index.js 的 hunyuan 路径残留清理)
+  - @tester W2-6: 更新 `test_endpoints_exist.py` L134 / `test_sse_stream_structure.py` L115 / `test_qwen_client.py` L118 / `test_orphan_endpoints.py` L29
 
 ### YELLOW-002 · `/labelSync` 半成品(僵尸代码)
 
@@ -180,21 +182,36 @@
 
 ## 🟡 黄色警报(Session 3 新发现)
 
-### YELLOW-004 · TOCTOU 竞争条件 — 用户次数扣减可能 lost update
+### YELLOW-004 · TOCTOU 竞争条件 — 用户次数扣减可能 lost update · ✅ 全 31 端点已修(R3-B 收尾)
 
 - **发现日期**: 2026-04-24 Session 3(@tester 分析 sumai/stream.py 时发现)
-- **位置**:
+- **原位置**:
   - `sumai/stream.py:1753` `validate_request_and_user()`(SELECT limit_num-used_num)
   - `sumai/stream.py save_content_prompt_stream()`(UPDATE used_num)
-- **现状**: 两个操作是**独立 DB 连接**,中间无事务保护
-- **风险**: 并发用户(如 5 个同时请求)可能都通过 validate(看到 count=1)后各自扣减,实际只扣 1 次但消耗 5 次额度 → **用户多扣次数 / 少扣次数**(取决于 InnoDB 行级锁具体行为)
-- **Sensor**: `sumai/tests/test_rate_limiting.py::test_race_condition_sensor`(xfail 状态,修复后自动变绿)
-- **解决方案**: 
-  - **选项 A**:用 `SELECT ... FOR UPDATE` + 同一 transaction 保护
-  - **选项 B**:合并 validate 和 save 为单一原子 UPDATE(减少往返)
-  - **选项 C**:用 Redis 原子操作做限流层(额外一层保护)
-- **优先级**: P1(Stage 2 前修复,否则付费用户可能投诉次数被多扣)
-- **负责**: @backend
+- **原风险**: 两个操作是独立 DB 连接,中间无事务保护,并发用户可能 lost increment(扣少/扣多)
+- **解决方案(已采纳)**: 选项 A — `SELECT ... FOR UPDATE` + 同一 transaction
+- **状态**: ✅ **完成**(@backend W2-5 + R3-B · Wave 2 Round 2 + Round 3 全收尾)
+  - ✅ 新增 `validate_and_deduct(data, cost=1)`:同 conn + `start_transaction` + `SELECT ... FOR UPDATE` + 额度检查 + `UPDATE used_num` 同事务 + commit
+    - stream.py 模块级定义
+    - stream_en.py 模块级独立定义(R3-B 新增,从 stream.py 复制实现,仅 connect_to_db() 是本模块独立的)
+  - ✅ 新增 `save_prompt_record(...)`:配套,只 `INSERT prompt_base`,不扣次数(stream.py + stream_en.py 各一份)
+  - ✅ stream.py + stream_en.py **全部 31 个 SSE 端点**都已切到新 API:
+    - stream.py 17 端点(含 test123)— Round 2 切 3 + R3-B 切 14
+    - stream_en.py 14 端点 — R3-B 一次性全切
+  - ✅ 旧 `validate_request_and_user` + `save_content_prompt_stream` **已删除**(stream.py 和 stream_en.py 各删除一对,共 4 个函数定义,符合 no backward compatibility 原则)
+  - ✅ streaming 过程不持事务(validate+扣次数在 streaming 前 commit),避免长事务锁表
+  - ✅ Google 用户(origin='google')pro_num/normal_num 路径完整保留(stream.py 和 stream_en.py 都有)
+  - ✅ is_pro 回落(pro 用完返普通 + 奖 3 次)完整保留
+  - ✅ 异常时 rollback + 友好错误返回
+  - ✅ `pytest sumai/tests/` 91 passed 基线持平(全程零回归)
+- **mock sensor 状态**(@tester R3-D 已处理 2026-04-25):
+  - ✅ `test_rate_limiting.py::test_race_condition_sensor` 维持 xfail(strict=False),reason 更新为"全 31 端点已用 validate_and_deduct(SELECT FOR UPDATE)实施保护,mock 不能模拟 MySQL InnoDB 行锁,集成测试需 R4+"
+  - ✅ test_rate_limiting.py 顶部 docstring 警告:整个文件 mock 旧 validate_request_and_user(已删),激活前需重写为新 API mock(R4+ 任务)
+  - ✅ 4 个 W2-2 fallout 测试已修正(hunyuan→wanxiang)
+  - 🟡 后续 R4+: 写真连 MySQL 的集成测试 `test_race_condition_integration.py`,验证 SELECT FOR UPDATE 真正阻塞
+- **生产前置(@devops)**: 验证 `p_user_base` 表引擎为 InnoDB(`SHOW TABLE STATUS LIKE 'p_user_base'`)— MyISAM 不支持 FOR UPDATE 行锁
+- **优先级**: ✅ 完全 close
+- **负责**: @backend R3-B 全端点 + 旧函数删除 + @tester R3-D 测试激活清理 + W2-2 fallout 修正
 
 ---
 
@@ -231,5 +248,30 @@
 
 除原有凭证硬编码外,新增:
 - **Flask `app.secret_key = '123456qwerty'`**(`mainv2.py:55`)— 弱密钥!PC Web session 可被伪造。Wave 2 用 `secrets.token_urlsafe(32)` 生成强随机替换,并外移到 .env。
+
+### RED-002 · 状态变更 [2026-04-24 22:30] ✅ 主文件已解决
+
+- **从**: 所有凭证硬编码在 sumai 源代码,app.secret_key 为弱密钥 '123456qwerty'
+- **到**: ✅ **5 个主文件完成**(@backend Wave 2 Round 1 · W2-1)
+  - `sumai/mainv2.py` / `note.py` / `pay_stripe.py` / `stream.py` / `stream_en.py` 所有硬编码 API Key / 密码 / AppSecret / MCHID / OSS key / Stripe key 已改为 `os.environ[...]` 或 `os.getenv(...)` 读取
+  - `app.secret_key` 已从 `'123456qwerty'` 换为 64 字符 hex random (`os.environ['FLASK_SECRET_KEY']`)
+  - `sumai/.env.example` 新建,声明全部 27 个必需环境变量 + 注释
+  - `sumai/.env` 本地开发用,被 `.gitignore` 排除
+  - `sumai/mainv2.py` 顶部加 `load_dotenv()`,各蓝图模块独立 `load_dotenv()` (幂等)
+  - `json_test` 端点的死代码 + merchant secret 已删除
+  - 测试基线:`89 passed` → `91 passed`,`0 new failure`
+- **剩余废弃文件硬编码**(不影响主路由,属 GRAY-004):
+  - `sumai/claude_*.py` (11 个文件,含 Anthropic key 硬编码)
+  - `sumai/bigmodel/*.py` / `sumai/deepseek/*.py` (含 Qwen key)
+  - `sumai/moonshot.py` (含 Kimi key)
+  - 这些文件均**未被主路由 import**,生产运行不涉及,但残留 key 仍算合规风险 → GRAY-004 任务
+- **生产迁移待办**(@devops):
+  - 在生产服务器 `/etc/supervisor/conf.d/sumai.conf` 或 `/home/www/sumai/.env` 设置 27 个环境变量(清单见 `backend-progress/context-for-others.md`)
+  - 确认 venv 装有 `python-dotenv>=1.0.1`(requirements.txt 已含)
+  - 切换 `FLASK_SECRET_KEY` 时提醒 PC Web 用户需重新扫码登录(小程序无影响)
+  - 详细指南草稿:`sumai/docs/RED-002_env_migration_guide.md`(@devops 待定稿)
+- **测试影响**(@tester):
+  - `tests/test_no_hardcoded_credentials.py` 中 3 个故意 xfail 测试仍 xfail(命中废弃文件),预期行为
+  - `tests/test_code2session.py::test_code2session_uses_correct_mini_appid` 已更新为检查 env 引用而非硬编码文本
 
 ---

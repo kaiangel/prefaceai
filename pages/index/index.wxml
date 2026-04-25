@@ -170,16 +170,6 @@
             </view>
             <view class="card-name">Runway</view>
           </view>
-          
-          <!-- 腾讯混元卡片添加wx:if条件 -->
-          <view class="model-card {{currentModel === 'hunyuan' ? 'active' : ''}}" 
-                bindtap="selectModel" data-model="hunyuan"
-                wx:if="{{modelVisibility.hunyuan}}">
-            <view class="card-icon video-icon">
-              <image class="icon-image" src="{{modelIcons['hunyuan']}}" mode="cover"></image>
-            </view>
-            <view class="card-name">腾讯混元</view>
-          </view>
         </block>
       </scroll-view>
 

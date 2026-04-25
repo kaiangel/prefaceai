@@ -15,7 +15,6 @@ const CDN = {
     MODEL_KELING: '/prompt/model-keling.png',
     MODEL_JIMENGVIDEO: '/prompt/model-jimeng.png', // 即梦AI视频模型图标
     MODEL_RUNWAY: '/prompt/model-runway.png',
-    MODEL_HUNYUAN: '/prompt/model-hunyuan.png',
     MODEL_WANXIANG: '/prompt/model-wanxiang.png', // 通义万相模型图标
     MODEL_SORA2: '/prompt/model-sora2.png', // Sora2模型图标
     LIGHTNING: '/prompt/lightning.png', // 新增：快速复制按钮图标

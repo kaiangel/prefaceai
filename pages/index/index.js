@@ -181,7 +181,6 @@ Page({
       'runway': "Runway擅长保持角色和场景高度一致性，支持多视角切换，适合影视级别创作和连贯动作表现。例如：帮我生成一个角色在不同场景下连贯动作的视频，保持人物外观一致 / 我要一段短片，展示同一角色在城市和森林两种环境中的活动 / 帮我做一段多镜头切换的动作戏，保证人物动作流畅且连贯",
       'wanxiang': "通义万相擅长将复杂描述转化为高质动态视频，特别在中文特效生成和电影级运镜方面表现突出，适合专业视频制作和创意生成。例如：帮我生成一段水墨风格的‘新年快乐’文字动效视频，墨汁在宣纸上自然晕染 / 我要一个摩托车手穿越爆炸场景的电影级动作视频，包含慢镜头和特写切换 / 帮我做一段汉服美女在古典园林中翩翩起舞的唯美视频，配合传统音乐节拍",
       'Sora2': "Sora2擅长电影级视听同步创作和真实物理模拟，支持10秒1080p生成（GPT Pro会员20秒），适合需要精准音画协同和复杂物理互动的专业内容制作。例：帮我生成一个女性在雨夜东京街头行走的视频，包含靴子踩水声、远处交通声和霓虹灯电流声 / 一段猫跳舞的片段，围巾随动作自然飘动，地板反射真实 / 做一个篮球投篮不中的视频，球从篮板真实反弹而非消失",
-        'hunyuan': "混元以超写实画质和物理合理的光影反射著称，适合人文、人工场所等多主体复杂场景视频生成。例如：帮我生成一段冲浪视频，动作流畅且光影真实，人物和物体无变形 / 我要一段街头咖啡馆场景的视频，光影自然，人物互动真实 / 帮我做一段室内舞蹈表演视频，细节丰富，光线和反射符合物理规律"
     },
 
     modelTypeNames: {
@@ -204,7 +203,6 @@ Page({
       'runway': 'Runway',
       'wanxiang': '通义万相',
       'Sora2': 'Sora2', // Sora2模型
-      'hunyuan': '腾讯混元'
     },
     // 添加模型图标映射
     modelIcons: {
@@ -221,14 +219,12 @@ Page({
       'lovartvideo': getImageUrl(CDN.IMAGES.MODEL_LOVART), // Lovart视频logo
       'runway': getImageUrl(CDN.IMAGES.MODEL_RUNWAY),
       'wanxiang': getImageUrl(CDN.IMAGES.MODEL_WANXIANG), // 通义万相logo
-      'hunyuan': getImageUrl(CDN.IMAGES.MODEL_HUNYUAN),
       'Sora2': getImageUrl(CDN.IMAGES.MODEL_SORA2)
     },
 
     // 添加模型显示控制
     modelVisibility: {
       midjourney: true,  // 设为false表示隐藏Midjourney
-      hunyuan: false      // 设为false表示隐藏腾讯混元
     },
 
     // 新增：快速复制提示词功能相关变量
@@ -285,7 +281,6 @@ Page({
         'runway': 'https://www.duyueai.com/runwayStream',
         'wanxiang': 'https://www.duyueai.com/wanxiangStream',
         'Sora2': 'https://www.duyueai.com/sora2Stream', // Sora2视频模型
-        'hunyuan': 'https://www.duyueai.com/hunyuanStream'
     };
     
     // 修正：所有风格都使用相同的基础URL，通过style参数区分风格，不再拼接到URL
@@ -475,6 +470,8 @@ Page({
     if (content) {
       url += `&content=${encodeURIComponent(content)}`;
     }
+    // 🔑 D016 三档 complexity 透传（quick/standard/professional）
+    url += `&complexity=${encodeURIComponent(this.data.currentComplexity)}`;
     
     // console.log('请求URL:', url);
     
@@ -794,14 +791,6 @@ Page({
       this.setData({
         currentModel: 'GPT Image',
         currentPlaceholder: this.data.modelPlaceholders['GPT Image']
-      });
-    }
-  
-    if (this.data.currentModel === 'hunyuan' && !this.data.modelVisibility.hunyuan) {
-      // console.log('自动切换：腾讯混元已隐藏，切换到可灵AI');
-      this.setData({
-        currentModel: 'keling',
-        currentPlaceholder: this.data.modelPlaceholders['keling']
       });
     }
   },
@@ -2366,6 +2355,7 @@ Page({
         client_session: this.data.generationSessionId,  // 🔑 前端会话ID
         request_time: Date.now(),  // 🔑 请求时间
         user_label: this.data.currentSelectionText || '',  // 🔑 用户选择的完整标签
+        complexity: this.data.currentComplexity,  // 🔑 D016 三档：quick/standard/professional
         // 添加style参数支持
         ...((() => {
           const styleMapping = {

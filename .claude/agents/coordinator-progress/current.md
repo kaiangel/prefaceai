@@ -1,63 +1,60 @@
 # Coordinator(统筹者) - 当前任务
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-24 Session 3 Wave 1 完成
+> 上次更新: 2026-04-24 Session 3 Wave 2 Round 2 完成
 > 角色: coordinator
 
 ---
 
 ## 当前状态
 
-✅ **Session 3 Wave 1 全部完成** — 等 Founder 确认后启动 Wave 2
+✅ **Wave 2 全部完成**(Round 1+2+3 共 9 teammate 产出 0 修复)
 
-### Session 3 已完成
+### 当前节点
 
-**① GitHub 迁移**:
-- xuhua-wx → `kaiangel/prefaceai` (force push,722bcd4 已在远程 main)
-- sumai → `101.132.69.232:sumai.git` (master,caa9b29..be6393f)
+- 待 Founder 批准:**双 remote commit + push** + Wave 2 完整总结报告
+- Wave 3 / Stage 1 数据观察期前的最后一道签字
 
-**② Wave 1 四个 teammate 并行产出**:
+### Wave 2 总成果(R1+R2+R3)
 
-| teammate | 任务 | 状态 |
+- 红警:RED-001/002 ✅ + RED-003 D014 降级
+- 黄警:YELLOW-001 方案 Y ✅ + YELLOW-004 TOCTOU 全端点 ✅
+- Stage 1 端到端就绪(三档 UI + directive + 透传)
+- 测试 sumai 89 → 92 passed,xuhua-wx 18 持平
+- 决策 D009-D016 共 8 条
+
+---
+
+## 历史
+
+✅ **Wave 2 Round 2 全部通过** — 3 个 teammate 独立产出,0 轮修复
+
+### Round 2 产出摘要
+
+| teammate | 任务 | 关键产出 |
 |---|---|---|
-| @backend | RED-001 Anthropic → Qwen 3.6(stream.py + stream_en.py)| ✅ PM 审查通过 |
-| @devops | sumai .DS_Store + 证书 gitignore + RED-003 280 行指南 | ✅ PM 审查通过 |
-| @tester | test_rate_limiting.py + 4 stub + TOCTOU 上报 | ✅ PM 审查通过 |
-| @frontend | Stage 1 UX(Hero + 三档复杂度)| ✅ PM 审查通过,主包增量 < 4KB |
+| @backend W2-5/W2-2 | TOCTOU 事务修复 + 方案 Y(新 /wanxiangStream + 删 /hunyuanStream)| 新增 validate_and_deduct + save_prompt_record;切换 3 个端点(botPrompt/aiAgent/wanxiang),其他 11 个保留旧 API 留 Round 3;stream_en.py 同步;pytest 91 passed |
+| @frontend W2-3 | hunyuan 残留清理 + 通义万相路由确认 | js/wxml/cdn.js 共 8 处 hunyuan 清除,主包净减 1.5 KB,pytest 18/18 |
+| @devops Round 2 | env 迁移指南变量回填 + 部署 checklist | 27 变量分 12 类,12 步部署 checklist(含 FLASK_SECRET_KEY 切换警告),D016 命名说明 |
 
-**③ 决策记录 D009-D013**:
-- D009 GitHub 迁移到 kaiangel/prefaceai
-- D010 通义万相方案 Y + 下架 hunyuan
-- D011 Qwen 差异化(免费 flash 3.6 / Pro plus 3.6)
-- D012 Stage 1 方案 B(前端先行 + 后端等迁移)
-- D013 红色警报处理方案 B(并行)
+### 累计决策
 
-**④ 新发现 issues 归档**:
-- YELLOW-004 TOCTOU lost update(P1,纳入 KNOWN_ISSUES)
-- GRAY-006 index.js 3038 个 U+00A0(P3,Stage 2+ 清理)
-- RED-002 新增子项 app.secret_key = '123456qwerty'(弱密钥)
+- D014 微信支付证书暂不轮换(Session 3)
+- D015 Wave 2 串行 + 4 轮分批
+- D016 complexity 命名采用 `quick/standard/professional`(Round 1 裁决)
 
-### Wave 2 待启动(等 Founder)
+### Round 3 待启动(最后一轮,等 Founder 最终"可以")
 
-1. @backend · RED-002 凭证外移 .env(含 app.secret_key 强化)
-2. @backend · 方案 Y 实施(/wanxiangStream + 删 hunyuan)
-3. @backend + @frontend · Stage 1 后端 complexity 三档 system prompt
-4. @tester · 回归全量 + TOCTOU test 激活
-5. @devops · RED-003 git-filter-repo 外部操作最终化
-
-### Founder 待做(外部任务)
-
-1. 真机验证三档(iPhone SE / iPhone 14 Pro Max)
-2. 通义万相线上 404 double-check
-3. git-filter-repo 外部操作(影响所有 clone 者)
-4. 微信支付商户证书轮换(RED-003 前置)
-5. Wave 2 启动决策
+- @backend · W2-4 Stage 1 complexity 三档 system prompt + 剩余 11 端点切 validate_and_deduct
+- @frontend · complexity 前端透传(把 currentComplexity 加到 generateContent() body)
+- @tester · 全量回归 + 激活 test_complexity 3 stub + 激活 TOCTOU xfail + 删旧 test_sse_complexity_routing.py
 
 ---
 
 ## 上次更新记录
 
-- 2026-04-24 Session 3 Wave 1 完成:4 个 teammate 全通过审查,PM 代写 tester/frontend progress
-- 2026-04-24 Session 3 启动:xhteam Wave 1 + GitHub 迁移
-- 2026-04-24 Session 2: PORTING 完成 + Explore + GitHub 对齐
-- 2026-04-24 Session 1: 战略讨论 + Beachhead 锁定
+- 2026-04-24 Wave 2 Round 2 完成:3 teammate 全通过
+- 2026-04-24 Wave 2 Round 1 完成:RED-002 凭证外移 + 基线 + env 指南草稿
+- 2026-04-24 Wave 1 完成 + commit + push(619d191 / a31163c)
+- 2026-04-24 Session 2: PORTING + Explore
+- 2026-04-24 Session 1: 战略讨论

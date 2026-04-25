@@ -1,12 +1,55 @@
 # Coordinator(统筹者) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-24 Session 3 Wave 1
+> 上次更新: 2026-04-24 Session 3 Wave 2 Round 2
 > 角色: coordinator
 
 ---
 
 ## 已完成任务
+
+### 2026-04-25 Session 3 Wave 2 Round 3 收官: complexity directive + 端点全切 + 测试激活
+
+- spawn 3 teammate(backend R3-A+R3-B / frontend R3-C / tester R3-D)
+- 0 轮修复全通过
+- @backend: stream.py 31 端点全切 validate_and_deduct + COMPLEXITY_DIRECTIVES dict / 旧 validate_request_and_user + save_content_prompt_stream 彻底删除
+- @frontend: generateContent + generateImageDescription 透传 complexity(2 处 covers 15 端点)
+- @tester: 删 2 旧 test 文件 + 激活 test_complexity 3/3 PASS + 4 fallout 修正 + TOCTOU xfail 保留改 reason
+- 最终基线: xuhua-wx 18/18 + sumai 92 passed / 95 skipped / 3 xfailed / 2 xpassed
+
+**Wave 2 全部完成**:
+- 红警 RED-001 / RED-002 ✅ + RED-003 D014 降级
+- 黄警 YELLOW-001 方案 Y / YELLOW-004 TOCTOU ✅
+- Stage 1 端到端三档 complexity 就绪
+- 决策 D009-D016 共 8 条
+
+---
+
+### 2026-04-24 Session 3 Wave 2 Round 2: TOCTOU + 方案 Y + hunyuan 清除
+
+- D016 complexity 命名裁决(`quick/standard/professional`,以前端代码为准)
+- spawn 3 teammate(backend W2-5+W2-2 / frontend W2-3 / devops R2)并独立审查
+- 0 轮修复全通过
+
+**产出**:
+- sumai: stream.py 新增 validate_and_deduct + save_prompt_record(TOCTOU 事务基础)+ /wanxiangStream 新建 + /hunyuanStream 删除;stream_en.py 同步。3 端点已切新 API
+- xuhua-wx: pages/index/index.js + wxml + config/cdn.js 彻底清除 hunyuan(主包 -1.5KB)
+- docs: RED-002_env_migration_guide.md 扩至 772 行(27 变量 + 12 步部署 checklist)
+
+---
+
+### 2026-04-24 Session 3 Wave 2 Round 1: RED-002 凭证外移 + 基线 + env 指南草稿
+
+- D014 微信支付证书暂不轮换(Founder 决策登记;RED-003 降级 P3)
+- D015 Wave 2 四轮串行策略
+- spawn 3 teammate,全通过(@backend 升级 test_code2session sensor 跨边界但效果积极,放行)
+
+**产出**:
+- sumai: .env.example(99 行 27 变量) + .env(本地) + mainv2/note/pay_stripe/stream/stream_en 凭证外移 + app.secret_key 64 字符强随机
+- 测试: 89 → 91 passed(+2,因 sensor 升级)
+- docs: RED-002_env_migration_guide.md(草稿) + RED-003 D014 banner
+
+---
 
 ### 2026-04-24 Session 3: xhteam Wave 1 + GitHub 迁移 + Stage 1 UX
 

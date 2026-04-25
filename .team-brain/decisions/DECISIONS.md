@@ -118,3 +118,55 @@
 ---
 
 (新决策往下追加)
+
+---
+
+## D014 · 微信支付商户证书暂不轮换(2026-04-24 Session 3)
+
+**背景**: RED-003 发现 sumai/cert/apiclient_cert.p12 + apiclient_key.pem + TLS 证书已 commit 进 git 历史,PM 建议轮换。
+
+**Founder 决策(2026-04-24 晚)**:
+- **微信支付商户证书**: **暂不轮换**。当前付费用户仅几十人,有 SSH 访问权的人 Founder 确认可信(仅 Founder 本人 + Co-founder)。风险可接受。
+- **TLS 证书**(duyueai.com / api.xuhuaai.com / prefaceai.net): **先记录到 PENDING.md,回头再做**。轮换简单无审核,但也非紧急。
+
+**后续触发条件(轮换)**:
+- 付费用户超 500 人,或
+- 发现异常交易 / 证书被意外共享 / SSH 密钥泄露,或
+- Stage 2+ 对外开放更多协作者前
+
+**影响**:
+- RED-003 外部任务排期:优先级降为 P3(原 P0)
+- `git-filter-repo` 仍然可以做(清历史 + 把证书永远移出 git),但不再阻塞 Wave 2
+
+---
+
+## D015 · Wave 2 执行策略(2026-04-24 Session 3)
+
+**决策**:
+- 后端任务**串行**(方案 A):@backend 一个 teammate 依次做,避免文件冲突
+- 执行顺序(4 轮):
+  - Round 1(并行):@backend W2-1 RED-002 + @tester 基线测试 + @devops env 迁移指南草稿
+  - Round 2(串行接力):@backend W2-5 TOCTOU + W2-2 方案 Y(合并)+ @frontend W2-3 前端路由核查 + @devops 指南定稿
+  - Round 3(收尾):@backend W2-4 Stage 1 complexity 三档 + @tester W2-6 全量回归
+- hunyuan 前端确认:Founder 说前端本就无 hunyuan 选项,W2-3 降级为"核查 pages/index/index.js 路由表"
+
+
+---
+
+## D016 · complexity 三档命名采用 quick/standard/professional(2026-04-24 Session 3 Wave 2 Round 1)
+
+**背景**: @tester 在 Round 1 发现命名冲突:
+- 前端 `pages/index/index.js:247-251` `complexityOptions` 实际 id: `quick / standard / professional`
+- 旧 sumai `tests/test_sse_complexity_routing.py`(Stage 1 前占位): `quick / deep / professional`
+- CLAUDE.md L375-380 描述中文"快速想法 / 深度创作 / 专业项目"(未明确英文 id)
+
+**决策**: 采用 **`quick / standard / professional`**。
+- 理由:以前端上线代码为准,前端已经在用户侧用起来,改前端成本更大
+- `standard` 语义普适,避免与"deep thinking / reasoning"概念混淆
+- 与 Wave 1 @frontend context-for-others 交接文档一致
+
+**后续动作**:
+- @backend W2-4 严格按 `quick / standard / professional` 实施
+- @tester Round 2 合并或删除旧 `test_sse_complexity_routing.py`(含 deep 命名),避免双份维护
+- `test_complexity.py` 已用 standard,Round 3 激活
+

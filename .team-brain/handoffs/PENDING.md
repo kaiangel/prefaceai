@@ -22,19 +22,16 @@
 
 ### P0 红色警报剩余
 
-#### [B1-b] RED-002 凭证外移 .env
-- **背景**: 所有 API Key/密码/Secret 硬编码在 sumai 代码里
-- **新增发现**(Session 3): `app.secret_key = '123456qwerty'` Flask session 弱密钥,PC Web 可被伪造 session cookie
-- **具体**:
-  - 创建 `sumai/.env.example`(列变量名不列值)
-  - 重构 `mainv2.py` / `note.py` / `pay_stripe.py` 等用 `python-dotenv` 加载
-  - **强密钥替换**: `app.secret_key` 用 `secrets.token_hex(32)` 生成强密钥
-  - 更新 `sumai/.gitignore` 确保 `.env` 不进 git(已部分完成)
-  - 生产服务器配置迁移(Supervisor env 或 systemd env)
-- **负责**: @backend + @devops
-- **优先级**: P0
-- **前置**: 无
-- **预估工作量**: 1 天
+#### ✅ [B1-b] RED-002 凭证外移 .env + 强密钥 (2026-04-24 22:30 @backend W2-1 完成)
+- 5 个主文件(mainv2 / note / pay_stripe / stream / stream_en)凭证全部外移
+- `app.secret_key` 换成 64 字符 hex 强密钥
+- `.env.example` 已建,27 个变量声明齐全
+- 测试基线 89 → 91 passed,0 new failure
+- **剩余**(移交 @devops 做生产部署):
+  - 生产服务器设置 27 个环境变量(详见 `backend-progress/context-for-others.md`)
+  - 生产 venv 确认 `python-dotenv` 已装
+  - FLASK_SECRET_KEY 切换时机(导致 PC Web session 失效,用户需重新登录)
+- **完全 close 后再移**(等废弃文件硬编码也清理,归 GRAY-004 处理)
 
 #### [B1-c 剩余] RED-003 git 历史清理 + 证书轮换
 - **已完成**(Session 3): gitignore 补救 + 13 文件 untrack
@@ -46,15 +43,13 @@
 
 ### P1 黄色警报
 
-#### [B2-a] YELLOW-001 /wanxiangStream 方案 Y 实施(D010)
-- **决策**: 后端规范化 + 下架 hunyuan(Founder 决定)
-- **具体**:
-  - @backend: sumai 新建 `/wanxiangStream` 端点,system prompt 对应通义万相
-  - @backend: 删 `/hunyuanStream` 端点(没在用)
-  - @frontend: 从模型列表移除 "混元",保留 "通义万相"
-- **优先级**: P1
-- **前置**: Founder 生产线上 404 double-check
-- **预估工作量**: 半天
+#### ✅ [B2-a] YELLOW-001 /wanxiangStream 方案 Y 实施(D010) — 2026-04-24 23:45 @backend W2-2 完成
+- ✅ `/wanxiangStream` 新建(sumai/stream.py,复制原 /hunyuanStream 实现,system prompt 一字未改)
+- ✅ `/hunyuanStream` 下架(stream.py 留注释,stream_en.py 同理 EN 版)
+- ✅ `/wanxiangStreamEN` 新建,`/hunyuanStreamEN` 下架
+- ✅ **@frontend W2-3 完成**(2026-04-24 21:44):`pages/index/index.js` 6 处 + `pages/index/index.wxml` 1 处 + `config/cdn.js` 1 处 hunyuan 清除;wanxiang 路由 `'https://www.duyueai.com/wanxiangStream'` 保留就绪;xuhua-wx `pytest tests/` 18 passed 零回归;主包净减少 ~1.5 KB。另发现 favorites/history/shared 3 个文件仍有 hunyuan 显示标签,为历史数据兼容保留,建议 Stage 2+ 由 @backend 扫 DB 确认后再清理。
+- **剩余**(Round 3):
+  - @tester Round 3 更新 4 个 test(`test_endpoints_exist.py::test_sse_video_endpoints_exist` / `test_sse_stream_structure.py::test_all_sse_endpoints_accept_both_methods` / `test_qwen_client.py::test_hunyuan_stream_uses_qwen` / `test_orphan_endpoints.py::test_wanxiang_stream_is_absent`)
 
 #### [B2-b] /recent_generation — 🟡 Founder 决策: 先不管(2026-04-24)
 - 留作 Stage 2+ 顺手清
@@ -63,26 +58,46 @@
 
 ### P1 Stage 1 后端跟进
 
-#### [Stage1-prep-3] "专业项目" system prompt 三档配置
-- **背景**: 前端三档选择器已上线(D012 方案 B 先行),后端未跟进
+#### [Stage1-prep-3] "专业项目" system prompt 三档配置 — ✅ 2026-04-25 后端完成(R3-A)
+- **背景**: 前端三档选择器已上线(D012 方案 B 先行),后端 R3-A 跟进
 - **前端契约**: `complexity` 字段(enum: quick/standard/professional),透传 `generateContent()` body
-- **后端 fallback**: 未收到 → `standard`
-- **具体**:
-  - @backend: 在 stream.py + stream_en.py 各 generate() 函数解析 complexity
-  - 三档 system prompt:快速(短)/ 标准(当前默认)/ 专业(长 + 结构化 + 模板尾注)
-  - 确保 complexity 在所有 12+ 端点都支持
-- **优先级**: P1
-- **前置**: RED-001 ✅ 已完成
-- **预估工作量**: 1 天
+- **后端 fallback**: 未收到 / 无效值 → `standard`(等同当前默认行为)
+- ✅ **后端实施完成(2026-04-25 R3-A @backend)**:
+  - `sumai/stream.py` 顶部新增 `COMPLEXITY_DIRECTIVES` dict(中文版)
+  - `sumai/stream_en.py` 顶部新增 `COMPLEXITY_DIRECTIVES_EN` dict(英文版)
+  - 两个文件各新增 `resolve_complexity(data)` 工具函数
+  - 全部 31 个 SSE 端点(stream.py 17 + stream_en.py 14)的 conversation_history.append(system) 都已注入 directive
+  - **不复制 system prompt**: 用 dict 追加 directive,原 90 个 system prompt 一字未改,改动量从 270 处缩小到 31 处
+  - 后端 fallback 'standard' 覆盖前端不传 / 无效值场景,防御编程
+- ✅ **前端透传部分完成(2026-04-25 R3-C @frontend)**:
+  - `pages/index/index.js` L2358 `generateContent()` POST body 加 `complexity: this.data.currentComplexity`(覆盖 14 个 SSE 端点 botPromptStream/reasoning/aiAgent/dalleStream/fluxStream/jimengpic/lovartpic/midjourney/keling/jimengvid/lovartvid/runway/wanxiang/sora2)
+  - `pages/index/index.js` L473-474 `generateImageDescription()` GET URL query 加 `&complexity=...`(覆盖 `/describeImageStream`)
+  - 默认值 `quick`(未改),后端 fallback `standard`(@backend R3 实施)
+  - `pytest tests/` 18/18 PASS,`node --check` 语法 OK,主包尺寸增量 ~145 字节
+- **端到端就绪**: @backend + @frontend 双方完成,端到端联调可在 @tester R3-D 全量回归后进行
+- **测试激活**: `sumai/tests/test_complexity.py` 3 stub 等 @tester R3-D 激活(详见 backend context-for-others.md 给的修正建议)
+- **优先级**: ✅ 已解决
 
 ### P1 测试跟进
 
-#### [T1] TOCTOU test 激活
-- **背景**: YELLOW-004 新增,Session 3 @tester 发现
-- **具体**: @backend 修 TOCTOU(SELECT FOR UPDATE + 同 transaction)后,@tester 移除 xfail 标记
-- **优先级**: P1(Stage 2 前必修)
-- **负责**: @backend + @tester
-- **预估工作量**: 半天
+#### ✅ [T1] TOCTOU 全端点修复完成 — @backend Round 3 (R3-B) + @tester Round 3 (R3-D) 收尾
+- ✅ stream.py 17 端点 + stream_en.py 14 端点 = 全部 31 端点切到 `validate_and_deduct` + `save_prompt_record`
+- ✅ 旧 `validate_request_and_user` + `save_content_prompt_stream` 已删除(stream.py + stream_en.py 各一对,共 4 个函数定义)
+- ✅ stream_en.py 新增本模块独立 `validate_and_deduct` + `save_prompt_record`(从 stream.py 复制)
+- ✅ Google 用户 origin='google' 路径完整保留
+- ✅ is_pro 回落(pro 用完返普通 + 奖 3 次)完整保留
+- ✅ pytest sumai/tests/ R3-D 基线 92 passed(R1 基线 91 + R3-D 净 +1),无回归
+- ✅ **@tester R3-D 完成**(2026-04-25):
+  - 删除 `test_validate_request_and_user.py`(11 stub 死代码,旧函数已删,no backward compatibility)
+  - 删除 `test_sse_complexity_routing.py`(D016 deep 命名废弃)
+  - 重写 + 激活 `test_complexity.py` 3 个 test 为针对 COMPLEXITY_DIRECTIVES dict 的静态扫描,3/3 PASS
+  - W2-2 fallout 4 个测试修正(hunyuan→wanxiang)
+  - TOCTOU sensor 保留 xfail + reason 更新(全 31 端点保护已就位 + mock 局限)
+  - HARNESS_HEALTH.md sensor 表 +4 行
+- 🟡 R4+ follow-up(非紧急,文档已警告):
+  - test_rate_limiting 6 个测试激活前需重写(mock 旧函数,本地全 skip)
+  - TOCTOU 集成测试需真连 MySQL InnoDB
+- **优先级**: ✅ 完全 close
 
 #### [T2] 回归全量测试
 - **背景**: RED-001 迁移后确保没破坏
@@ -104,13 +119,16 @@
 
 ---
 
-## Founder 外部任务(Wave 1 后)
+## Founder 外部任务(Wave 2 期间 + 之后)
 
-1. **真机验证三档**(iPhone SE 375px / iPhone 14 Pro Max 428px)
-2. **通义万相线上 404 double-check**
-3. **git-filter-repo 外部操作**(影响所有 clone 者,指南在 sumai/docs/)
-4. **微信支付商户证书轮换**(最高优先级,RED-003 前置)
-5. **Wave 2 启动决策**
+### 🟡 P1 · Wave 2 并行执行
+1. **通义万相线上 404 double-check** — 打开小程序选"通义万相"发一条,如果居然能跑,立即 SendMessage 给 PM,W2-2 紧急中止
+2. **真机验证 Stage 1 三档**(iPhone SE 375px / iPhone 14 Pro Max 428px)— Wave 2 全部完成后进行,作为 Stage 1 数据埋点前提
+
+### 🟢 P3 · 推迟处理(D014 决策 2026-04-24)
+3. **TLS 证书轮换**(duyueai.com / api.xuhuaai.com / prefaceai.net)— 简单无审核,合适时间窗口执行,不紧急
+4. **微信支付商户证书轮换** — **暂不做**(付费 <500 人 + SSH 可信 + 无异常交易),D014 触发条件达到再启动
+5. **git-filter-repo 外部操作** — 可选,指南在 `sumai/docs/RED-003_git_history_cleanup_guide.md`,轮换证书之前做或之后做都可,当前非紧急
 
 ---
 
