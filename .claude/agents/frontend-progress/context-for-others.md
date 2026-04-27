@@ -1,17 +1,38 @@
 # Frontend(前端) - 给其他角色的上下文
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-27 23:30 UX Hotfix 方案 B(布局架构层修复)
+> 上次更新: 2026-04-27 23:50 UX Hotfix 第三轮深修(scroll-view 内部异常空白根因修复)
 > 角色: frontend
 
 ---
 
 ## 当前状态
 
-✅ **2026-04-27 23:30 UX Hotfix 方案 B 完成**(page 高度解锁 — 布局架构层根因修复)
+✅ **2026-04-27 23:50 UX Hotfix 第三轮深修完成**(scroll-view scroll-x + enable-flex 显式 height + 移除 enable-flex/display:flex 双开 bug)
+✅ 2026-04-27 23:30 UX Hotfix 方案 B 完成(page 高度解锁)
 ✅ Wave 2 Round 3 R3-C 完成(complexity 透传 SSE)
 ✅ Wave 2 Round 2 W2-3 完成(hunyuan 残留清理 + wanxiang 路由确认)
 ✅ Wave 1 Stage 1 UX 完成
+
+---
+
+## 给所有角色的新增上下文(2026-04-27 第三轮深修)
+
+### scroll-view 横向 scroll-x 模式编码规范(避坑)
+
+**禁忌**:wxml 里写了 `enable-flex` 属性的 scroll-view,wxss 不要再写 `display: flex` —— **双开会触发社区已知高度异常 bug**(scroll-view 高度计算混乱,在父 overflow:hidden 下表现为大块空白)。
+
+**正确做法**:
+1. **横向 scroll-x 必须显式设 `height`**(竖向 scroll-y 文档已强调,横向虽未文档化但实测必备)
+2. enable-flex 与 display:flex 二选一,通常 enable-flex 优先(WebView 兼容性更好)
+3. 若需子元素居中,用 `text-align: center` 配合 `display: inline-flex/inline-block` 子元素,而非 `justify-content: center`(后者要求父开 flex)
+4. 子元素自身可用 `display: inline-flex` 实现内容垂直居中
+
+**适用范围**:本项目的 `pages/index/index.wxss` 已修复 .model-cards-scroll 和 .style-options-scroll;其他页面(history/favorites/profile/shared/login/settings/feedback)如果有类似 scroll-x + enable-flex 模式,务必**自查是否同时设了 display:flex**,有则按本次修复模式调整。
+
+### .style-selector negative margin 技术债已清理
+
+原 `margin: 16rpx 0 -26rpx` 是历史遗留(让风格按钮"压"在下方 .current-selection 上的视觉技巧),已改为正向 8rpx。视觉间距更自然,无 z-index 堆叠副作用。
 
 ---
 

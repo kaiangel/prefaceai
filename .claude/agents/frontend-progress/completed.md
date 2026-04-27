@@ -1,12 +1,37 @@
 # Frontend(前端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-27 23:30 UX Hotfix 方案 B(布局架构层修复)
+> 上次更新: 2026-04-27 23:50 UX Hotfix 第三轮深修(scroll-view 内部异常空白根因修复)
 > 角色: frontend
 
 ---
 
 ## 已完成任务
+
+### 2026-04-27 23:50 UX Hotfix 第三轮深修: scroll-view scroll-x + enable-flex 内部异常空白修复
+
+**背景**:第二轮(方案 B)解锁 page 滚动后,Founder 真机截图(23:05)揭示新症状 — `.model-selector` 白色卡片视觉高度 ~1000rpx,内部内容只 ~390rpx,**风格按钮和 .current-selection 之间有 ~600rpx 真空白**。PM 怀疑 root cause 是 `scroll-view scroll-x enable-flex` 在 WeChatLib 3.6.0 上未显式设 height 时高度异常。
+
+**官方 + 社区调研产出**:
+1. [scroll-view 官方文档](https://developers.weixin.qq.com/miniprogram/dev/component/scroll-view.html) — 横向 scroll-x 需打开 enable-flex,但 height 行为未规定
+2. [SegmentFault scroll-view 高度自适应](https://segmentfault.com/a/1190000023544769) — flex:1 高度不自适应需加 1px 默认或 virtualHost
+3. [博客园 scroll-view 几个坑](https://www.cnblogs.com/Lyn4ever/p/11282210.html) — enable-flex 与 display:flex 二选一
+4. WebSearch 多源印证 — **enable-flex 属性 + CSS display:flex 双开** 是已知社区 bug,会让 scroll-view 高度异常
+
+**根因诊断**:`.style-options-scroll` wxml 写了 `enable-flex` + wxss 写了 `display: flex; justify-content: center;` —— 双开触发 bug,真机表现为高度异常,在父 `.model-selector { overflow: hidden }` 下显示为 600rpx 大空白。`.model-cards-scroll` 同样无显式 height,行为不可控。
+
+**改动**(`pages/index/index.wxss`,3 处):
+| # | selector | before | after |
+|---|---------|--------|-------|
+| 1 | `.model-cards-scroll` | 无 height | +`height: 200rpx`(卡片 160 + padding 24+10 = 194,取 200) |
+| 2 | `.style-selector` | `margin: 16rpx 0 -26rpx` | `margin: 16rpx 0 8rpx`(去 negative 技术债) |
+| 3 | `.style-options-scroll` | `display: flex; justify-content: center; padding: 0 20rpx;` | 删 display:flex + justify;改 `text-align: center`;加 `height: 80rpx`(按钮 56 + 上下 12) |
+
+**验证**:`pytest tests/ -v` → 18/18 PASS;主包尺寸 +600 字节;全 rpx 无新 px;scope 仅 1 文件 3 selector;wxml/js/其他 pages/sumai 未触。
+
+**待 Founder 真机二次截图验证**。
+
+---
 
 ### 2026-04-27 23:30 UX Hotfix 方案 B: page 高度解锁(布局架构层修复)
 

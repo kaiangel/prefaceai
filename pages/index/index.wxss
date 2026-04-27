@@ -138,6 +138,11 @@ page {
   position: relative;
   z-index: 1;
   margin-top: 10rpx; /* 添加顶部外边距 */
+  /* 第三轮深修(2026-04-27): 显式 height,根因是 scroll-view scroll-x + enable-flex
+   * 不显式设 height 会出现高度异常(社区共识,见 segmentfault.com/a/1190000023544769),
+   * 真机表现为撑满父容器或 default,在 .model-selector overflow:hidden 下产生大块空白。
+   * 卡片 160rpx + 上下 padding(24+10) = 194rpx,向上取整 200rpx 留 6rpx 弹性。 */
+  height: 200rpx;
 }
 
 /* 完全重写卡片活跃状态样式 */
@@ -216,14 +221,22 @@ page {
 
 /* 风格选择器样式 */
 .style-selector {
-  margin: 16rpx 0 -26rpx;
+  /* 第三轮深修(2026-04-27): 移除 -26rpx negative bottom margin 技术债,
+   * 替换为正向 8rpx 间距,保持与 .current-selection 自然分隔 */
+  margin: 16rpx 0 8rpx;
 }
 
 .style-options-scroll {
   white-space: nowrap;
-  display: flex;
-  justify-content: center; /* 新增：居中对齐 */
-  padding: 0 20rpx; /* 新增：左右内边距确保不贴边 */
+  /* 第三轮深修(2026-04-27): 同时去掉 display: flex 和 justify-content: center
+   * 原因:scroll-view 已在 wxml 声明 enable-flex,此时再写 display: flex 会触发
+   * 微信社区已知高度异常 bug(enable-flex + display:flex 双开 → height 计算异常),
+   * 子元素 .style-option 自身 display: inline-flex 已能正常横向排列。
+   * 居中改为依靠父 .style-selector 的 text-align: center(下方补)+ inline-flex 自然居中。 */
+  text-align: center;
+  padding: 0 20rpx; /* 左右内边距确保不贴边 */
+  /* 显式 height,scroll-x 模式必备:.style-option 56rpx + 上下视觉留白 12rpx = 80rpx */
+  height: 80rpx;
 }
 
 .style-option {

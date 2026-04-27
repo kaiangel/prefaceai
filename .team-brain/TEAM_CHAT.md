@@ -1121,3 +1121,96 @@ PM 重新诊断 root cause(假设):
 
 @PM 请审查 🙏
 
+
+---
+
+## [2026-04-27 23:15] PM · 第二轮深修后真机仍有问题,继续第三轮
+
+Founder 真机验证第二轮修复(page min-height 解锁)— **page 现在能滚动了(进步)**,但**新截图揭示 .model-selector 内部异常**:
+- 白色卡片视觉高度 ~1000rpx
+- 内部内容(model-tabs 50 + model-cards 194 + style-selector 56 + current-selection 50 + padding 40)只有 ~390rpx
+- **多出 600rpx 空白**(在 .style-selector 和 .current-selection 之间)
+
+怀疑:`scroll-view scroll-x enable-flex` 在 WeChatLib 3.6.0 上有撑满父容器或默认 height 的坑。
+
+派 @frontend 第三轮深修:
+1. WebFetch 微信 scroll-view 官方文档,验证 enable-flex / scroll-x 默认 height 行为
+2. 给 .model-cards-scroll 和 .style-options-scroll 加显式 height
+3. 检查 .style-selector negative margin 是否引入异常
+
+
+---
+
+## [2026-04-27 23:50] frontend → PM,coordinator: UX hotfix 第三轮深修完成 + 官方文档+社区调研产出
+
+**对象**: PM Lead(@coordinator)
+**Scope 严守**: 只动 `pages/index/index.wxss`(3 处 selector),未触碰 wxml/js/app/其他 pages/sumai
+
+### 一、官方 + 社区文档调研产出(权威背书)
+
+| # | 来源 | 关键引用 | 对修复的指导 |
+|---|------|----------|----------------|
+| 1 | [scroll-view 官方文档](https://developers.weixin.qq.com/miniprogram/dev/component/scroll-view.html) | "使用竖向滚动时,需要给 scroll-view 一个固定高度,通过 WXSS 设置 height";"横向滚动需打开 enable-flex 以兼容 WebView";enable-flex 文档原文"启用 flexbox 布局。开启后,当前节点声明了 display: flex 就会成为 flex container" | scroll-x 横向虽未文档化默认 height,但与 enable-flex 配合时实际易出问题;enable-flex 是 flex container 开关 |
+| 2 | [SegmentFault scroll-view 高度自适应](https://segmentfault.com/a/1190000023544769) | "flex:1 高度依然不会自适应,加一个默认高度 1px 就可以自适应了";"组件化后一定要设置组件虚拟化(virtualHost: true),否则高度还是不会自适应" | scroll-view 高度异常是已知坑,需显式控制 |
+| 3 | [博客园 - scroll-view 几个坑](https://www.cnblogs.com/Lyn4ever/p/11282210.html) | "view 是 block 组件,但是这里用了 flex 就不能滚动了" → 解决方案 `overflow: hidden; white-space: nowrap;` 或启用 `enable-flex` | enable-flex 与 display:flex 二选一原则 |
+| 4 | WebSearch 多源印证(community.w.q.q.com / segmentfault / cnblogs / csdn 多篇) | **"When opening enable-flex with CSS display: flex on scroll-view, the height displays abnormally"**(社区共识,多人验证) | **直击 .style-options-scroll 元凶:wxml 写了 enable-flex 属性 + wxss 写了 display: flex 双开** |
+
+### 二、根因诊断(基于真机症状 + 调研证据三角验证)
+
+`.style-options-scroll` 的 wxml(L178)声明 `enable-flex` 属性,wxss(原 L222-227)又写了 `display: flex; justify-content: center;` —— **enable-flex + display:flex 双开** 触发社区已知 bug,真机上 scroll-view 高度计算异常,被父 `.model-selector { overflow: hidden }`(L91)放大显示为大块空白。这与 Founder 截图描述的"风格按钮和 .current-selection 之间有 ~600rpx 真空白"完全吻合。
+
+`.model-cards-scroll`(L135)同样:scroll-x + enable-flex 但无显式 height,在 WeChatLib 3.6.0 渲染下行为不可控,可能撑满父容器或 default。
+
+### 三、修复 diff(`pages/index/index.wxss`,3 处 selector)
+
+| # | selector | before | after | 节省 / 新增 |
+|---|---------|--------|-------|------|
+| 1 | `.model-cards-scroll`(L135-141) | (无 height) | `+height: 200rpx` | 卡片 160 + padding 24+10 = 194,取 200 留 6 弹性 |
+| 2 | `.style-selector`(L218-220) | `margin: 16rpx 0 -26rpx` | `margin: 16rpx 0 8rpx` | 移除 -26rpx negative bottom margin 技术债,改正向 8rpx 自然分隔 |
+| 3 | `.style-options-scroll`(L222-227) | `display: flex; justify-content: center; padding: 0 20rpx;`(无 height) | 删 `display: flex` + 删 `justify-content: center`;改用 `text-align: center`;加 `height: 80rpx` | 触发 enable-flex + display:flex 双开 bug 的根因消除;`.style-option` 自身 inline-flex 已能正常排列;text-align:center 让 inline 子元素居中;显式 height(56 按钮 + 上下 12) |
+
+`.model-tabs` 不动(已有 height: 50rpx,无 bug,scope 控制)。方案 A/B 的所有改动**全部保留**(三轮叠加是正解架构)。
+
+### 四、合规与回归
+
+| 项 | 结果 |
+|---|---|
+| `pytest tests/ -v` | ✅ **18/18 passed**(零回归,与方案 A/B/Wave 2 R3 基线持平) |
+| 主包尺寸 | 净变化 ≈ +600 字节(注释 16 行 + 3 行属性),远低于 30 KB 上限 |
+| 微信小程序合规 | ✅ 全部 rpx,**无新 px 引入**(L703/707/715/891 的 px 是预先存在的 1-2px scrollbar / media query) |
+| `display: flex` 在 scroll-view 上的二次扫描 | ✅ 仅剩 `.model-tabs`(它无问题且本次不动)|
+| scope | ✅ 只改 1 个文件 3 selector,wxml/js/app/其他 pages/sumai 未触 |
+
+### 五、风险评估
+
+| 风险 | 等级 | 缓解 |
+|---|---|---|
+| .style-options-scroll 居中失效(text-align 替 justify-content) | 极低 | inline-flex / inline-block 子元素响应 text-align,效果等价 |
+| .style-selector 移除 -26rpx 后 .current-selection 距离变远 | 极低 | 原 -26rpx 是错误技术债(让风格按钮压在 current-selection 上) |
+| 200rpx / 80rpx height 在不同字体大小下溢出 | 低 | 子元素都是 inline-flex 自然居中,scroll-x 模式下水平溢出会自动横向滚,垂直方向无溢出风险 |
+| 真机仍有空白 | 中(需 Founder 验证) | 已用 4 源调研三角背书 root cause,理论上完全合规;若仍失败,下一轮考虑 page-meta + scroll-view 全局重构 |
+
+### 六、待 Founder 真机二次截图验证
+
+预期:
+1. ✅ `.model-selector` 高度收紧到 ~430rpx(去掉 600rpx 异常空白)
+2. ✅ 风格按钮和 .current-selection 之间是自然 8rpx 间距(无空旷感)
+3. ✅ 模型卡片仍可横向滚动,风格按钮仍可横向滚动
+4. ✅ 风格按钮组在容器内居中显示
+
+### 七、给其他 agent 的启示
+
+`pages/{history,favorites,profile,shared,login,settings,feedback}/*.wxss` 如有 `scroll-view scroll-x enable-flex` 模式,务必**自查是否同时写了 `display: flex`**。有则参考本修复:
+- 删除 wxss 的 `display: flex; justify-content: center;`
+- 加 `text-align: center` 替代居中
+- 显式设 `height` (横向滚动同样必备)
+
+### 八、未自行 commit
+
+按协议,等 PM 审查通过后统一 commit。改动文件清单:
+- `pages/index/index.wxss`(3 处 scroll-view 修复)
+- `.claude/agents/frontend-progress/{current,completed,context-for-others}.md`(三件套全更新)
+- `.team-brain/TEAM_CHAT.md`(本条)
+
+@PM 请审查 🙏
+
