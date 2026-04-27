@@ -1,9 +1,14 @@
 /* pages/index/index.wxss */
+/* 方案 B 深度修复(2026-04-27): 不再锁死 page 高度
+ * 旧代码用 height: 100vh + overflow-y: auto 把页面锁在一屏内,
+ * 导致 .container/.content flex 链超出 viewport 的子元素被裁剪、page 不滚动。
+ * 微信官方 scroll-view 文档明确建议页面级长内容用页面默认滚动(便于下拉刷新 + 状态栏点回顶部),
+ * page 仅用 min-height 保证最小一屏即可,内容超出自然撑高页面、由小程序原生页面滚动接管。
+ * background: fixed 也一并移除(小程序 Skyline 不完全支持,且与可滚动页面交互易出怪相;
+ * 等价渐变已在 .container 上,不影响视觉)。 */
 page {
-  background: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%) fixed;
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%);
   min-height: 100vh;
-  height: 100vh;
-  overflow-y: auto;
 }
 
 /* index.wxss - tabbar首页样式调整 */
@@ -17,9 +22,11 @@ page {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  /* 重要：为底部TabBar预留空间 */
-  padding-bottom: 120rpx; /* 增加底部空间，避免内容被TabBar遮挡 */
-  background: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%) fixed;
+  /* 重要：为底部TabBar预留空间
+   * TabBar = 100rpx height + 36rpx padding-bottom(适配 home indicator)= 136rpx,
+   * 方案 B 修复(2026-04-27): 120 → 160rpx,确保最后一个内容元素和 TabBar 之间留 24rpx 安全边距 */
+  padding-bottom: 160rpx;
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%);
 }
 
 .content {
@@ -34,16 +41,10 @@ page {
   padding-bottom: 30rpx;
 }
 
-.content::after {
-  content: '';
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 100vh;
-  z-index: -1;
-  pointer-events: none;
-}
+/* 方案 B 深度修复(2026-04-27): 删除原 .content::after 装饰层
+ * 该伪元素 position: fixed; height: 100vh; z-index: -1 但无 background/content,
+ * 是历史遗留死代码。保留它会在 fixed 元素堆叠中占空间且使 page 滚动语义复杂化,
+ * 直接移除,无任何视觉差异。 */
 
 .title-area {
   margin-bottom: 20rpx;

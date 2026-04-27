@@ -1,12 +1,54 @@
 # Frontend(前端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-27 21:12 UX Hotfix 方案 A
+> 上次更新: 2026-04-27 23:30 UX Hotfix 方案 B(布局架构层修复)
 > 角色: frontend
 
 ---
 
 ## 已完成任务
+
+### 2026-04-27 23:30 UX Hotfix 方案 B: page 高度解锁(布局架构层修复)
+
+**背景**:方案 A(rpx 数值微调节省 178rpx)真机验证失败 — Founder 截图仍然看不到输入框 + 点亮灵感按钮,空白延伸到 TabBar。PM 重新诊断 root cause:**`page { height: 100vh; overflow-y: auto }` 把页面高度锁死在一屏内,`.container/.content` flex 链中超出 viewport 的子元素被裁剪、page 不能滚动到下半**。这是历史遗留布局问题,Wave 1 加 complexity-selector 让超出量增大,问题彻底暴露。方案 A 只是把超出量从 ~200rpx 缩到 ~22rpx,根本没解决"page 不能滚动"。
+
+**官方文档调研产出**(三个权威来源):
+
+1. **[scroll-view 官方文档](https://developers.weixin.qq.com/miniprogram/dev/component/scroll-view.html)** 明确建议:
+   > "若要使用下拉刷新,请使用页面的滚动,而不是 `scroll-view`,这样也能通过点击顶部状态栏回到页面顶部"
+
+   → 不应改用 scroll-view 替代 page 滚动,而应让 page 滚动正常工作。
+
+2. **[微信开放社区 - height: 100vh + padding 滚动问题](https://developers.weixin.qq.com/community/develop/doc/000e886114434024247b9a7735bc00)** 推荐:用 `min-height` 替代 `height` + `box-sizing: border-box`,让内容自然撑高页面。
+
+3. **[微信开放社区 - 100vh 底部空白问题](https://developers.weixin.qq.com/community/develop/doc/0000ee43314db03403ca719815b000)** 社区共识:replace `height: 100vh` with `min-height: 100vh`。
+
+**改动清单(`pages/index/index.wxss` 唯一改动文件)**:
+
+| # | 位置 | before | after | 理由 |
+|---|------|--------|-------|------|
+| 1 | `page` (L1-12) | `min-height: 100vh; height: 100vh; overflow-y: auto; background: ... fixed` | `min-height: 100vh; background: ...`(去 fixed)| 解锁 page 高度;`background: fixed` 在 Skyline 不全支持且与可滚动页面易冲突,`.container` 已有等价渐变 |
+| 2 | `.content::after` (原 L37-46) | `position: fixed; height: 100vh; z-index: -1`(无 background/content,纯死代码) | 删除 + 注释说明 | 历史遗留装饰层,删除无视觉差异 |
+| 3 | `.container` padding-bottom (L28) | `120rpx` | `160rpx` | TabBar 实际占用 = 100rpx + 36rpx home indicator = 136rpx,旧 120 实际还差 16rpx,新 160 留 24rpx 安全边距 |
+
+`.container { min-height: 100vh; flex-direction: column }` 和 `.content { flex: 1 }` **保留**(它们是"内容少时撑满 viewport"的正确姿势,与 page `min-height` 完全兼容)。
+
+**严格遵守 scope**:
+- ✅ 只改 `pages/index/index.wxss`
+- ✅ 未触碰 wxml / js / app.* / 其他 pages / sumai/
+- ✅ 未自行 commit(等 PM 统一 commit)
+
+**验证**:
+- ✅ `pytest tests/ -v` → **18/18 passed**(零回归)
+- ✅ 主包尺寸:净变化 ≈ 持平(删 10 行死代码 + 加 ~12 行注释)
+- ✅ grep:无 px 新增,无 DOM API,无 npm
+- ✅ `100vh` 仅剩 page + container 各 1 处的 `min-height: 100vh` + keyboard-active 的 input-box(不相关),全部符合预期
+
+**待 Founder 真机验证**:Stage 1 UX 阻塞问题(首屏看不到输入框 + 点亮灵感按钮 + 无法滚动到底)预期彻底解决。
+
+**与方案 A 的关系**:方案 A 的 5 处 rpx 微调(padding-top / complexity-selector margin / complexity-option height / input-box min-height/max-height)**保留不动**。方案 B 是在 A 之上从布局架构层补上"为什么仍看不到"的根因修复。两者叠加后,既首屏紧凑又允许超出内容滚动看见。
+
+---
 
 ### 2026-04-27 21:12 UX Hotfix 方案 A: 首屏布局修复(纯 wxss)
 

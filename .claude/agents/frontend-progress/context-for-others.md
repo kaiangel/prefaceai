@@ -1,16 +1,38 @@
 # Frontend(前端) - 给其他角色的上下文
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-25 09:30 Session 3 Wave 2 Round 3
+> 上次更新: 2026-04-27 23:30 UX Hotfix 方案 B(布局架构层修复)
 > 角色: frontend
 
 ---
 
 ## 当前状态
 
-✅ **Wave 2 Round 3 R3-C 完成**(complexity 透传 SSE — 14 端点 POST body + describeImageStream GET query)
-✅ **Wave 2 Round 2 W2-3 完成**(hunyuan 残留清理 + wanxiang 路由确认)
-✅ **Wave 1 Stage 1 UX 完成**
+✅ **2026-04-27 23:30 UX Hotfix 方案 B 完成**(page 高度解锁 — 布局架构层根因修复)
+✅ Wave 2 Round 3 R3-C 完成(complexity 透传 SSE)
+✅ Wave 2 Round 2 W2-3 完成(hunyuan 残留清理 + wanxiang 路由确认)
+✅ Wave 1 Stage 1 UX 完成
+
+---
+
+## 给所有角色的上下文(2026-04-27 方案 B 深度修复)
+
+### page 高度模式正式从"锁死 100vh"改为"min-height 100vh"
+
+**官方文档背书**:
+- [scroll-view 文档](https://developers.weixin.qq.com/miniprogram/dev/component/scroll-view.html) 明确推荐"页面级长内容用页面默认滚动"
+- [社区 100vh + padding 滚动问题](https://developers.weixin.qq.com/community/develop/doc/000e886114434024247b9a7735bc00) 共识:用 `min-height` 替代 `height`
+
+**改动影响**:
+- `page` 现在可以**自然撑高**到内容高度(min-height: 100vh 保证至少一屏)
+- page 滚动由小程序原生接管(无需声明 overflow-y: auto,反而声明会与页面默认行为冲突)
+- 删除了 `.content::after` 历史装饰层(原 fixed + 100vh 但无背景,纯死代码)
+- `.container { padding-bottom }` 从 120rpx 提至 160rpx,确保 TabBar(实际 136rpx)有 24rpx 安全边距
+
+**对其他 page 的启示**(如 history / favorites / profile / shared 等其他页面):
+- 如果出现"滚动失效"或"底部内容看不到"问题,先 grep 该页 wxss 是否有 `page { height: 100vh; overflow-y: auto }`
+- 推荐统一用 `page { min-height: 100vh }` 让小程序原生滚动接管
+- TabBar 占位 136rpx,所有页面 padding-bottom 至少 160rpx 才安全(已确认 custom-tab-bar 是 fixed bottom: 0 + 100rpx height + 36rpx padding-bottom)
 
 ---
 
