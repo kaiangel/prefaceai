@@ -13,7 +13,7 @@ page {
   height: auto;
   padding: 0 3rpx;
   /* 关键调整：减少顶部padding，因为不再需要为自定义导航栏预留空间 */
-  padding-top: 200rpx; /* 从原来的300rpx调整到120rpx */
+  padding-top: 120rpx; /* 方案 A: 200→120 节省 80rpx,Wave 1 后修复首屏 */
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -363,8 +363,8 @@ page {
 
 .input-box {
   width: 96%;
-  min-height: 314rpx; /* 进一步减小高度 */
-  max-height: 334rpx;
+  min-height: 240rpx; /* 方案 A: 314→240,节省 74rpx */
+  max-height: 260rpx; /* 同步缩,保持 20rpx 弹性区间 */
   padding: 20rpx;
   font-size: 32rpx;
   color: #2c3e50;
@@ -1125,7 +1125,7 @@ button.tool-button::after {
 
 .complexity-selector {
   width: 80%;
-  margin: 0 auto 24rpx;
+  margin: 0 auto 12rpx;  /* 方案 A: 24→12 */
 }
 
 .complexity-options {
@@ -1139,7 +1139,7 @@ button.tool-button::after {
   align-items: center;
   justify-content: center;
   flex: 1;
-  height: 64rpx;
+  height: 56rpx;  /* 方案 A: 64→56,节省 8rpx */
   border-radius: 32rpx;
   border: 2rpx solid #E5E7EB;
   background: #FFFFFF;

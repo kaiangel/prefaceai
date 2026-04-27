@@ -993,3 +993,46 @@ xuhua-wx remote(无 sumai 改动):
 
 **Wave 2 收官,可进 Stage 1 数据观察期**。下一步:双 remote commit + push,向 Founder 完整汇报。
 
+
+---
+
+## [2026-04-27 PM] · Stage 1 UX hotfix(方案 A) — 首屏布局修复
+
+Founder 真机看到首屏布局问题:Wave 1 加 complexity-selector 把输入框 + "点亮灵感"按钮挤出首屏,需要滚动。
+
+**根因**: padding-top 200rpx + 三档按钮 88rpx + input-box min-height 314rpx,合计超出一屏 ~200rpx。
+
+**方案 A**(Founder 选):3 处微调,共节省 ~170rpx:
+- `.container` padding-top: 200rpx → 120rpx(-80)
+- `.complexity-selector` margin-bottom: 24rpx → 12rpx + 按钮 height: 64rpx → 56rpx(-16)
+- `.input-box` min-height: 314rpx → 240rpx + max-height: 334rpx → 260rpx(-74)
+
+派 @frontend hotfix。
+
+---
+
+## [2026-04-27 21:12] frontend → PM,coordinator: UX hotfix 方案 A 完成
+
+3 处 wxss 微调全部落地(`pages/index/index.wxss`),按 PM 指令精确执行,**未触碰** wxml/js 或其他文件:
+
+| # | selector | 属性 | before | after | 节省 |
+|---|----------|------|--------|-------|------|
+| 1 | `.container` (L16) | padding-top | 200rpx | 120rpx | 80rpx |
+| 2a | `.complexity-selector` (L1128) | margin (bottom) | 24rpx | 12rpx | 12rpx |
+| 2b | `.complexity-option` (L1142) | height | 64rpx | 56rpx | 8rpx |
+| 3a | `.input-box` (L366) | min-height | 314rpx | 240rpx | 74rpx |
+| 3b | `.input-box` (L367) | max-height | 334rpx | 260rpx | 74rpx |
+
+**总节省**:垂直空间收缩约 **178rpx**(padding 80 + selector 块 20 + input-box 74,以 min-height 计),刚好把 Wave 1 后被挤出首屏的"点亮灵感"按钮拉回首屏(超出量 ~200rpx)。
+
+**验证**:
+- `pytest tests/ -v` → ✅ **18/18 passed**(零回归,与 Wave 2 R3 基线一致)
+- 主包尺寸:纯 wxss 数值改动 + 注释长度微调,字节增量近 0
+- grep 确认 4 处 Edit 全部命中目标 selector,无误伤(L233 `.style-option` 原本就是 56rpx,与本次无关)
+
+**注释更新**:按 PM 要求,把 L16 原注释 `从原来的300rpx调整到120rpx` 改为 `方案 A: 200→120 节省 80rpx,Wave 1 后修复首屏`,反映本次 hotfix 语义。其他 3 处也加了 `方案 A:` 前缀注释。
+
+**未自行 commit**,等 PM 审查后统一 commit。
+
+下一步建议:Founder 真机截图二次验证(我无法亲自验机型适配)。
+

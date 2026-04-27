@@ -1,12 +1,46 @@
 # Frontend(前端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-25 09:30 Session 3 Wave 2 Round 3
+> 上次更新: 2026-04-27 21:12 UX Hotfix 方案 A
 > 角色: frontend
 
 ---
 
 ## 已完成任务
+
+### 2026-04-27 21:12 UX Hotfix 方案 A: 首屏布局修复(纯 wxss)
+
+**背景**:Founder 真机截图发现 Wave 1 加 complexity-selector 后,首屏只能看到 title + 三档按钮 + 模型选择,**输入框和"点亮灵感"按钮被挤到第二屏**。元素总高 ~1548rpx,超 iPhone 一屏 ~1356rpx 约 200rpx。PM 选方案 A:最小改动,只调 wxss 数值节省 ~178rpx。
+
+**改动清单(`pages/index/index.wxss` 唯一改动文件)**:
+
+| selector | 行 | 属性 | before → after | 节省 |
+|----------|----|------|----------------|------|
+| `.container` | 16 | padding-top | 200rpx → 120rpx | 80rpx |
+| `.complexity-selector` | 1128 | margin (bottom) | 24rpx → 12rpx | 12rpx |
+| `.complexity-option` | 1142 | height | 64rpx → 56rpx | 8rpx |
+| `.input-box` | 366 | min-height | 314rpx → 240rpx | 74rpx |
+| `.input-box` | 367 | max-height | 334rpx → 260rpx | (同步缩,保 20rpx 弹性) |
+
+**总节省**:垂直空间收缩约 **178rpx**(80 + 20 + 74,以 min-height 计),正好把第二屏的"点亮灵感"按钮拉回首屏。
+
+**注释更新**:把 L16 原注释 `从原来的300rpx调整到120rpx` 改为 `方案 A: 200→120 节省 80rpx,Wave 1 后修复首屏`,反映本次 hotfix 语义。其他 3 处也加 `方案 A:` 前缀注释。
+
+**严格遵守 scope**:
+- ✅ 只改 `pages/index/index.wxss`
+- ✅ 未触碰 wxml / js
+- ✅ 未触碰 `app.js` / 其他 pages / `sumai/`
+- ✅ 未自行 commit(等 PM 统一 commit)
+
+**验证**:
+- ✅ `pytest tests/ -v` → **18/18 passed**(零回归)
+- ✅ 主包尺寸:字节增量近 0(纯数值改 + 注释微调)
+- ✅ grep 4 处 Edit 命中目标 selector,无误伤(L233 `.style-option` 56rpx 是原有值)
+- ✅ rpx 单位 / 无 DOM / 无 npm
+
+**待 Founder 真机验证**:本次只能从 rpx 数值层面保证,首屏可见性需 Founder 截图二次确认。
+
+---
 
 ### 2026-04-25 09:30 Session 3 Wave 2 Round 3: R3-C 前端透传 complexity 到 SSE
 
