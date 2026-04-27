@@ -58,16 +58,16 @@
 - 仅文档记录: **0 个**
 - **防护率**: **N/A**(无错误模式记录)
 
-### 已知警报 vs Sensor
+### 已知警报 vs Sensor(Wave 2 收官 2026-04-25)
 
 | 警报 ID | 严重度 | Sensor 状态 |
 |---|---|---|
-| RED-001 | 🔴 P0 | ✅ 已解决 + 模型名 sensor 已激活 |
-| RED-002 | 🔴 P0 | ❌ 无 sensor(凭证硬编码扫描建议 Wave 2 加)|
-| RED-003 | 🔴 P0 | ⚠️ gitignore 已补救,git 历史清理需 Founder 外部 |
-| YELLOW-001 | 🟡 P1 | ❌ 无 sensor(方案 Y Wave 2 实施后可加)|
-| YELLOW-004 (TOCTOU) | 🟡 P1 | ⚠️ xfail sensor 已就位,等 @backend 修 |
-| GRAY-006 (U+00A0) | 🟢 P3 | ❌ 无 sensor,Stage 2+ 清理 |
+| RED-001 | ✅ 已解 | 模型名 sensor 已激活(Wave 1) |
+| RED-002 | ✅ 已解 | test_code2session 升级为 RED-002 sensor(Wave 2 R1)|
+| RED-003 | 🟢 D014 P3 | gitignore 已补救,git 历史清理 + 证书轮换暂不(Founder 决策)|
+| YELLOW-001 | ✅ 已解 | 方案 Y 实施 + test_orphan_endpoints + test_qwen_client wanxiang sensor 激活(Wave 2 R2+R3-D)|
+| YELLOW-004 (TOCTOU) | ✅ 已解 | 全 31 端点 SELECT FOR UPDATE,xfail 保留(mock 限制,reason 已更新)|
+| GRAY-006 (U+00A0) | 🟢 P3 | 无 sensor,Stage 2+ 清理 |
 
 ---
 
@@ -83,14 +83,14 @@
 
 ## Harness 评分
 
-| 维度 | Session 2 | Session 3 | 目标 | 说明 |
-|------|:----:|:----:|:----:|------|
-| Guides(前馈)| 7/10 | **8/10** | 8/10 | CLAUDE.md + sumai/CLAUDE.md + 7 角色文件 + MULTI_AGENT_PORTING_GUIDE + RED-003 guide |
-| Sensors(反馈)| 4/10 | **6/10** | 6/10 | xuhua-wx 18 test + sumai 205 test(89 passed)+ 模型名 sensor 激活 |
-| 计算性控制 | 3/10 | **4/10** | 5/10 | PreCommit hook + 部分合规 sensor;缺 file whitelist 越权检测 |
-| 编排设计 | 7/10 | **8/10** | 8/10 | xhteam Wave 1 实战 dogfood 成功(4 teammate 并行全通过)|
+| 维度 | Session 2 | Session 3 Wave 1 | Wave 2 收官 | 目标 | 说明 |
+|------|:----:|:----:|:----:|:----:|------|
+| Guides(前馈)| 7/10 | 8/10 | **9/10** | 9/10 | + sumai/docs/RED-002 env 迁移指南 772 行 + RED-003 D014 banner + Wave 2 daily-sync |
+| Sensors(反馈)| 4/10 | 6/10 | **7/10** | 7/10 | sumai 92 passed(complexity directive 3 sensor 激活,旧 deep 命名 + 旧函数 stub 清理 -28)|
+| 计算性控制 | 3/10 | 4/10 | **5/10** | 5/10 | + RED-002 sensor(test_code2session 升级)+ TOCTOU SELECT FOR UPDATE 全 31 端点 + complexity dict sensor |
+| 编排设计 | 7/10 | 8/10 | **9/10** | 9/10 | xhteam 三轮 dogfood(Wave 1 4 + Wave 2 R1+R2+R3 共 9 = 13 teammate)0 修复全通过 |
 
-**总分**: Session 2 21/40 → Session 3 **26/40**,达到目标水位
+**总分**: Session 2 21/40 → Session 3 Wave 1 26/40 → **Wave 2 收官 30/40**,达到全部目标水位
 
 ---
 

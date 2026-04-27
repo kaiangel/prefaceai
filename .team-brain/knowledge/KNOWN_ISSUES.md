@@ -275,3 +275,24 @@
   - `tests/test_code2session.py::test_code2session_uses_correct_mini_appid` 已更新为检查 env 引用而非硬编码文本
 
 ---
+
+---
+
+## Wave 2 收官状态汇总(2026-04-25)
+
+| 警报 | Wave 2 前 | Wave 2 后 | 解决路径 |
+|---|---|---|---|
+| RED-001 | 🔴 P0 | ✅ 已解 | Wave 1 @backend 迁移 stream.py + stream_en.py 到 Qwen 3.6 |
+| RED-002 | 🔴 P0 | ✅ 已解 | Wave 2 R1 @backend 27 变量 .env 外移 + Flask 强密钥;主文件 mainv2/note/pay_stripe/stream/stream_en 全部 os.getenv() 化 |
+| RED-003 | 🔴 P0 | 🟢 D014 P3 | Founder 决策"暂不轮换证书"(付费<500 + SSH 可信),gitignore 已补救,git-filter-repo 待触发条件 |
+| YELLOW-001 | 🟡 P1 | ✅ 已解 | Wave 2 R2 @backend 方案 Y(/wanxiangStream + EN 新建,/hunyuanStream + EN 删除)+ R3-D test sensor 激活 |
+| YELLOW-002 | 🟡 P2 | ✅ 已解 | Wave 1 PM 清前端 labelSync 僵尸代码 |
+| YELLOW-003 | 🟡 P3 | 🟢 Founder 决策不管 | Stage 2+ 顺手清 |
+| YELLOW-004 | 🟡 P1 | ✅ 已解 | Wave 2 R3-B @backend 全 31 端点切 validate_and_deduct(SELECT FOR UPDATE + 同事务) |
+| GRAY-001~006 | 🟢 | 🟢 留 Stage 2+ | GRAY-001/002 已部分解(sumai 92 test + sumai/CLAUDE.md);其他保留 |
+
+**结论**:
+- 所有 P0 红警已闭环(2 解决 + 1 D014 降级)
+- 所有 P1 黄警已解决(YELLOW-001 + YELLOW-004)
+- P2/P3 残留按 D014 / Founder 决策推迟到 Stage 2+
+
