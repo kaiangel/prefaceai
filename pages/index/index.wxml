@@ -393,13 +393,13 @@
           <text class="refine-done-text">已达 3 轮迭代上限,请重新点亮灵感开始新轮次</text>
         </view>
 
-        <!-- ③ Stage 2 D018b: 方案 b · 展开的"继续优化要求"输入框(可空)+ 确认/取消 -->
+        <!-- ③ Stage 2 D019: 真·多轮对话 · 展开的"继续优化要求"输入框(可空 → 默认兜底)+ 确认/取消 -->
         <view class="refine-input-area"
               wx:if="{{showRefineInput && !isGenerating}}">
           <textarea class="refine-instruction-box"
-                    placeholder="可选:告诉 AI 要重点调整什么(如:节奏更慢、加悬念、去掉某段)"
+                    placeholder="告诉 AI 要怎么改(如:&quot;换个场域和角色&quot;、&quot;3 个步骤太多,精简到 2 个&quot;、&quot;语言风格更口语化&quot;)"
                     placeholder-style="color: rgba(52, 73, 94, 0.45)"
-                    value="{{refineInstruction}}"
+                    value="{{refineInstructionInput}}"
                     bindinput="onRefineInstructionInput"
                     maxlength="500"
                     show-confirm-bar="{{false}}"

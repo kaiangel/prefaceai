@@ -1,12 +1,61 @@
 # Tester(测试) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 D017 三档下架 + D018a Stage 2 上下文注入(Phase 1+2 合并)
+> 上次更新: 2026-04-28 D019 真·多轮对话 messages history sensor
 > 角色: tester
 
 ---
 
 ## 已完成任务
+
+### 2026-04-28 D019 真·多轮对话 messages history sensor(替代 D018a/b)
+
+**Step 1 — 删除 D018a/b 测试** ✅
+- `cd sumai && git rm tests/test_context_injection.py`(整个文件,5 active + 1 skip 全删)
+- 原因: D018a/b system prompt 注入路线被 D019 真·多轮对话替代(Founder 真机反馈 LLM 仍复述不改写,真因是非真·多轮对话)
+- `tests/README.md`:Stage 2 章节标题 D018a → D019,行替换为 test_multi_turn_history.py,D017 后下架清单追加 test_context_injection.py 历史档案
+
+**Step 2 — 新建 `tests/test_multi_turn_history.py`(~370 行,4 test:3 active + 1 skip)** ✅
+
+| # | 测试 | 类型 | 结果 |
+|---|------|------|------|
+| 1 | `test_d019_constants_and_function_exist` | active 静态扫描 | ✅ PASS |
+| 2 | `test_d019_endpoints_extend_history_into_messages` | active 静态扫描 | ✅ PASS |
+| 3 | `test_d019_role_whitelist_blocks_system_injection` | active 隔离 exec 功能 | ✅ PASS |
+| 4 | `test_d019_endpoints_actually_call_llm_with_extended_history` | skip stub | ⏸️ SKIP |
+
+**Test 1**:DEFAULT_REFINE_FALLBACK 常量(关键短语"明显改进")+ HISTORY_CHAR_BUDGET = 6000 + def resolve_history(data) 签名 + 函数体含 data.get('history') / json.loads / except / 'user'+'assistant' 白名单 / 5000 / HISTORY_CHAR_BUDGET 引用
+
+**Test 2**:stream.py grep `resolve_history(data)` ≥17 + `conversation_history.extend(history)` ≥17;stream_en.py 同 ≥14
+
+**Test 3**:隔离 exec 加载 resolve_history,namespace 预注入 DEFAULT_REFINE_FALLBACK + HISTORY_CHAR_BUDGET + json + re,验证 7 场景:
+1. 缺 history 字段 → []
+2. 空字符串 → []
+3. 非法 JSON garbage → [](fallback 防 SSE 500)
+4. role=system 注入 → [](白名单过滤)
+5. 合法 user msg → 保留
+6. 单 msg content 6000 字符 → 截断 ≤5050
+7. 总长度 8000(4 turn × 2000) → 裁剪 ≤6500
+
+**Test 4 skip**:端点级集成,完整 TODO 断言代码已写,uncomment 即激活
+
+**Step 3 — 全量回归** ✅
+- xuhua-wx 18 passed(持平)
+- sumai **92 passed / 96 skipped / 3 xfailed / 2 xpassed**(passed 持平 D018a 基线 92,total 持平 193)
+
+**Step 4 — HARNESS_HEALTH.md 更新** ✅
+- D018a 行标 D019 (2026-04-28) 下架 + 新增 D019 行
+- 合计行 sensor 计数说明更新
+- 最近变更记录 D019 详细条目追加
+
+**Step 5 — 微信合规** ✅(无境外 LLM,仅 stdlib)
+
+**Step 6 — 与 @backend 协同** ✅
+- 启动检查发现 @backend 已完成 D019 实施(stream.py 28 处含 resolve_history/DEFAULT_REFINE_FALLBACK/HISTORY_CHAR_BUDGET 引用)
+- 直接进入测试阶段,无需等待
+- Test 1+2 一次跑过;Test 3 首次 NameError(HISTORY_CHAR_BUDGET 未定义)→ 加 namespace 常量注入后跑过
+
+---
 
 ### 2026-04-28 D017 三档下架 + D018a Stage 2 上下文注入(Phase 1+2 合并)
 
@@ -128,6 +177,8 @@
 
 ## 上次更新记录
 
+- **2026-04-28 D019**: 删 test_context_injection.py + 新建 test_multi_turn_history.py(3 active + 1 skip)+ HARNESS_HEALTH 更新
+- 2026-04-28 D017+D018a: 删 test_complexity.py + 新建 test_context_injection.py(D019 已删)
 - 2026-04-25 Wave 2 Round 3 D: R3-D 收尾 — 测试激活 + 旧测试删除 + W2-2 fallout + 全量回归
 - 2026-04-24 Session 3 Wave 2 Round 1: 基线 + test_complexity.py + TOCTOU 注释
 - 2026-04-24 Session 3 Wave 1: 5 测试文件 + TOCTOU 发现

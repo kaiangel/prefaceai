@@ -1,207 +1,270 @@
 # Backend(后端) - 给其他角色的上下文
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 (D018b 真机反馈修复完成)
+> 上次更新: 2026-04-28 (D019 真·多轮对话改造完成)
 > 角色: backend
 
 ---
 
 ## 当前状态速览
 
-[2026-04-28] **D018b backend 工作完成**(D018a 真机反馈 + 方案 b 加用户输入框):
+[2026-04-28] **D019 真·多轮对话改造 完成**(Stage 2,替代 D018a/b 伪上下文注入):
 
-- ✨ CONTEXT_INJECTION_TEMPLATE 措辞强化(从"建议性"→"约束性")
-- ✨ 新增 `refine_instruction` 字段契约 + `REFINE_INSTRUCTION_TEMPLATE` + `resolve_refine_instruction()`
-- ✨ 31 SSE 端点 ctx 注入升级为"组装 refine_block + 双 .replace"模式
-- ✨ test_context_injection.py 加 2 active sensor + 扩展 P0 .format() 防御覆盖 REFINE
-- ✅ 全文 0 处 .format()(D018a P0 fix 防回归)
-- ✅ py_compile 通过,pytest 94 passed(基线 92 + 2 新 sensor),18 passed(xuhua-wx)无回归
-- 🔄 待 PM 审查后统一 commit
+- ✨ D018a/b 整套(`CONTEXT_INJECTION_TEMPLATE` / `REFINE_INSTRUCTION_TEMPLATE` /
+  `resolve_context` / `resolve_refine_instruction`)在 stream.py + stream_en.py 完全清除
+- ✨ 新增 D019 基础设施:`DEFAULT_REFINE_FALLBACK` 常量 + `HISTORY_CHAR_BUDGET=6000` +
+  `resolve_history()` 函数(role 白名单 + JSON 容错 + 三层截断)+ `_log_d019_assembly()` helper
+- ✨ 31 SSE 端点(stream.py 17 + stream_en.py 14)统一改为 `[system, ...history, current_user]`
+  顺序的 conversation_history 拼装,不再追加 directive
+- ✨ 详细 [D019] 日志全覆盖(50 处),Founder 强制要求,便于真机调试
+- ✅ 全文 0 处 .format()(D018a P0 fix 永久红线,D019 用 json.loads + .replace 不冲突)
+- ✅ py_compile + pytest 92 passed,test_multi_turn_history 4 sensor 3 PASS / 1 SKIP
 
 ---
 
-## API 契约变更清单(本次 D018b)
+## API 契约变更清单(本次 D019,**重要 — 前端契约破坏式变更**)
 
-### 🆕 新增的契约: refine_instruction 字段
+### 🆕 新增字段: `history`
 
 | 字段 | 类型 | 取值 | 透传位置 | 后端 fallback |
 |---|---|---|---|---|
-| `refine_instruction` | string(可选) | 用户在方案 b 输入框写的"重点调慢节奏" / "加悬念" / "去掉某段" 等具体优化指令 | SSE GET query 或 POST form,与 `context_prompt` 同级 | 未传 / 空串 / None / 全空白 → 不注入「用户具体要求】块,只用 D018b 强化版 directive |
+| `history` | string(JSON) 或 list | 完整对话历史 `[{role, content}]`,role ∈ {user, assistant} | SSE GET query 或 POST form/body,与 `openid` / `content` 同级 | 未传 / 空 / 非法 JSON / 全 system role → 走初次生成路径(等同 Stage 1) |
 
 **端点覆盖**: 全部 31 个 SSE 端点(stream.py 17 + stream_en.py 14)。
 
-**后端行为矩阵**:
+### ❌ 废弃字段: `context_prompt` + `refine_instruction`
 
-| context_prompt | refine_instruction | 后端注入行为 |
+| 字段 | 旧(D018b) | 新(D019) |
 |---|---|---|
-| 空 / 缺失 | 任何 | **不注入任何 directive**(等同 Stage 1,完全向后兼容) |
-| 非空 | 空 / 缺失 | 注入 D018b 强化版 directive,但 `{refine_instruction_block}` 为空字符串 |
-| 非空 | 非空 | 注入 D018b 强化版 directive + 「用户具体要求】块(refine_inst 内容) |
+| `context_prompt` | 上一轮 LLM 输出 | **后端不再读**,前端继续传也会被静默忽略 |
+| `refine_instruction` | 用户继续优化要求 | **后端不再读**,前端继续传也会被静默忽略 |
 
-**注入逻辑**(后端 4 行):
-
-```python
-ctx = resolve_context(data)
-if ctx:
-    refine_inst = resolve_refine_instruction(data)
-    refine_block = REFINE_INSTRUCTION_TEMPLATE.replace("{instruction}", refine_inst) if refine_inst else ""
-    directive = CONTEXT_INJECTION_TEMPLATE.replace("{previous_output}", ctx).replace("{refine_instruction_block}", refine_block)
-    final_system = system + directive
-else:
-    final_system = system
-```
-
-**注入模板**(中文版):
-
-```
-【上下文】用户上一轮已得到的 prompt 是:
-{previous_output}
-
-【优化要求】
-请基于上一轮做**明显改写**,不要复述上一轮的相同内容。
-重点针对用户新提出的方向做有差异化的改进/补充/扩展,
-保留有效部分,但表达方式必须**明显升级**(可调整结构、强化细节、补充示例、调整语气等)。
-
-【用户具体要求】(可选)
-{instruction}
-请严格按此要求调整。
-```
-
-英文版同结构,关键短语:`Refinement Directive` / `substantially rewrite` / `Do NOT simply repeat` / `clearly upgraded` / `User's Specific Requirements` / `Follow these requirements strictly`。
-
-**防御截断**:
-- `context_prompt` > 5000 字符 → 截断到 5000 + 尾部加 `...(已截断)` / `...(truncated)`(D018a 已有,不变)
-- `refine_instruction` > 1000 字符 → 截断到 1000 + 尾部加 `...(已截断)` / `...(truncated)`(🆕 D018b)
-
-**后端不感知轮次**: 只看 `context_prompt` 和 `refine_instruction` 字段是否存在 + 非空。
-轮次上限(D018b: 起步剩 2 次,共 3 次)由前端 counter 强制。
-
-### 🔄 修改的契约: CONTEXT_INJECTION_TEMPLATE 措辞
-
-D018a → D018b:从"建议性"升级为"约束性"。**前端无需任何变更**(模板内容是后端内部实现细节)。
-
-新模板关键短语:
-- zh: 【优化要求】 / **明显改写** / 不要复述 / **明显升级** / 调整结构、强化细节、补充示例、调整语气
-- en: [Refinement Directive] / **substantially rewrite** / Do NOT simply repeat / **clearly upgraded**
-
----
-
-## 给 @frontend 的契约(D018b 实施提示)
+**前端实施提示**(@frontend 同轮 spawn 处理):
 
 ```javascript
-// pages/index/index.js generateContent() body
-{
-  openid: app.globalData.openid,
-  content: this.data.userInput,
-  style: this.data.selectedStyle || '',
-  context_prompt: this.data.refineCounter > 0 ? this.data.lastOutput : '',     // D018a
-  refine_instruction: this.data.refineInstructionInput || '',                  // 🆕 D018b
-  // ... 其他字段
+// pages/index/index.js 推荐 conversationHistory 数组管理
+data: {
+  conversationHistory: [],  // 维护完整对话历史 [{role, content}, ...]
+  refinementRound: 0,
+  MAX_REFINEMENT_ROUNDS: 2,  // 起步剩 2,初次生成 +1 = 共 3 次
+}
+
+generateContent() {
+  const body = {
+    openid: app.globalData.openid,
+    content: this.data.userInput,
+    style: this.data.selectedStyle || '',
+    // 🆕 D019: 只在继续优化时传 history
+    history: this.data.refinementRound > 0
+      ? JSON.stringify(this.data.conversationHistory)
+      : '',
+    // ❌ context_prompt / refine_instruction 已废弃,不要传
+  };
+  // ...
+}
+
+onConfirmRefine() {
+  // 用户输入指令(可空,空时用 DEFAULT_REFINE_FALLBACK)
+  const instruction = this.data.refineInstructionInput || '请基于以上输出做明显改进';
+  // append 上一轮 assistant + 当前 user 指令
+  this.setData({
+    conversationHistory: [
+      ...this.data.conversationHistory,
+      {role: 'assistant', content: this.data.lastOutput},
+      {role: 'user', content: instruction},
+    ],
+    refinementRound: this.data.refinementRound + 1,
+  });
+  this.generateContent();  // 触发新一轮 SSE
 }
 ```
 
-**前端职责**(@frontend 同轮 spawn 处理):
-1. 用户点「✨ 基于此继续优化(剩 N 次)」按钮 → 在按钮下方滑出小输入框 + 「✓ 确认优化」+「取消」按钮
-2. 用户写"重点调慢节奏" / "加悬念" 等(可空,跳过填写也行)
-3. 点「✓ 确认优化」→ 把输入框内容塞进 `refine_instruction` 一并发送
-4. counter `MAX_REFINEMENT_ROUNDS: 3` 起步显示「剩 2 次」(初次生成算第 1 次)
-5. counter 达到 0 → 禁用按钮
-6. 用户重新输入(新 session)→ counter 归零,清空 `context_prompt` + `refine_instruction`
+### history 字段格式示例
 
-**后端不感知 counter** — 第 1 / 2 / 3 轮在后端看完全一样,都是"有 context_prompt 就注入 directive,有 refine_instruction 就额外加用户要求块"。
+第 1 轮(初次生成):
+```
+history = ''  // 或不传
+content = "我要做个 3D 飞机引擎"
+```
 
-英文版端点(`*StreamEN`)同理透传 `refine_instruction`,后端用 `REFINE_INSTRUCTION_TEMPLATE_EN`(英文版)注入。
+第 2 轮(继续优化):
+```json
+history = JSON.stringify([
+  {"role": "user", "content": "我要做个 3D 飞机引擎"},
+  {"role": "assistant", "content": "你是冯·卡门 ... (上一轮 LLM 输出 C)"},
+  {"role": "user", "content": "更换场域和角色,改为侯孝贤的家庭场景"}
+])
+content = "更换场域和角色,改为侯孝贤的家庭场景"  // 与 history 最后一条 user 同步
+```
 
-### 字段长度建议
+注意:**当前 user(=content)是 history 最后一条 user 的副本**(后端会两个都收到,
+后端把 history extend 后再 append content,所以 LLM 看到的 messages 最后是 content)。
+前端可选择:把当前 user 也放在 history 最后,后端 extend 后会出现"两条相同 user"
+(LLM 会忽略其中一条),或者 history 不包含当前 user(后端 extend 完恰好接 content)。
+**推荐后者**(history 不含当前 user,只含历史对话,content 是当前 user)。
 
-- `refine_instruction` 用户输入控件建议加 maxlength 1000(后端会截断,但前端友好)
-- 输入框 placeholder 建议:"想调整哪里?例如:重点调慢节奏 / 加悬念 / 去掉血腥(可不填)"
+### 后端行为矩阵
+
+| `history` 字段 | content | 后端 messages 拼装 |
+|---|---|---|
+| 不传 / 空 / 全空白 | "abc" | `[system, user("abc")]` (初次生成) |
+| `[{user:A, assistant:B}]` | "C" | `[system, user(A), assistant(B), user(C)]` (真多轮) |
+| 含 `role:system` | "C" | system role 被白名单过滤,等同上面 (拒绝注入) |
+| 非法 JSON 字符串 | "C" | `[system, user("C")]` (降级到初次生成,不报错) |
+| 总长度 > 6000 字符 | "C" | 从最早 turn 开始裁剪,最终 `[system, ...裁剪后 history, user("C")]` |
+| 单 message > 5000 字符 | "C" | 该 message 截断到 5000 + "...(已截断)" 后缀 |
+
+### 防御截断三层
+
+- 单 message content > 5000 字符 → 截断 + "...(已截断)" / "...(truncated)" 后缀
+- history 总字符数 > HISTORY_CHAR_BUDGET (6000) → 从最早 turn 开始裁剪
+- Qwen 3.6 Plus max_tokens=8630 → 留 ~2500 字符给 system + 当前 user
+
+**后端不感知轮次**: 只看 `history` 字段是否非空。轮次上限(D019: 起步剩 2 次,共 3 次)由前端
+counter 强制。后端 messages 最长 = 1 system + 5 history + 1 current = **7 turns**。
+
+### 跨语言端点
+
+英文版端点(`*StreamEN`)同理透传 `history`,后端用同一个 `resolve_history()` 函数(纯 Python
+逻辑无中英区别);只有 `_log_d019_assembly` helper 的日志内容是英文。
 
 ---
 
-## 给 @tester 的交接
+## 给 @frontend 的契约(D019 实施提示)
 
-### 本轮已自助新增 2 个 active sensor
+### 状态机重构建议
 
-| Test 名 | 类型 | 状态 |
-|---|---|---|
-| `test_refine_instruction_template_exists` | active 静态扫描 | ✅ PASSED |
-| `test_resolve_refine_instruction_function_exists` | active 静态扫描 | ✅ PASSED |
-| (扩展)`test_context_injection_template_exists` 加 REFINE_INSTRUCTION.format 防御 | active 静态扫描 | ✅ PASSED |
+```
+初始态:        conversationHistory=[], refinementRound=0
+  ↓ 初次生成 onGeneratePrompt
+生成中:        SSE 流式接收
+  ↓ SSE 完成
+有结果态:      lastOutput=完整 LLM 输出 C
+  ↓ 用户点「✨ 基于此继续优化(剩 N 次)」
+展开输入框:    showRefineInput=true
+  ↓ 用户写指令(或跳过) + 点「✓ 确认优化」
+触发态:        把 [{user:A, assistant:C, user:R}] 塞进 conversationHistory,
+              refinementRound +1, 触发 onGeneratePrompt
+  ↓ generateContent() 自动带 history JSON
+新一轮 SSE:    后端真多轮,LLM 看到完整对话基于具体反馈生成
+```
+
+### 重置点
+
+`onInputChange`(用户改主输入)→ 视为新主题 → reset:
+- `conversationHistory: []`
+- `refinementRound: 0`
+- `showRefineInput: false`
+- `refineInstructionInput: ''`
+
+### Token 增长说明(给 Founder 解释)
+
+每轮 history 增加 1 user + 1 assistant ≈ 2-4KB(Qwen 输出 1-2KB/轮)。
+3 轮上限内总 history ≤ 6KB,加 system prompt(2-4KB)+ 当前 user(<1KB)≈ 总 10KB,
+Qwen 3.6 Plus max_tokens=8630 token ≈ 25KB 字符,**安全余量充足**。
+
+---
+
+## 给 @tester 的回归点
+
+### 任务关系
+
+@tester 同轮已完成:
+- 删除 `tests/test_context_injection.py`(D018a/b sensor 已废弃)
+- 新建 `tests/test_multi_turn_history.py`(4 sensor)
+  - `test_d019_constants_and_function_exist` ✅ PASS
+  - `test_d019_endpoints_extend_history_into_messages` ✅ PASS
+  - `test_d019_role_whitelist_blocks_system_injection` ✅ PASS
+  - `test_d019_endpoints_actually_call_llm_with_extended_history` ⏸️ SKIP(等 Flask client mock)
 
 ### 全量回归基线
 
-`pytest sumai/tests/` 应得 **94 passed**(D018a 基线 92 + D018b 新 2 sensor)。
+`pytest sumai/tests/` 应得 **92 passed / 96 skipped / 3 xfailed / 2 xpassed / 0 failed**
+(D018b 收尾 94 - 5 删 + 3 加 = 92,符合预期)。
 `pytest tests/`(xuhua-wx 根)应得 **18 passed**(持平)。
 
 任何**新增**的失败都是回归 — 立即报警。
 
-### 集成测试建议(可选 P3,等 Flask test client 真实化)
+### 真机回归建议(给 Founder)
 
-mock 集成测试,可参考 test_context_injection.py 第 4 个 skip stub 已有的思路扩展:
-- 带 `context_prompt='abc' + refine_instruction='重点调慢节奏'` → captured system 含 `abc` + `【上下文】` + `重点调慢节奏` + `【用户具体要求】`
-- 带 `context_prompt='abc'` 不带 `refine_instruction` → captured system 含 `abc` + `【上下文】` 但**不含** `【用户具体要求】`
-- 带 `refine_instruction='abc'` 不带 `context_prompt` → captured system **不含** `【上下文】` 也**不含** `【用户具体要求】`(整个 directive 不注入)
+1. 主流程:输入主题"3D 飞机引擎"→ 生成 → 复制不报错
+2. 继续优化(关键回归点!):
+   - 点「✨ 基于此继续优化(剩 2 次)」→ 输入"换为侯孝贤家庭场景" → 确认
+   - **真机验证**:LLM 输出 E **应该**真的换了场景和角色,不再像 D018b 那样复述 C
+3. 多轮(剩 1 次):再输入"角色改为父亲" → 确认 → LLM 应基于 E 继续改
+4. 上限(剩 0 次):按钮消失,显示"已达 3 轮迭代上限"
+5. 改主题输入:counter 重置剩 2 次,history 清空
+6. 后端日志验证:`tail -f /home/www/sumai/demo.log | grep [D019]`,
+   能看到完整一次对话流(请求开始 → role 序列 → 拼装完成 → 响应完成)
 
 ---
 
-## 给 @devops: 无新增部署变更
+## 给 @devops 的部署变更
 
-- D018b 是 sumai 内的纯代码改动,**无新增环境变量**
+- D019 是 sumai 内的**纯代码改动**,**无新增环境变量**
 - 只需 `git pull + supervisorctl restart sumai`
 - 完全向后兼容:
-  - 旧前端不传 `refine_instruction` → 后端等同 D018a 强化措辞行为
-  - 旧前端不传 `context_prompt` → 整个 directive 不注入,等同 Stage 1
-- 部署顺序无要求(后端可先于前端,前端可先于后端)
-- 推荐先后端再前端(后端老前端兼容,前端老后端新字段被忽略也没问题)
+  - 旧前端不传 `history` → 后端等同 Stage 1 初次生成
+  - 旧前端继续传 `context_prompt` / `refine_instruction` → 后端**静默忽略**(不会 500)
+  - 后端可先于前端部署,前端可先于后端部署
+- 推荐部署顺序:**先后端再前端**(后端老前端兼容,前端老后端新字段被忽略也没问题)
+- 真机日志放量监控:`tail -f /home/www/sumai/demo.log | grep [D019]` 验证日志量正常
 
 ---
 
 ## 给 PM: KNOWN_ISSUES / DECISIONS 状态更新建议
 
 可在 KNOWN_ISSUES.md / DECISIONS.md 标:
-- **D018b 真机反馈修复 ✅ backend 已完成**(待 PM commit + @frontend 同轮完成后整体上线)
+- **D019 真·多轮对话改造 ✅ backend 已完成**(待 PM commit + @frontend / @tester 同轮完成后整体上线)
+- D018a / D018b 状态更新:**已废弃,被 D019 取代**(KNOWN_ISSUES 加 STAGE-2 D019 verdict 替代 D018a/b 条目)
 - 不动 RED-001 / RED-002 / RED-003 状态
-- D018a P0 fix(709335c).format() → .replace() 已自然继承,本轮 sensor 加固防御
+- D018a P0 fix(709335c).format() → .replace() 不再相关(D019 不用任何 .format,用 json.loads + .replace)
 
 PENDING.md 可标:
-- D018b backend ✅(本次完成,5 sensor 全过)
-- D018b frontend — 等 @frontend 同轮完成
+- D019 backend ✅(本次完成,3 sensor 全过 + 1 stub)
+- D019 frontend / D019 tester — 等同轮完成
 
-PM 审查关注点(地毯式):
-1. 4 个新 fix 全部到位 ✅(grep 计数全匹配)
-2. .format() 严禁回归 ✅(全文 0 处)
-3. 31 端点全部一致 ✅(17 + 14)
-4. 1 处特殊缩进(/describeImageStream 4 空格)已单独处理 ✅
-5. fallback 友好(空 refine_instruction 不影响 D018b 强化措辞)✅
-6. test_context_injection.py 5 active + 1 skip 全过 ✅
+PM 地毯审查关注点(memory feedback_carpet_code_review.md):
+1. ✅ 31 端点全部一致替换(grep `history = resolve_history(data)` = 17 + 14 = 31)
+2. ✅ messages 顺序 [system, ...history, current_user] 严守(看 _log_d019_assembly role 序列)
+3. ✅ system 始终 messages[0](LLM chat completion 规范)
+4. ✅ /describeImageStream 4 空格特殊处理正确(image+text user 在 generate 内 append)
+5. ✅ resolve_history role 白名单 + JSON 容错 + 三层截断(smoke 8 用例验证)
+6. ✅ 0 处 .format()(D018a P0 防回归)
+7. ✅ DEFAULT_REFINE_FALLBACK / HISTORY_CHAR_BUDGET / resolve_history / _log_d019_assembly 全 4 个 D019 符号 stream.py + stream_en.py 都有
+8. ✅ [D019] 日志全覆盖:请求入口 / history 解析 / 拼装完成 / role 序列 / 最后 user / 响应完成 / EN 镜像
+9. ✅ 不引入新 Python 包
 
 ---
 
 ## 历史变更记录
 
-### [2026-04-28] D018b 真机反馈修复(本次)
+### [2026-04-28] D019 真·多轮对话改造(本次)
 
 详见 `current.md` + `completed.md`。
 
+### [2026-04-28] D018b 真机反馈修复
+
+D018a 措辞强化 + refine_instruction 字段。**D019 已替代,本节作废**。
+
 ### [2026-04-28] Stage 2 Phase 1 + Phase 2 合并 spawn(D017 三档下架 + D018a C 方案上下文注入)
 
-- complexity 三档(D016)在 31 端点的实施 — Phase 1 全部回滚 ✅
-- CONTEXT_INJECTION_TEMPLATE + resolve_context + 31 端点 D018a 注入 — **本次 D018b 升级**(措辞强化 + refine_instruction)
+complexity 三档(D016)在 31 端点的实施 — Phase 1 全部回滚 ✅。
+CONTEXT_INJECTION_TEMPLATE + resolve_context — **D019 已删除**。
 
 ### [2026-04-25 10:30] W2-4 R3-A + R3-B(Wave 2 收尾)
 
-- complexity 三档(D016)在 31 端点就位 — D017 已下架
-- 全端点切到 validate_and_deduct + save_prompt_record,旧函数完全删除 — **保留**
+complexity 三档(D016)在 31 端点就位 — D017 已下架。
+全端点切到 validate_and_deduct + save_prompt_record,旧函数完全删除 — **保留**。
 
 ### [2026-04-24 23:45] W2-2 方案 Y + W2-5 TOCTOU(Round 2)
 
-- /wanxiangStream 新建,/hunyuanStream 下架
-- 3 端点切到 validate_and_deduct(其余 11 + stream_en.py 14 在 R3-B 收尾)— **保留**
+/wanxiangStream 新建,/hunyuanStream 下架。
+3 端点切到 validate_and_deduct(其余 11 + stream_en.py 14 在 R3-B 收尾)— **保留**。
 
 ### [2026-04-24 22:30] W2-1 RED-002 凭证外移
 
-主文件全部外移到 `.env`,27 个环境变量清单(部署关键)— **保留**
+主文件全部外移到 `.env`,27 个环境变量清单(部署关键)— **保留**。
 
 ### [2026-04-24] RED-001 — Anthropic → Qwen 3.6 全量迁移 — **保留**
 
@@ -209,9 +272,10 @@ PM 审查关注点(地毯式):
 
 ## 上次更新记录
 
-- 2026-04-28: **D018b 真机反馈修复完成**(措辞强化 + refine_instruction 字段)
+- 2026-04-28: **D019 真·多轮对话改造完成**(本次)
+- 2026-04-28: D018b 真机反馈修复完成(已被 D019 取代)
 - 2026-04-28: Stage 2 Phase 1 + Phase 2 合并完成(D017 + D018a)
-- 2026-04-25 10:30: R3-A + R3-B 完成(本次 R3-A 部分被 D017 回滚)
+- 2026-04-25 10:30: R3-A + R3-B 完成
 - 2026-04-24 23:45: W2-5 + W2-2 完成
 - 2026-04-24 22:30: W2-1 RED-002 完成
 - 2026-04-24: RED-001 完成

@@ -238,20 +238,28 @@ Page({
     referenceImageUrl: '', // 参考图片URL(服务器)
     referenceText: '', // 参考模式下的输入文本
 
-    // Stage 2 D018a/D018b: 上下文注入(C 方案)— 「✨ 基于此继续优化」最多 2 轮(初次 + 2 次继续 = 共 3 次输出)
+    // Stage 2 D019: 真·多轮对话改造 — 「✨ 基于此继续优化」最多 2 轮(初次 + 2 次继续 = 共 3 次输出)
+    // D018a/b 残余 state 字段(prev-output / refine-instr / ctx-prompt) 已彻底删除
     refinementRound: 0,            // 当前迭代轮次,0 = 初次生成,1-2 = 第 N 次基于上轮优化
-    MAX_REFINEMENT_ROUNDS: 2,      // D018b: 改为 2(counter 从"剩 2 次"起步)
-    previousOutput: '',            // 上一轮 output(将作为下一轮 context_prompt 注入)
-    // Stage 2 D018b: 方案 b · 点按钮后展开输入框,让用户写"继续优化要求"
-    showRefineInput: false,        // 是否展开"继续优化要求"输入框
-    refineInstruction: '',         // 用户填写的继续优化要求(可空)
+    MAX_REFINEMENT_ROUNDS: 2,      // counter 从"剩 2 次"起步
+    showRefineInput: false,        // UI:是否展开"继续优化要求"输入框
+    // Stage 2 D019: 真·多轮对话历史(append 模式,后端 extend 到 LLM messages)
+    // 每轮 push 顺序: 初次生成完成 → push {user:A, assistant:C}; 用户继续优化 → push {user:R};
+    // 后端响应完成 → push {assistant:E};... 重复
+    // reset 在 onInputChange / onReferenceInputChange 时
+    conversationHistory: [],       // [{role: 'user'|'assistant', content: string}]
+    // Stage 2 D019: 临时承载继续优化输入框文字(onConfirmRefine 时移到 conversationHistory.user)
+    refineInstructionInput: '',
+    // Stage 2 D019: 默认兜底(当用户跳过填写"修改要求"时)
+    DEFAULT_REFINE_FALLBACK: '请基于以上输出做明显改进',
   },
 
-  // Stage 2 D018b: 点击「✨ 基于此继续优化」— 展开输入框,让用户写继续优化要求(不立即触发 generate)
+  // Stage 2 D019: 点击「✨ 基于此继续优化」— 展开输入框(只 UI,不动 history)
   onRefineFromCurrent: function() {
-    console.log('[D018b] 🎯 onRefineFromCurrent · 展开输入框', {
+    console.log('[D019] 🎯 onRefineFromCurrent · 展开输入框', {
       currentRound: this.data.refinementRound,
       maxRound: this.data.MAX_REFINEMENT_ROUNDS,
+      historyLength: (this.data.conversationHistory || []).length,
       fullContentLength: (this.data.fullContent || '').length
     });
     if (this.data.refinementRound >= this.data.MAX_REFINEMENT_ROUNDS) {
@@ -262,27 +270,19 @@ Page({
       wx.showToast({ title: '暂无可优化内容', icon: 'none' });
       return;
     }
-    // 不立即触发 generate,先展开输入框让用户填要求(可空)
     this.setData({
       showRefineInput: true,
-      refineInstruction: ''
+      refineInstructionInput: ''  // 清空临时输入框文字
     });
   },
 
-  // Stage 2 D018b: 用户在"继续优化要求"输入框输入
+  // Stage 2 D019: 用户在"继续优化要求"输入框输入(只更新临时 state,提交时进 history)
   onRefineInstructionInput: function(e) {
-    this.setData({ refineInstruction: e.detail.value });
+    this.setData({ refineInstructionInput: e.detail.value });
   },
 
-  // Stage 2 D018b: 用户点「✓ 确认优化」— 真正触发 generate(带 refine_instruction + context_prompt)
+  // Stage 2 D019: 用户点「✓ 确认优化」— 把上一轮 assistant + 本轮 user 入 history,触发 generate
   onConfirmRefine: function() {
-    console.log('[D018b] ✅ onConfirmRefine · 即将触发 generate', {
-      refineInstruction: this.data.refineInstruction,
-      refineInstructionLength: (this.data.refineInstruction || '').length,
-      previousOutputLength: (this.data.fullContent || '').length,
-      currentRound_BEFORE_INC: this.data.refinementRound,
-      nextRound_AFTER_INC: this.data.refinementRound + 1
-    });
     if (this.data.refinementRound >= this.data.MAX_REFINEMENT_ROUNDS) {
       wx.showToast({ title: '已达上限', icon: 'none' });
       return;
@@ -291,21 +291,46 @@ Page({
       wx.showToast({ title: '暂无可优化内容', icon: 'none' });
       return;
     }
-    // refineInstruction 保留(generateContent/generateImageDescription 读取后挂载)
+
+    // 1. 取用户输入,空则用 fallback
+    var userInstruction = (this.data.refineInstructionInput || '').trim();
+    if (!userInstruction) {
+      userInstruction = this.data.DEFAULT_REFINE_FALLBACK;
+      console.log('[D019] ✅ onConfirmRefine · 用户跳过填写,用默认兜底:', userInstruction);
+    } else {
+      console.log('[D019] ✅ onConfirmRefine · 用户具体要求:', userInstruction);
+    }
+
+    // 2. 先 append 上一轮的 assistant message(必须做,否则 LLM 看不到 C)
+    //    防御:onConfirm 被快速点两次时,只在末尾不是 assistant 才 push
+    var newHistory = (this.data.conversationHistory || []).slice();
+    if (newHistory.length === 0 || newHistory[newHistory.length - 1].role !== 'assistant') {
+      newHistory.push({ role: 'assistant', content: this.data.fullContent });
+    }
+    // 3. append 本轮 user(用户修改指示)
+    newHistory.push({ role: 'user', content: userInstruction });
+
+    console.log('[D019] 🔑 onConfirmRefine · history 准备 push 给后端', {
+      historyTurns: newHistory.length,
+      historyRoles: newHistory.map(function(m) { return m.role; }),
+      lastUserContent: userInstruction
+    });
+
     this.setData({
-      previousOutput: this.data.fullContent,
+      conversationHistory: newHistory,
       refinementRound: this.data.refinementRound + 1,
-      showRefineInput: false
+      showRefineInput: false,
+      refineInstructionInput: ''
     });
     this.onGeneratePrompt();
   },
 
-  // Stage 2 D018b: 用户点「取消」— 收起输入框,refinementRound 不变
+  // Stage 2 D019: 用户点「取消」— 不动 history,只收输入框
   onCancelRefine: function() {
-    console.log('[D018b] ❌ onCancelRefine · 用户取消,清空 refineInstruction');
+    console.log('[D019] ❌ onCancelRefine · 用户取消');
     this.setData({
       showRefineInput: false,
-      refineInstruction: ''
+      refineInstructionInput: ''
     });
   },
 
@@ -510,14 +535,13 @@ Page({
     // console.log('参考模式输入变化:', text);
 
     var patch = { referenceText: text };
-    // Stage 2 D018a/D018b: 用户改参考输入文本 → 视为开启新主题,重置上下文注入链 + 收起继续优化输入框
-    if (this.data.refinementRound > 0) {
+    // Stage 2 D019: 用户改参考输入文本 → 视为开启新主题,重置多轮对话历史
+    if (this.data.refinementRound > 0 || (this.data.conversationHistory || []).length > 0) {
       patch.refinementRound = 0;
-      patch.previousOutput = '';
-    }
-    if (this.data.showRefineInput || this.data.refineInstruction) {
+      patch.conversationHistory = [];
       patch.showRefineInput = false;
-      patch.refineInstruction = '';
+      patch.refineInstructionInput = '';
+      console.log('[D019] 🔄 onReferenceInputChange · 检测到新主题,重置多轮对话历史');
     }
     this.setData(patch);
   },
@@ -534,24 +558,22 @@ Page({
     if (content) {
       url += `&content=${encodeURIComponent(content)}`;
     }
-    // 🔑 Stage 2 D018a: 上下文注入(C 方案)— 仅在 refinementRound > 0 时挂 context_prompt
-    if (this.data.refinementRound > 0 && this.data.previousOutput) {
-      url += `&context_prompt=${encodeURIComponent(this.data.previousOutput)}`;
-      // 🔑 Stage 2 D018b: 同时透传"继续优化要求"(可空,后端契约要求 refinementRound>0 时必带,即使空字符串)
-      url += `&refine_instruction=${encodeURIComponent(this.data.refineInstruction || '')}`;
-      console.log('[D018b] 🔑 generateImageDescription · 已挂 context_prompt + refine_instruction', {
+    // 🔑 Stage 2 D019: 真·多轮对话 — 透传完整 conversationHistory(JSON 字符串)
+    if (this.data.conversationHistory && this.data.conversationHistory.length > 0) {
+      var historyJson = JSON.stringify(this.data.conversationHistory);
+      url += `&history=${encodeURIComponent(historyJson)}`;
+      console.log('[D019] 🔑 generateImageDescription · 已挂 history', {
         refinementRound: this.data.refinementRound,
-        context_prompt_length: this.data.previousOutput.length,
-        refine_instruction: this.data.refineInstruction || '(空)',
+        historyTurns: this.data.conversationHistory.length,
+        historyRoles: this.data.conversationHistory.map(function(m) { return m.role; }),
+        historyJson_length: historyJson.length,
         url_total_length: url.length
       });
     } else {
-      console.log('[D018b] generateImageDescription · 初次生成,不挂 context_prompt', {
-        refinementRound: this.data.refinementRound
-      });
+      console.log('[D019] generateImageDescription · 初次生成,无 history');
     }
 
-    console.log('[D018b] 📡 SSE 请求 URL (前 500):', url.slice(0, 500));
+    console.log('[D019] 📡 SSE 请求 URL (前 500):', url.slice(0, 500));
 
     // 🔑 生成会话ID，用于appendToBuffer验证
     const sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_img_desc';
@@ -677,6 +699,33 @@ Page({
   completeImageDescriptionGeneration: function() {
     // console.log('✅ 完成图片描述生成');
     
+    // 🔑 Stage 2 D019: 真·多轮对话 — image-desc 模式生成完成,把 user (=referenceText) + assistant 同步到 history
+    if (this.data.fullContent) {
+      if (this.data.refinementRound === 0 && (this.data.conversationHistory || []).length === 0) {
+        var initialUserContent = this.data.referenceText || '';
+        var initialHistory = [
+          { role: 'user', content: initialUserContent },
+          { role: 'assistant', content: this.data.fullContent }
+        ];
+        this.setData({ conversationHistory: initialHistory });
+        console.log('[D019] 📝 初次生成完成 · 初始化 history (2 turns)', {
+          mode: 'image-desc',
+          userContent_length: initialUserContent.length,
+          assistantContent_length: this.data.fullContent.length
+        });
+      } else if (this.data.refinementRound > 0) {
+        var newHistory = (this.data.conversationHistory || []).slice();
+        newHistory.push({ role: 'assistant', content: this.data.fullContent });
+        this.setData({ conversationHistory: newHistory });
+        console.log('[D019] 📝 继续优化轮次完成 · push assistant', {
+          mode: 'image-desc',
+          round: this.data.refinementRound,
+          totalHistoryTurns: newHistory.length,
+          historyRoles: newHistory.map(function(m) { return m.role; })
+        });
+      }
+    }
+
     // 更新UI状态
     this.setData({
       isGenerating: false,
@@ -1073,14 +1122,13 @@ Page({
 
   onInputChange(e) {
     var patch = { inputText: e.detail.value };
-    // Stage 2 D018a/D018b: 用户改输入框文本 → 视为开启新主题,重置上下文注入链 + 收起继续优化输入框
-    if (this.data.refinementRound > 0) {
+    // Stage 2 D019: 用户改输入框文本 → 视为开启新主题,重置多轮对话历史
+    if (this.data.refinementRound > 0 || (this.data.conversationHistory || []).length > 0) {
       patch.refinementRound = 0;
-      patch.previousOutput = '';
-    }
-    if (this.data.showRefineInput || this.data.refineInstruction) {
+      patch.conversationHistory = [];
       patch.showRefineInput = false;
-      patch.refineInstruction = '';
+      patch.refineInstructionInput = '';
+      console.log('[D019] 🔄 onInputChange · 检测到新主题,重置多轮对话历史');
     }
     this.setData(patch);
   },
@@ -1873,6 +1921,36 @@ Page({
   handlePostGeneration: function() {
     // console.log('处理生成后续工作');
     
+    // 🔑 Stage 2 D019: 真·多轮对话 — 生成完成后,把 user (=原始 content) + assistant (=fullContent) 同步到 conversationHistory
+    // 初次生成(refinementRound == 0 且 history 空) → 一次性 push {user, assistant} 两条
+    // 继续优化轮次(refinementRound > 0,onConfirmRefine 已 push 过 last assistant + this user) → 只 push 本轮 assistant
+    // 注意:此处用 inputText 作为 user content(text 模式;reference 模式由 completeImageDescriptionGeneration 处理)
+    if (this.data.fullContent) {
+      if (this.data.refinementRound === 0 && (this.data.conversationHistory || []).length === 0) {
+        var initialUserContent = this.data.inputText || '';
+        var initialHistory = [
+          { role: 'user', content: initialUserContent },
+          { role: 'assistant', content: this.data.fullContent }
+        ];
+        this.setData({ conversationHistory: initialHistory });
+        console.log('[D019] 📝 初次生成完成 · 初始化 history (2 turns)', {
+          mode: 'text',
+          userContent_length: initialUserContent.length,
+          assistantContent_length: this.data.fullContent.length
+        });
+      } else if (this.data.refinementRound > 0) {
+        var newHistory = (this.data.conversationHistory || []).slice();
+        newHistory.push({ role: 'assistant', content: this.data.fullContent });
+        this.setData({ conversationHistory: newHistory });
+        console.log('[D019] 📝 继续优化轮次完成 · push assistant', {
+          mode: 'text',
+          round: this.data.refinementRound,
+          totalHistoryTurns: newHistory.length,
+          historyRoles: newHistory.map(function(m) { return m.role; })
+        });
+      }
+    }
+
     // 如果生成完成但没有ID，尝试再次获取
     if (!this.data.currentPromptId) {
       console.warn('生成完成但ID不存在，尝试从缓存中恢复');
@@ -2426,21 +2504,19 @@ Page({
     // console.log('🔔 请求开始时间:', requestStartTime);
     let firstChunkReceived = false;
 
-    // 🔑 Stage 2 D018b: 请求前打印 refinement 状态(便于真机诊断契约是否端到端通)
-    if (this.data.refinementRound > 0 && this.data.previousOutput) {
-      console.log('[D018b] 🔑 generateContent · 已挂 context_prompt + refine_instruction', {
+    // 🔑 Stage 2 D019: 真·多轮对话 — 请求前打印 history 状态(便于真机诊断契约是否端到端通)
+    if (this.data.conversationHistory && this.data.conversationHistory.length > 0) {
+      console.log('[D019] 🔑 generateContent · 已挂 history', {
         endpoint: apiEndpoint,
         refinementRound: this.data.refinementRound,
-        context_prompt_length: this.data.previousOutput.length,
-        context_prompt_preview: this.data.previousOutput.slice(0, 100) + (this.data.previousOutput.length > 100 ? '...' : ''),
-        refine_instruction: this.data.refineInstruction || '(空)',
-        refine_instruction_length: (this.data.refineInstruction || '').length
+        historyTurns: this.data.conversationHistory.length,
+        historyRoles: this.data.conversationHistory.map(function(m) { return m.role; }),
+        historyJson_preview: JSON.stringify(this.data.conversationHistory).slice(0, 200)
       });
     } else {
-      console.log('[D018b] generateContent · 初次生成,不挂 context_prompt', {
+      console.log('[D019] generateContent · 初次生成,无 history', {
         endpoint: apiEndpoint,
-        refinementRound: this.data.refinementRound,
-        hasPreviousOutput: !!this.data.previousOutput
+        refinementRound: this.data.refinementRound
       });
     }
 
@@ -2459,13 +2535,9 @@ Page({
         client_session: this.data.generationSessionId,  // 🔑 前端会话ID
         request_time: Date.now(),  // 🔑 请求时间
         user_label: this.data.currentSelectionText || '',  // 🔑 用户选择的完整标签
-        // 🔑 Stage 2 D018a: 上下文注入(C 方案)— 仅在 refinementRound > 0 时挂 context_prompt
-        // 🔑 Stage 2 D018b: 同时透传"继续优化要求"(可空,后端契约要求 refinementRound>0 时必带)
-        ...(this.data.refinementRound > 0 && this.data.previousOutput
-          ? {
-              context_prompt: this.data.previousOutput,
-              refine_instruction: this.data.refineInstruction || ''
-            }
+        // 🔑 Stage 2 D019: 真·多轮对话 — 透传完整 conversationHistory(JSON 字符串)
+        ...(this.data.conversationHistory && this.data.conversationHistory.length > 0
+          ? { history: JSON.stringify(this.data.conversationHistory) }
           : {}),
         // 添加style参数支持
         ...((() => {

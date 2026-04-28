@@ -1,6 +1,6 @@
 # Harness 健康度看板
 
-> 上次更新: 2026-04-28 D017 三档下架 + D018a Stage 2 上下文注入(@tester)
+> 上次更新: 2026-04-28 D019 真·多轮对话 messages history(@tester)
 > 更新者: PM(Coordinator 兼 PM)
 > 更新频率: 每周一次,或每个重大 TASK 完成后
 
@@ -43,12 +43,13 @@
 | 第三方登录 | test_third_party_login.py(3 stub) | ⏸️ skip(等 mock) |
 | SSE 端点骨架 | test_sse_* 系列 | 部分 passed,部分 skip |
 | ~~complexity 三档 directive(D016)~~ | ~~test_complexity.py~~ | ❌ **D017 (2026-04-28) 下架** — Founder verdict "鸡肋",@backend 删 stream.py 顶部 dict + 函数,@tester 删测试文件 |
-| **Stage 2 上下文注入(D018a)** | test_context_injection.py(3 active + 1 skip) | ✅ **3/3 active passed + 1 skip stub**(模板常量 + resolve_context 函数 + 截断行为隔离 exec 验证) |
+| ~~Stage 2 上下文注入(D018a/b system prompt 注入)~~ | ~~test_context_injection.py~~ | ❌ **D019 (2026-04-28) 下架** — Founder 真机反馈 D018a/b directive 注入 LLM 仍复述不改写,真因是非真·多轮对话;改用 messages history extend(下方 D019 sensor) |
+| **Stage 2 D019 真·多轮对话 (messages history)** | test_multi_turn_history.py(3 active + 1 skip) | ✅ **3/3 active passed + 1 skip stub**(DEFAULT_REFINE_FALLBACK + HISTORY_CHAR_BUDGET + def resolve_history + 31 端点 extend grep + role 白名单/JSON 容错/单 5000+总 6000 截断 隔离 exec 验证) |
 | **/wanxiangStream 注册存在** | test_orphan_endpoints::test_wanxiang_stream_is_present | ✅ R3-D xfail 已移除,改为正向断言(本地 skip 因缺 app fixture,生产 venv pass) |
 | **wanxiangStream 用 Qwen(合规)** | test_qwen_client::test_wanxiang_stream_uses_qwen | ✅ passed(R3-D 替代旧 test_hunyuan_stream_uses_qwen) |
 | **/hunyuanStream 已下架** | test_endpoints_exist + test_sse_stream_structure 列表 | ✅ R3-D 已替换为 /wanxiangStream(本地 skip,生产 venv pass) |
 
-**合计**: 193 个 test case,**92 passed / 96 skipped / 3 xfailed / 2 xpassed**(D017+D018a 基线 [2026-04-28]。删除 test_complexity.py(D017 三档下架, COMPLEXITY_DIRECTIVES dict 已从 stream.py 移除);新建 test_context_injection.py(3 active + 1 skip,Stage 2 上下文注入 sensor)。total -3+4=+1, passed 持平 R3-D 基线 92,skipped +1。)
+**合计**: 193 个 test case,**92 passed / 96 skipped / 3 xfailed / 2 xpassed**(D019 基线 [2026-04-28]。删除 test_context_injection.py(D018a/b system prompt 注入路线被 D019 真·多轮对话替代,5 active + 1 skip 全删);新建 test_multi_turn_history.py(3 active + 1 skip,resolve_history + 31 端点 extend 静态扫描 + role 白名单/JSON 容错/截断 隔离 exec 功能验证)。total -3+3=0, passed 92 持平 D018a 基线,skipped 96 持平。)
 
 ---
 
@@ -108,6 +109,17 @@
 ---
 
 ## 最近变更记录
+
+- **2026-04-28 D019 真·多轮对话 messages history(@tester)**:
+  - **删除 `tests/test_context_injection.py`**(D018a/b 整套 system prompt 注入测试,5 active + 1 skip):D018a/b 用 system prompt 注入 context_prompt + refine_instruction 让 LLM "继续优化",Founder 真机反馈仍然复述不改写 — 真因是非真·多轮对话,LLM 缺乏"前一轮我说过什么、用户的反馈"的真实上下文。D019 改用 messages history extend(真·多轮对话)替代,旧测试整套淘汰。
+  - **新建 `tests/test_multi_turn_history.py`**(~370 行,4 test:3 active + 1 skip stub):
+    - Test 1 active 静态扫描:`DEFAULT_REFINE_FALLBACK = "请基于以上输出做明显改进"` 常量(强约束措辞防退回 D018a 建议性) + `HISTORY_CHAR_BUDGET = 6000` 常量 + `def resolve_history(data):` 签名 + `data.get('history')` + `json.loads`/`except` + `'user'`/`'assistant'` 白名单 + `5000` + `HISTORY_CHAR_BUDGET` 引用
+    - Test 2 active 静态扫描:stream.py 17 + stream_en.py 14 = 31 端点全部 grep `resolve_history(data)` 调用 + `conversation_history.extend(history)` 追加(实际 28+ 处命中)
+    - Test 3 active 隔离 exec:从 stream.py 抽取 resolve_history 函数体 + 注入 DEFAULT_REFINE_FALLBACK/HISTORY_CHAR_BUDGET/json/re 到 namespace,验证 None/空/非法 JSON fallback []/role=system 白名单过滤 []/合法 user message 保留/单 msg 5000 截断 ≤5050/总长度 6000 裁剪
+    - Test 4 skip stub:端点级集成测试(Flask client + LLM mock 抓 messages list,完整 TODO 断言已写,uncomment 即激活)
+  - **README.md 同步**:`test_context_injection.py` 行替换为 `test_multi_turn_history.py`;Stage 2 章节标题从 D018a 改为 D019;D017 后下架清单追加 `test_context_injection.py` 历史档案
+  - **基线**: xuhua-wx 18 passed(持平) | sumai 92 passed / 96 skipped / 3 xfailed / 2 xpassed(passed 持平 D018a 基线 92,total/skipped 持平 — 删 5 active + 1 skip,加 3 active + 1 skip)
+  - **协调**: @backend 已实施 stream.py 顶部 DEFAULT_REFINE_FALLBACK + HISTORY_CHAR_BUDGET + def resolve_history(含 D019 print 日志 `[D019][resolve_history]` 前缀);28+ 处 grep 命中 (resolve_history + extend)。EN 端点共享 stream.py 的函数(import 复用)。Test 3 隔离 exec 跑通验证 resolve_history 行为符合白名单 + 截断设计。
 
 - **2026-04-28 D017 三档下架 + D018a Stage 2 上下文注入(@tester Phase 1+2 合并)**:
   - **Phase 1(D017)**:

@@ -1,12 +1,41 @@
 # Frontend(前端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 D018b 真机反馈四项 fix 完成
+> 上次更新: 2026-04-28 D019 真·多轮对话改造完成
 > 角色: frontend
 
 ---
 
 ## 已完成任务
+
+### 2026-04-28 — D019 真·多轮对话改造(承接 D018b 真机"输出变化不大"反馈)
+
+**背景**:D018b 落地后 Founder 真机仍反馈"继续优化输出变化不大"。根因是 D018a/b 把"上一轮 output + 用户继续优化要求"以 system prompt block 注入,LLM 仍只看到一次 user message,容易"复述"而非真正延续对话。D019 改为**真·多轮 conversation history extend** —— 前端积累 `[{user, assistant}, ...]` 数组,通过新 `history` 字段透传 JSON 给后端,后端 extend 到 LLM `messages`。
+
+**前端任务**(本条记录):
+1. **删 D018b 残余 state**:`previousOutput` / `refineInstruction` 整体删除,字段契约 `context_prompt` / `refine_instruction` 清零
+2. **加 conversationHistory state**:`[{role: 'user'|'assistant', content: string}]`,append 模式
+3. **加 refineInstructionInput 临时 state**:承载输入框文字,`onConfirmRefine` 时移到 history.user
+4. **加 DEFAULT_REFINE_FALLBACK**:用户跳过填写时兜底"请基于以上输出做明显改进"
+5. **重写 onConfirmRefine**:① 取用户输入或 fallback ② append 上轮 assistant(防双击重复) ③ append 本轮 user ④ refinementRound+1 ⑤ onGeneratePrompt
+6. **改 generateContent body / generateImageDescription URL**:由原 `context_prompt + refine_instruction` 改为 `history: JSON.stringify(conversationHistory)`(URL encode for image-desc GET path)
+7. **3 处 reset 完整覆盖**:onInputChange / onReferenceInputChange 同步清空 conversationHistory + refinementRound + showRefineInput + refineInstructionInput
+8. **2 处生成完成 hook**:`handlePostGeneration`(text 模式)+ `completeImageDescriptionGeneration`(image-desc 模式)各加"完成后 push 到 history"块,初次 push 2 turns(user A + assistant C),继续优化轮次 push 1 assistant(user 已在 onConfirmRefine 时 push)
+9. **WXML 改 placeholder**:由"可选:告诉 AI..."改为示例化"告诉 AI 要怎么改(如:'换个场域和角色'、'3 个步骤太多,精简到 2 个'、'语言风格更口语化')",更明确
+10. **Founder 强制 console.log debug**:全前缀 `[D019]`,16 处覆盖 8 类(展开 / 提交 / 取消 / 透传 / 初次 / 重置 / 完成 push / SSE URL preview)
+
+**验证**:pytest 18/18,node --check OK,grep 残余 0,grep [D019] 16,主包尺寸增量 +4087 B(+4.0 KB,< 5KB)
+
+**对 @backend 的契约**:新字段 `history` 仅在 conversationHistory.length > 0 时挂载;字段值是 JSON 字符串;后端 parse → extend 到 LLM messages。建议方案 A(history 即权威,有 history 时忽略 raw `content` 字段)。
+
+**改动文件清单**(给 PM 统一 commit):
+- `pages/index/index.js`(+3992 B 净增,删 D018b 状态/字段/逻辑 + 加 conversationHistory 流 + 16 处 [D019] log)
+- `pages/index/index.wxml`(+95 B,placeholder 文案 + value 绑定改 refineInstructionInput + 注释 D019)
+- `pages/index/index.wxss`(0 改动)
+- `.claude/agents/frontend-progress/{current,completed,context-for-others}.md`(三件套全更新)
+- `.team-brain/TEAM_CHAT.md`(本次完成消息追加)
+
+---
 
 ### 2026-04-28 — D018b 真机反馈 4 项 fix(承接 D018a)
 

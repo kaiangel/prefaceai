@@ -1,12 +1,58 @@
 # Backend(后端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 (D018b 真机反馈修复)
+> 上次更新: 2026-04-28 (D019 真·多轮对话改造)
 > 角色: backend
 
 ---
 
 ## 已完成任务
+
+### [2026-04-28] D019 · Stage 2 真·多轮对话改造 ✅
+
+- **任务编号**: D019 backend(并行 spawn 3 teammate 之一,与 @frontend / @tester 并行)
+- **决策依据**: D019(2026-04-28 PM)— Founder 真机 D018b 反馈"感觉没什么区别"
+- **背景**: D018a/b 伪上下文注入(system 末尾追加 directive)被 Qwen 视作软建议忽略;
+  改造为 LLM 原生 chat completion 多轮对话(history extend)是真正解决方案
+- **PM 审查 SOP**: 必须地毯审查(memory feedback_carpet_code_review.md)
+
+#### 修改文件清单
+
+| 文件 | 改动摘要 | 行数变化 |
+|---|---|---|
+| `sumai/stream.py` | 顶部:D018a/b 整套删除(`CONTEXT_INJECTION_TEMPLATE` / `REFINE_INSTRUCTION_TEMPLATE` / `resolve_context` / `resolve_refine_instruction`)+ 新增 D019 基础设施(`DEFAULT_REFINE_FALLBACK` 常量 + `HISTORY_CHAR_BUDGET=6000` + `resolve_history()` 函数 + `_log_d019_assembly()` helper)· 17 端点 7 行 D018b 注入块整体替换为 D019 6 行 history extend 模式 · save_prompt_record 加 [D019] 响应完成日志 | 净 +約 60 |
+| `sumai/stream_en.py` | EN 版同步:`CONTEXT_INJECTION_TEMPLATE_EN` / `REFINE_INSTRUCTION_TEMPLATE_EN` 删除 + EN 版 D019 基础设施 + 14 端点替换 + EN save_prompt_record [D019] 日志 | 净 +約 50 |
+
+详细产出 + 验证 + 给其他角色的契约 → `current.md`(等 PM 审查后 PM 把本次摘要从 current 移到 completed)
+
+#### Step 总览
+
+1. **Step 1 删 D018a/b 整套** → 顶部常量 + 函数 + 31 端点 7 行注入块 完全清除(grep 残留 = 0)
+2. **Step 2 新增 D019 基础设施** → DEFAULT_REFINE_FALLBACK + HISTORY_CHAR_BUDGET + resolve_history + _log_d019_assembly
+3. **Step 3 31 端点 history extend** → 17 (zh) + 14 (en) = 31 处统一注入
+4. **Step 3.5 /describeImageStream 4 空格特殊处理** → 单独适配
+5. **Step 4 详细 [D019] 日志全覆盖** → 27 (zh) + 23 (en) = 50 处 [D019] 日志
+6. **Step 5 grep 验证** → 全部匹配预期
+7. **Step 6 P0 安全严守** → role 白名单 + JSON 容错 + 三层截断防御
+
+#### 测试基线
+
+- `python3 -m py_compile sumai/stream.py sumai/stream_en.py` → **OK** ✅
+- `pytest sumai/tests/` → **92 passed / 96 skipped / 3 xfailed / 2 xpassed / 0 failed** ✅
+  - test_multi_turn_history.py 4 sensor: 3 PASS + 1 SKIP(等 Flask client + LLM mock)
+- `pytest tests/`(xuhua-wx 根)→ **18 passed** ✅
+
+#### Smoke 验证 resolve_history(8 用例直接 exec 函数体)
+
+- ✅ 空 / 非法 JSON / 空字符串 → []
+- ✅ role=system 被白名单拦截
+- ✅ 单 message 6000 字 → 截断到 5008(5000 + "...(已截断)" 8 字)
+- ✅ 总长 12000(8×1500)→ 裁剪到 4 turn(总长 ≤ 6000)
+- ✅ list 形式直接接收(不强制 JSON 字符串)
+
+详细产出见 `current.md`,审查通过后 PM 把内容从 current 转移到此处。
+
+---
 
 ### [2026-04-28] D018b · Stage 2 上下文注入 真机反馈修复 ✅
 
