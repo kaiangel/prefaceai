@@ -249,6 +249,11 @@ Page({
 
   // Stage 2 D018b: 点击「✨ 基于此继续优化」— 展开输入框,让用户写继续优化要求(不立即触发 generate)
   onRefineFromCurrent: function() {
+    console.log('[D018b] 🎯 onRefineFromCurrent · 展开输入框', {
+      currentRound: this.data.refinementRound,
+      maxRound: this.data.MAX_REFINEMENT_ROUNDS,
+      fullContentLength: (this.data.fullContent || '').length
+    });
     if (this.data.refinementRound >= this.data.MAX_REFINEMENT_ROUNDS) {
       wx.showToast({ title: '已达上限', icon: 'none' });
       return;
@@ -271,6 +276,13 @@ Page({
 
   // Stage 2 D018b: 用户点「✓ 确认优化」— 真正触发 generate(带 refine_instruction + context_prompt)
   onConfirmRefine: function() {
+    console.log('[D018b] ✅ onConfirmRefine · 即将触发 generate', {
+      refineInstruction: this.data.refineInstruction,
+      refineInstructionLength: (this.data.refineInstruction || '').length,
+      previousOutputLength: (this.data.fullContent || '').length,
+      currentRound_BEFORE_INC: this.data.refinementRound,
+      nextRound_AFTER_INC: this.data.refinementRound + 1
+    });
     if (this.data.refinementRound >= this.data.MAX_REFINEMENT_ROUNDS) {
       wx.showToast({ title: '已达上限', icon: 'none' });
       return;
@@ -290,6 +302,7 @@ Page({
 
   // Stage 2 D018b: 用户点「取消」— 收起输入框,refinementRound 不变
   onCancelRefine: function() {
+    console.log('[D018b] ❌ onCancelRefine · 用户取消,清空 refineInstruction');
     this.setData({
       showRefineInput: false,
       refineInstruction: ''
@@ -526,10 +539,20 @@ Page({
       url += `&context_prompt=${encodeURIComponent(this.data.previousOutput)}`;
       // 🔑 Stage 2 D018b: 同时透传"继续优化要求"(可空,后端契约要求 refinementRound>0 时必带,即使空字符串)
       url += `&refine_instruction=${encodeURIComponent(this.data.refineInstruction || '')}`;
+      console.log('[D018b] 🔑 generateImageDescription · 已挂 context_prompt + refine_instruction', {
+        refinementRound: this.data.refinementRound,
+        context_prompt_length: this.data.previousOutput.length,
+        refine_instruction: this.data.refineInstruction || '(空)',
+        url_total_length: url.length
+      });
+    } else {
+      console.log('[D018b] generateImageDescription · 初次生成,不挂 context_prompt', {
+        refinementRound: this.data.refinementRound
+      });
     }
 
-    // console.log('请求URL:', url);
-    
+    console.log('[D018b] 📡 SSE 请求 URL (前 500):', url.slice(0, 500));
+
     // 🔑 生成会话ID，用于appendToBuffer验证
     const sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_img_desc';
     console.log('🚀 开始图片描述生成会话:', sessionId);
@@ -2402,7 +2425,25 @@ Page({
     const requestStartTime = Date.now();
     // console.log('🔔 请求开始时间:', requestStartTime);
     let firstChunkReceived = false;
-    
+
+    // 🔑 Stage 2 D018b: 请求前打印 refinement 状态(便于真机诊断契约是否端到端通)
+    if (this.data.refinementRound > 0 && this.data.previousOutput) {
+      console.log('[D018b] 🔑 generateContent · 已挂 context_prompt + refine_instruction', {
+        endpoint: apiEndpoint,
+        refinementRound: this.data.refinementRound,
+        context_prompt_length: this.data.previousOutput.length,
+        context_prompt_preview: this.data.previousOutput.slice(0, 100) + (this.data.previousOutput.length > 100 ? '...' : ''),
+        refine_instruction: this.data.refineInstruction || '(空)',
+        refine_instruction_length: (this.data.refineInstruction || '').length
+      });
+    } else {
+      console.log('[D018b] generateContent · 初次生成,不挂 context_prompt', {
+        endpoint: apiEndpoint,
+        refinementRound: this.data.refinementRound,
+        hasPreviousOutput: !!this.data.previousOutput
+      });
+    }
+
     const requestTask = wx.request({
       url: apiEndpoint,
       method: 'POST',
