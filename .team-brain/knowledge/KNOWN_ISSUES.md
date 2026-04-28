@@ -296,3 +296,64 @@
 - 所有 P1 黄警已解决(YELLOW-001 + YELLOW-004)
 - P2/P3 残留按 D014 / Founder 决策推迟到 Stage 2+
 
+
+---
+
+## GRAY-007 · scroll-view enable-flex + display:flex 双开 bug(2026-04-27 新增)
+
+**严重度**: 🟢 P2(Stage 2 全项目排查)
+
+**现象**:
+- WeChatLib 3.6.0(可能更早版本也有)
+- `<scroll-view scroll-x enable-flex>` + 同 selector wxss `display: flex` 双开
+- scroll-view 高度计算异常(撑大父容器或采用 default 几百 rpx)
+- 在 `overflow: hidden` 父级下表现为大块空白
+
+**首次发现**: 2026-04-27 Stage 1 真机回归,`.style-options-scroll` 触发,产生 ~600rpx 异常空白
+
+**修复模式**:
+- wxml `enable-flex` 属性保留(scroll-x 需要它)
+- wxss 删 `display: flex` + `justify-content: center`
+- 改 `text-align: center`(子元素 inline-flex 自然居中)
+- 加显式 `height: Nrpx`(scroll-x 必备)
+
+**Sources**:
+- 官方 [scroll-view 文档](https://developers.weixin.qq.com/miniprogram/dev/component/scroll-view.html)
+- [SegmentFault scroll-view 高度自适应解决方案](https://segmentfault.com/a/1190000023544769)
+- [博客园 - scroll-view 几个坑](https://www.cnblogs.com/Lyn4ever/p/11282210.html)
+- [enable-flex 失效解决方法](https://blog.csdn.net/qq_36734002/article/details/118086975)
+
+**Stage 2+ 排查清单**:
+- `pages/history/`
+- `pages/favorites/`
+- `pages/profile/`
+- `pages/shared/`
+- `pages/login/`
+- `pages/settings/`
+- `pages/feedback/`
+
+如有同样的 enable-flex + display:flex 双开,按本次模式修复。
+
+---
+
+## STAGE-1 · 三档复杂度功能下架(2026-04-28 D017)
+
+**功能** Stage 1 Wave 1 上线 UI + Wave 2 R3-A 上线后端 directive
+**verdict**: 鸡肋,Founder 拍板下架
+
+**鸡肋原因**:
+1. standard 档 directive = 空字符串(形同虚设)
+2. quick / professional 是软建议非硬约束(Qwen 听不听不可控)
+3. professional 末尾固定追加 "💎 建议:此 prompt 适合保存为项目模板..." 用户复制时多余
+4. 没做过真实 A/B 验证
+
+**下架范围**(由本周 spawn 的 teammate 执行):
+- 前端 WXML: 删 complexity-selector / complexity-options / complexity-hint
+- 前端 WXSS: 删 .complexity-* 所有样式 + .input-area-professional + .result-card-professional + .professional-badge
+- 前端 JS: 删 currentComplexity / complexityOptions / switchComplexity / 透传 complexity 字段
+- 后端 stream.py + stream_en.py: 删 COMPLEXITY_DIRECTIVES dict + resolve_complexity 函数 + 31 端点内 directive 注入
+- 测试: 删 test_complexity.py + 清理相关断言
+- D016 命名决策保留为历史档案,不删
+
+**Hero 文案保留**(定位文案"专业创作者的 AI Prompt 工作台"是有效的)
+

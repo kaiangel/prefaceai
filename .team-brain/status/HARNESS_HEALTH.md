@@ -1,6 +1,6 @@
 # Harness 健康度看板
 
-> 上次更新: 2026-04-25 Wave 2 Round 3 D(@tester R3-D 收尾)
+> 上次更新: 2026-04-28 D017 三档下架 + D018a Stage 2 上下文注入(@tester)
 > 更新者: PM(Coordinator 兼 PM)
 > 更新频率: 每周一次,或每个重大 TASK 完成后
 
@@ -42,12 +42,13 @@
 | /describeImageStream | test_describe_image_stream.py(4 stub) | ⏸️ skip(等 mock) |
 | 第三方登录 | test_third_party_login.py(3 stub) | ⏸️ skip(等 mock) |
 | SSE 端点骨架 | test_sse_* 系列 | 部分 passed,部分 skip |
-| **complexity 三档 directive(D016)** | test_complexity.py(3 tests) | ✅ **3/3 passed**(R3-D 激活,针对 COMPLEXITY_DIRECTIVES dict + resolve_complexity 静态扫描) |
+| ~~complexity 三档 directive(D016)~~ | ~~test_complexity.py~~ | ❌ **D017 (2026-04-28) 下架** — Founder verdict "鸡肋",@backend 删 stream.py 顶部 dict + 函数,@tester 删测试文件 |
+| **Stage 2 上下文注入(D018a)** | test_context_injection.py(3 active + 1 skip) | ✅ **3/3 active passed + 1 skip stub**(模板常量 + resolve_context 函数 + 截断行为隔离 exec 验证) |
 | **/wanxiangStream 注册存在** | test_orphan_endpoints::test_wanxiang_stream_is_present | ✅ R3-D xfail 已移除,改为正向断言(本地 skip 因缺 app fixture,生产 venv pass) |
 | **wanxiangStream 用 Qwen(合规)** | test_qwen_client::test_wanxiang_stream_uses_qwen | ✅ passed(R3-D 替代旧 test_hunyuan_stream_uses_qwen) |
 | **/hunyuanStream 已下架** | test_endpoints_exist + test_sse_stream_structure 列表 | ✅ R3-D 已替换为 /wanxiangStream(本地 skip,生产 venv pass) |
 
-**合计**: 192 个 test case,**92 passed / 95 skipped / 3 xfailed / 2 xpassed**(Wave 2 Round 3 D 收尾基线 [2026-04-25]。R3-D 删除 test_sse_complexity_routing.py(deep 命名废弃,D016)+ test_validate_request_and_user.py(11 stub,旧函数 W2 R3-B 已删);激活 test_complexity.py 3 stub;迁移 4 个 hunyuan→wanxiang fallout 测试。passed +1, skipped -17, total -16)
+**合计**: 193 个 test case,**92 passed / 96 skipped / 3 xfailed / 2 xpassed**(D017+D018a 基线 [2026-04-28]。删除 test_complexity.py(D017 三档下架, COMPLEXITY_DIRECTIVES dict 已从 stream.py 移除);新建 test_context_injection.py(3 active + 1 skip,Stage 2 上下文注入 sensor)。total -3+4=+1, passed 持平 R3-D 基线 92,skipped +1。)
 
 ---
 
@@ -107,6 +108,20 @@
 ---
 
 ## 最近变更记录
+
+- **2026-04-28 D017 三档下架 + D018a Stage 2 上下文注入(@tester Phase 1+2 合并)**:
+  - **Phase 1(D017)**:
+    - 删除 `tests/test_complexity.py`(R3-D 创建的 3 个 active 测试,因 @backend 已删 stream.py 顶部 COMPLEXITY_DIRECTIVES dict + resolve_complexity 函数,sensor 凋零)
+    - 残留扫描 0 行(README.md 旧条目已清理为 D017 后下架记录 + Stage 2 章节)
+    - test_sse_is_pro_branch.py 中 `test_is_pro_determines_system_prompt_complexity` 保留(此处 "complexity" 指 max_tokens 精细度,与 D016/D017 三档无关)
+  - **Phase 2(D018a Stage 2 C 方案上下文注入)**:
+    - 新建 `tests/test_context_injection.py`(~250 行,4 test:3 active + 1 skip stub)
+    - Test 1 模板常量存在(zh `CONTEXT_INJECTION_TEMPLATE` + en `CONTEXT_INJECTION_TEMPLATE_EN`,含【上下文】/[Context] + 继续优化/refine + {previous_output} 占位符)
+    - Test 2 `def resolve_context(data):` 签名 + `data.get('context_prompt')` 字段读取 + 5000 字符截断保护
+    - Test 3 隔离 exec 加载 resolve_context(避免 import stream.py 顶部 anthropic + os.environ 崩溃),验证 None/空串/6000 截断/边界 5000
+    - Test 4 端点级注入集成测试(skip stub,等 Flask client + LLM mock 真实化,断言代码已写完整 TODO)
+  - **基线**: xuhua-wx 18 passed(持平) | sumai 92 passed / 96 skipped / 3 xfailed / 2 xpassed(passed 持平 R3-D 基线 92,skipped +1 因新 stub)
+  - **协调**: @backend stream.py + stream_en.py 顶部 CONTEXT_INJECTION_TEMPLATE + resolve_context 已实施,grep 命中 12+ 端点 generate() 注入,覆盖完整
 
 - **2026-04-25 Session 3 Wave 2 Round 3 D(@tester R3-D 收尾)**:
   - 删除 `tests/test_sse_complexity_routing.py`(D016 后 deep 命名废弃,新 test_complexity.py 已替代)

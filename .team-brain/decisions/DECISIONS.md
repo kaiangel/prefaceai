@@ -170,3 +170,72 @@
 - @tester Round 2 合并或删除旧 `test_sse_complexity_routing.py`(含 deep 命名),避免双份维护
 - `test_complexity.py` 已用 standard,Round 3 激活
 
+
+---
+
+## D017 · Stage 1 三档复杂度功能下架(2026-04-28)
+
+**背景**:
+- Stage 1 三档复杂度(快速想法 / 深度创作 / 专业项目)在 Wave 1 上线 UI + Wave 2 R3-A 上线后端 directive
+- PM 报告 Founder 三个用户视角问题:standard 档空字符串=形同虚设;quick/professional 是软建议非硬约束;professional 末尾固定追加句让用户复制粘贴尴尬
+- Founder 完成 5 人 Mom Test + Sean Ellis 40% 数据回来后,直接判断"鸡肋"
+
+**决策**:
+- 立即下架 Stage 1 三档复杂度
+- 前端:删 complexity-selector + complexity-options + complexity-hint(WXML/WXSS/JS 三处)
+- 后端:删 COMPLEXITY_DIRECTIVES dict + resolve_complexity 函数 + 端点内 directive 注入(stream.py + stream_en.py 31 端点)
+- 测试:test_complexity.py 删除 + test_sse_is_pro_branch 内任何 complexity 相关断言清理
+- 文档:KNOWN_ISSUES + PENDING + PROJECT_STATUS 同步标记 Stage 1 三档已下架
+
+**保留**:
+- Hero 文案"专业创作者的 AI Prompt 工作台"保留(定位文案是有效的,只是三档实施鸡肋)
+- D016 命名决策记录保留(历史档案)
+
+**为什么不"留着但改进"**:
+- standard 档要"加点温和调整"+ quick 加 max_tokens 硬限制 + professional 去尾注 — 这是 "1 个鸡肋功能 + 3 个 patch" 反而增加技术债
+- Stage 2 Investment 路径(Project / 版本 / 知识库)才是真正护城河,不该把工程精力浪费在 Stage 1 patch 上
+
+---
+
+## D018 · Stage 2 启动:第一个最小 Investment 补丁(2026-04-28)
+
+**背景**:
+- Session 1 战略文档明确 Stage 2(Week 3-6)是"最小 Investment 补丁"
+- 5 人 Mom Test 数据 + Sean Ellis 40% 验证"复杂任务 beachhead"假设成立
+- PM 推荐 3 个候选方案(Project 容器 / 上下文注入 / 知识库),按"轻 → 重"排序
+
+**决策**:
+- 先做 **C 方案 · 上下文注入(Conversational Refinement)**
+- 工作量预估 3-5 天
+- 既验证 Hooked 框架 Investment 阶段补丁的核心假设,又不引入 DB schema 大改
+
+**为什么先做 C 不做 Project / 知识库**:
+- C 是"低成本 Investment 验证":不动数据库 schema(只用现有 prompt_base + 上下文 chain),前端 UI 加一个按钮
+- 如果 C 数据(用户点击率 + 二次优化转化率)好,再做 Project 容器(2-3 周)
+- 如果 C 数据差,说明 Investment 路径假设需要重审,损失小
+
+**待 Founder 拍板**:
+- 是否同意先做 C
+- C 的具体产品形态(按钮叫什么 / 上下文注入 system prompt 怎么写)
+
+
+---
+
+## D018a · Stage 2 C 方案产品细节(2026-04-28 Founder 拍板)
+
+**承接 D018**,产品细节最终确认:
+
+1. **按钮文案**:「✨ 基于此继续优化」
+2. **迭代次数上限**:**3 轮**(不是 5 轮)
+3. **上下文 system prompt 写法**(PM 草稿采纳):
+
+```
+【上下文】用户上一轮已得到的 prompt 是:
+{上一轮 output}
+
+现在用户希望基于此继续优化。请保留有效部分,
+根据用户新的输入做改进/补充/调整。
+```
+
+4. **配额**:每轮迭代消耗 1 次用户 quota(免费 6 次/天 + Pro 不限)— 与初次生成等价
+

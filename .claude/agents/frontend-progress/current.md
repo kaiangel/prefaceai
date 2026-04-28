@@ -1,133 +1,179 @@
 # Frontend(前端) - 当前任务
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-27 23:50 UX Hotfix 第三轮深修(scroll-view height 显式化)
+> 上次更新: 2026-04-28 14:31 三档下架(D017)+ Stage 2 C 方案上下文注入(D018a)合并完成
 > 角色: frontend
 
 ---
 
 ## 当前状态
 
-✅ **2026-04-27 23:50 UX Hotfix 第三轮深修完成**(model-selector 内部异常空白根因修复)
+✅ **2026-04-28 14:31 — Phase 1(D017 三档下架)+ Phase 2(D018a Stage 2 C 方案 上下文注入)合并任务全部完成**
 
-### 本次任务
+PM 1 轮 spawn 3 teammate 并行策略下,前端在 `pages/index/{wxml,wxss,js}` 三个文件内一次性完成 Phase 1 删除 + Phase 2 新增,避免两轮 spawn 协调成本。
 
-第二轮(方案 B)修复让 page 可滚动 ✅,但 Founder 真机截图(23:05)揭示新症状:`.model-selector` 白色卡片视觉高度 ~1000rpx,内部内容只 ~390rpx,**风格按钮和 .current-selection 之间有 ~600rpx 真空白**。
+---
 
-PM 怀疑 root cause:`scroll-view scroll-x enable-flex` 在 WeChatLib 3.6.0 上未显式设 height 时高度异常。要求做官方文档深度调研后修复。
+## Phase 1 · 三档复杂度下架(D017)
 
-### 官方文档 + 社区调研产出(权威背书)
+### 改动总览
 
-| # | 来源 | 关键引用 | 对本修复的指导 |
-|---|------|----------|----------------|
-| 1 | [scroll-view 官方文档](https://developers.weixin.qq.com/miniprogram/dev/component/scroll-view.html) | "使用竖向滚动时,需要给 scroll-view 一个固定高度,通过 WXSS 设置 height";"横向滚动需打开 enable-flex 以兼容 WebView" | 横向 scroll-x + enable-flex 不显式 height 行为不规定,实际易出问题 |
-| 2 | [SegmentFault 高度自适应解决方案](https://segmentfault.com/a/1190000023544769) | "flex:1 高度依然不会自适应,加一个默认高度 1px 就可以自适应了";"组件化后一定要设置组件虚拟化,否则高度还是不会自适应" | scroll-view 高度异常是已知坑,需显式控制 |
-| 3 | [博客园 - scroll-view 几个坑](https://www.cnblogs.com/Lyn4ever/p/11282210.html) | "view 是 block 组件,但是这里用了 flex 就不能滚动了" → 解决方案 `overflow: hidden; white-space: nowrap;` 或启用 `enable-flex` | enable-flex 与 display: flex 二选一原则 |
-| 4 | WebSearch 结论(多源印证) | "When opening enable-flex with CSS display: flex on scroll-view, the height displays abnormally"(社区共识) | **直击 .style-options-scroll 元凶:同时使用 enable-flex 属性 和 CSS display:flex** |
-
-### 根因诊断
-
-`.style-options-scroll` 的 wxml 写了 `enable-flex` 属性,wxss 又写了 `display: flex; justify-content: center;` —— **enable-flex + display:flex 双开** 触发社区已知 bug,真机表现为高度异常,在父 `.model-selector { overflow: hidden }` 下产生大块空白。
-
-`.model-cards-scroll` 同样问题(scroll-x + enable-flex 但无显式 height),在 WeChatLib 渲染下行为不可控。
-
-### 改动清单(`pages/index/index.wxss` 唯一改动文件)
-
-| # | selector | before | after | 理由 |
-|---|---------|--------|-------|------|
-| 1 | `.model-cards-scroll`(L135-141) | 无 height | `+height: 200rpx` | 卡片 160rpx + 上下 padding(24+10) = 194rpx,向上取整 200 留 6rpx 弹性 |
-| 2 | `.style-selector`(L218-220) | `margin: 16rpx 0 -26rpx` | `margin: 16rpx 0 8rpx` | 移除 -26rpx negative bottom margin 技术债,改正向 8rpx 自然分隔 |
-| 3 | `.style-options-scroll`(L222-227) | `display: flex; justify-content: center; padding: 0 20rpx;`(无 height) | 删 `display: flex` + 删 `justify-content: center`,改用 `text-align: center` + 加 `height: 80rpx` | 触发 enable-flex + display:flex 双开 bug 的根因消除;`.style-option` 自身 inline-flex 已能正常排列;显式 height(56rpx 按钮 + 上下 12rpx) |
-
-`.model-tabs` 不动(已有 height: 50rpx,虽数值偏小但实际显示无 bug,本次 scope 控制);其它已有 hotfix 方案 A/B 的改动**全部保留**。
-
-### 严格遵守 scope
-
-- ✅ 只改 `pages/index/index.wxss`(3 处 selector)
-- ✅ 未触碰 `pages/index/index.wxml`
-- ✅ 未触碰 `pages/index/index.js`
-- ✅ 未触碰 `app.js` / `app.wxss` / 其他 pages / `sumai/`
-- ✅ 未自行 commit
+| 文件 | 删除内容 |
+|------|---------|
+| `pages/index/index.wxml` | `.complexity-selector` 整段(L13-29)+ `.input-area` 上的 `currentComplexity === 'professional'` class binding + `.result-card` 上的同样 class binding + `.professional-badge` 整段 |
+| `pages/index/index.wxss` | 整片 Stage 1 三档样式区(L1138-1257):`.complexity-selector` / `.complexity-options` / `.complexity-option` 及其 `:active` / 三档 `.active` 变体(quick / standard / professional)/ `.complexity-emoji` / `.complexity-name` / `.complexity-hint` / `.complexity-hint-text` / `.input-area-professional` / `.result-card-professional` / `.professional-badge` |
+| `pages/index/index.js` | data 块 `currentComplexity` + `complexityOptions` 删除(L242-247)+ `switchComplexity` method 删除(L251-254)+ `generateImageDescription` URL 里 `&complexity=...`(L473-474)删除 + `generateContent` body 里 `complexity: this.data.currentComplexity`(L2358)删除 |
 
 ### 验证
 
+```bash
+$ grep -rn "complexity\|currentComplexity\|complexityOptions\|switchComplexity" pages/index/index.{js,wxml,wxss}
+(no output — 0 hits)
+```
+
+✅ Phase 1 三档相关前端实施全部清除,无残留。
+
+### 保留(D017 明示)
+
+- Hero 文案"专业创作者的 AI Prompt 工作台"保留(`pages/index/index.wxml` L9 sub-title 不动)
+
+---
+
+## Phase 2 · Stage 2 C 方案 上下文注入(D018a)
+
+### 产品契约(已锁,与 @backend 对齐)
+
+- 字段名: `context_prompt`(string)
+- 透传位置: `generateContent` body / `generateImageDescription` URL query
+- **轮次上限 3 轮由前端硬约束**(后端不感知)
+- 按钮文案:`✨ 基于此继续优化`(D018a)
+- 第 N 轮(N ≥ 2)result-card 顶部出现 `第 N 轮迭代` 视觉徽标
+
+### data 块新增(`pages/index/index.js` L241-244)
+
+```js
+// Stage 2 D018a: 上下文注入(C 方案)— 「✨ 基于此继续优化」最多 3 轮
+refinementRound: 0,            // 当前迭代轮次,0 = 初次生成,1-3 = 第 N 次基于上轮优化
+MAX_REFINEMENT_ROUNDS: 3,      // D018a 上限(前端硬约束,后端不感知)
+previousOutput: '',            // 上一轮 output(将作为下一轮 context_prompt 注入)
+```
+
+### 新增 method(`pages/index/index.js` L247-264)
+
+```js
+onRefineFromCurrent: function() {
+  // 1. 校验:已达上限 → toast 拦截
+  // 2. 校验:暂无 fullContent → toast 拦截
+  // 3. setData previousOutput = fullContent + refinementRound + 1
+  // 4. 调用原 onGeneratePrompt(它内部按 inputMode 路由到 generateContent / generateImageDescription)
+}
+```
+
+### 上下文挂载(双路径全覆盖)
+
+| 调用路径 | 修改 | 位置 |
+|---|---|---|
+| `generateContent` body(POST 文/图/视频常规生成 31 端点)| spread `...(refinementRound > 0 && previousOutput ? { context_prompt } : {})` | `index.js` L2378-2381 |
+| `generateImageDescription` URL query(图生 prompt SSE)| `url += '&context_prompt=' + encodeURIComponent(previousOutput)`(同样 refinementRound > 0 时)| `index.js` L487-490 |
+
+**fallback 友好**:仅在 refinementRound > 0 时挂 context_prompt,初次生成不挂,后端兼容。
+
+### 重置点(用户改输入文本 → 视为开新主题)
+
+| 触发点 | 行为 |
+|---|---|
+| `onInputChange`(idea 模式输入框 input)| 检测 refinementRound > 0 → 同时 reset refinementRound: 0 + previousOutput: '' |
+| `onReferenceInputChange`(reference 模式参考文字 input)| 同上 |
+
+### WXML 新增(`pages/index/index.wxml`)
+
+1. **第 N 轮迭代徽标**(L284-287,result-card 顶部):
+   ```wxml
+   <view class="refinement-badge" wx:if="{{refinementRound > 0}}">
+     <text>第 {{refinementRound + 1}} 轮迭代</text>
+   </view>
+   ```
+2. **「✨ 基于此继续优化」按钮 + counter**(L379-392,在 result-content 之后,result-card 内):
+   - `wx:if="{{!isGenerating && refinementRound < MAX_REFINEMENT_ROUNDS}}"` 显示按钮
+   - `wx:elif="{{!isGenerating && refinementRound >= MAX_REFINEMENT_ROUNDS}}"` 显示 "已达 3 轮迭代上限,请重新点亮灵感开始新轮次"
+   - 增加 `!isGenerating` 守卫,避免生成中按钮抢焦点
+
+### WXSS 新增(`pages/index/index.wxss` L1138-1198)
+
+| 选择器 | 用途 |
+|---|---|
+| `.refinement-area` | 居中容器,与下方 result 内容分隔 |
+| `.refine-btn` | 渐变绿→蓝 pill 按钮(品牌主辅色),round-pill 999rpx |
+| `.refine-btn::after { border: none }` | 微信 button 默认 border 抹掉(避免 hairline) |
+| `.refine-btn-hover` | scale(0.96) + 阴影减弱 |
+| `.refine-counter` | 22rpx 半透明小字标 |
+| `.refinement-done` / `.refine-done-text` | 上限态柔和灰提示 |
+| `.refinement-badge` | 占据原 .professional-badge 的视觉位置(top: -1rpx),改用左上角 + 蓝色辅色 #3F88C5,与按钮渐变蓝端呼应 |
+
+---
+
+## 严格 scope 遵守
+
+| 项 | 状态 |
+|---|---|
+| 只动 `pages/index/{wxml,wxss,js}` | ✅ |
+| 未触碰 `app.js` / `app.wxss` / 其他 pages | ✅ |
+| 未触碰 `sumai/` | ✅ |
+| 未触碰 `tests/` | ✅ |
+| 未触碰 其他 agent progress 文件 | ✅ |
+| 未自行 commit(等 PM 统一) | ✅ |
+| 未新增 npm 依赖 / DOM API / 非 wx 路由 | ✅ |
+
+---
+
+## 验证
+
 | 项 | 结果 |
 |---|---|
-| `pytest tests/ -v` | ✅ **18/18 passed**(零回归,与方案 A/B/Wave 2 R3 基线一致) |
-| 主包尺寸 | 字节净变化:增加 ~16 行注释 + 3 行 height/text-align,约 +600 字节,远低于 30 KB 上限 |
-| 微信小程序合规 | ✅ 全部 rpx,无新 px(703/707/715/891 行的 px 是预先存在的 1-2px scrollbar / media query) |
-| `display: flex` 在 scroll-view 上的二次扫描 | ✅ 仅剩 `.model-tabs`(它无问题且本次不动)|
+| `pytest tests/ -v` | ✅ **18/18 PASS**(零回归) |
+| `grep complexity\|currentComplexity\|complexityOptions\|switchComplexity` in pages/index/* | 0 hit ✅ |
+| `grep refinementRound\|MAX_REFINEMENT_ROUNDS\|previousOutput\|onRefineFromCurrent\|context_prompt` in pages/index/* | 多处命中(data + method + 双路径挂载 + 双 reset 点 + WXML + WXSS) ✅ |
+| 主包尺寸增量 | wxml -87B + wxss -1214B + js +1310B = **+9 B 净变化**(远低于 5KB) |
+| 新增 px 单位 | 0(扫描确认)✅ |
+| WXML 单位 / 路由 / setData / 无 DOM | 全合规 ✅ |
+| scroll-view enable-flex + display:flex 双开 bug 风险 | N/A(本次未新增 scroll-view)✅ |
 
-### 风险评估
+---
+
+## 风险评估
 
 | 风险 | 等级 | 缓解 |
 |---|---|---|
-| .style-options-scroll 居中失效 | 极低 | 用 `text-align: center` 替代 `justify-content: center`,inline-flex 元素响应 text-align,效果等价 |
-| .style-selector 移除 -26rpx 后 .current-selection 距离变远 | 极低 | 原 -26rpx 是错误技术债(让风格按钮"压"在 current-selection 上),移除后是正确视觉层次 |
-| 200rpx / 80rpx height 在不同字体大小下溢出 | 低 | 子元素都是 inline-flex 自然居中,scroll-x 模式下溢出会自动横向滚,垂直方向无溢出风险 |
-
-### 待 Founder 验证
-
-我无法亲自跑真机。预期 Founder 二次截图:
-1. ✅ `.model-selector` 高度收紧到 ~430rpx(去掉 600rpx 异常空白)
-2. ✅ 风格按钮和 .current-selection 之间是自然的 8rpx 间距(无空旷感)
-3. ✅ 模型卡片仍可横向滚动,风格按钮(有用/有趣/有料)仍可横向滚动
-4. ✅ 风格按钮组在容器内居中显示
+| 用户在迭代过程中误改 input 导致链路重置 | 低 | 设计就是"改 input = 新主题",符合直觉,且 refinementRound 提示和按钮 counter 给视觉反馈 |
+| previousOutput 字段过长(超长 prompt + URL query 长度限制) | 中 | `generateImageDescription` 走 query string,长 prompt 在某些 nginx/微信底层可能超 8KB 限制。规避策略:后端 Round 1 完成后建议双方对齐 — 是否把 generateImageDescription 也改 POST,或前端对 previousOutput 做长度截断 |
+| 第 3 轮迭代后用户期望"复位"路径不明 | 低 | 已在 refinement-done 文案明示"请重新点亮灵感开始新轮次",且改输入框就 reset |
+| context_prompt 在后端如果未实现仍会被请求体携带 | 低 | 仅在 refinementRound > 0 时挂载,初次生成不挂 → fallback 友好;@backend 已并行实现 |
 
 ---
 
-## 历史:2026-04-27 23:30 UX Hotfix 方案 B(已上一轮完成)
+## 待 Founder / PM 验证
 
-### 本次任务
-
-方案 A 真机验证失败(Founder 截图:输入框 + "点亮灵感"按钮仍完全不可见,空白延伸到 TabBar)。PM 重新诊断 root cause:`page { height: 100vh + overflow-y: auto }` 把页面高度锁死在一屏内,`.container/.content` flex 链中超出 viewport 的子元素被裁剪、page 不能滚动。这是历史遗留布局问题,Wave 1 加 complexity-selector 让超出量增大,问题彻底暴露。
-
-### 官方文档调研产出
-
-1. **[scroll-view 官方文档](https://developers.weixin.qq.com/miniprogram/dev/component/scroll-view.html)** 明确建议:
-   > "若要使用下拉刷新,请使用页面的滚动,而不是 `scroll-view`,这样也能通过点击顶部状态栏回到页面顶部"
-   > "使用竖向滚动时,需要给 scroll-view 一个固定高度,通过 WXSS 设置 height"
-   → 不应改用 scroll-view 替代 page 滚动,而应让 page 滚动正常工作。
-2. **[微信开放社区 - height: 100vh + padding 滚动问题](https://developers.weixin.qq.com/community/develop/doc/000e886114434024247b9a7735bc00)** 推荐:用 `min-height` 替代 `height` + `box-sizing: border-box`,让内容自然撑高页面。
-3. **[微信开放社区 - 100vh 底部空白问题](https://developers.weixin.qq.com/community/develop/doc/0000ee43314db03403ca719815b000)** 社区共识:replace `height: 100vh` with `min-height: 100vh`。
-
-### 改动清单(`pages/index/index.wxss` 唯一改动文件)
-
-| # | 位置 | 改动 | 理由 |
-|---|------|------|------|
-| 1 | `page` (L9-12) | 删除 `height: 100vh` + `overflow-y: auto`,只保留 `min-height: 100vh`;同时去掉 `background: ... fixed` 的 `fixed` | 解锁 page 高度,内容超出自动撑高 + 由小程序原生页面滚动接管。`background: fixed` 在 Skyline 不完全支持且与可滚动页面易出怪相,且 `.container` 已有等价渐变 |
-| 2 | `.content::after` (原 L37-46) | 完全删除 | 历史遗留死代码:`position: fixed; height: 100vh; z-index: -1` 但无 `background`/`content`,纯无视觉效果占位,删除无任何视觉差异 |
-| 3 | `.container` (L28) | `padding-bottom: 120rpx → 160rpx` | TabBar 实际占用 = 100rpx height + 36rpx home indicator padding = 136rpx,旧 120rpx 实际还差 16rpx,新 160rpx 留 24rpx 安全边距 |
-
-`.container { min-height: 100vh; flex-direction: column }` 和 `.content { flex: 1 }` **保留**(它们是"内容少时撑满 viewport"的正确姿势,与解锁 page 高度的 `min-height` 兼容)。
-
-### 严格遵守 scope
-
-- ✅ 只改 `pages/index/index.wxss`
-- ✅ 未触碰 `pages/index/index.wxml` / `pages/index/index.js`
-- ✅ 未触碰 `app.js` / `app.wxss` / 其他 pages / `sumai/`
-- ✅ 未自行 commit(等 PM 统一 commit)
-
-### 验证
-
-| 项 | 结果 |
-|---|---|
-| `pytest tests/ -v` | ✅ **18/18 passed**(零回归) |
-| 主包尺寸 | 字节净变化:删 10 行 `.content::after` + 加 ~12 行注释 ≈ 持平 |
-| 微信小程序合规 | ✅ 全部 rpx,无 px 新增,无 DOM API,无 npm |
-| grep `100vh` | 仅剩 `page { min-height: 100vh }` + `.container { min-height: 100vh }` + `.input-box keyboard-active` 中的不相关使用,符合预期 |
-
-### 待 Founder 真机验证
-
-Stage 1 UX 阻塞问题(首屏看不到输入框 + 点亮灵感按钮 + 无法滚动到底)预期彻底解决。Founder 截图二次验证后才能最终确认。
+我无法亲自跑真机。预期 Founder 二次截图验证:
+1. ✅ 首页中部三档按钮区彻底消失(高度收紧约 80rpx)
+2. ✅ 生成完成后 result-card 底部出现「✨ 基于此继续优化 (剩 3 次)」按钮
+3. ✅ 点击后再次生成,result-card 左上角浮现「第 2 轮迭代」蓝色徽标 + counter 变 (剩 2 次)
+4. ✅ 改 textarea 内容 → 按钮 counter 重置回 (剩 3 次) + 徽标消失
+5. ✅ 连点 3 次后按钮消失,显示"已达 3 轮迭代上限"灰提示
 
 ---
 
-## 上次更新记录
+## 待 PM 审查后统一 commit
 
-- 2026-04-27 23:30: UX Hotfix 方案 B 完成(布局架构层修复 — page 高度解锁 + 死代码清理 + TabBar 间距修正)
-- 2026-04-27 21:12: UX Hotfix 方案 A 完成(首屏布局微调,后续真机验证失败)
-- 2026-04-25 09:30: Wave 2 R3 R3-C 完成(complexity 透传 SSE)
-- 2026-04-24 21:44: Wave 2 R2 W2-3 完成(hunyuan 残留清理 + 通义万相路由确认)
-- 2026-04-24 Session 3: Wave 1 完成,PM 代写 progress
-- 2026-04-24 Session 2: 初始化
+按协议**未自行 commit**。改动文件清单:
+
+- `pages/index/index.wxml`(三档 UI 删除 + 新 refinement-area / refinement-badge)
+- `pages/index/index.wxss`(Stage 1 三档样式整片删除 + 新 .refinement-* / .refine-* 样式)
+- `pages/index/index.js`(data 块替换 + 新 onRefineFromCurrent + 双路径 context_prompt 挂载 + 双 input reset 点)
+- `.claude/agents/frontend-progress/{current,completed,context-for-others}.md`(三件套全更新)
+- `.team-brain/TEAM_CHAT.md`(本次完成消息追加)
+
+---
+
+## 历史:2026-04-27 23:50 UX Hotfix 第三轮深修
+
+(scroll-view scroll-x + enable-flex 内部异常空白根因修复 — 详见 completed.md)

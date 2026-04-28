@@ -1135,123 +1135,64 @@ button.tool-button::after {
   animation: rotate 1s linear infinite;
 }
 
-/* ===== Stage 1: 任务复杂度三档选择器 ===== */
+/* ===== Stage 2 D018a: 基于此继续优化(C 方案 上下文注入,最多 3 轮)===== */
 
-.complexity-selector {
-  width: 80%;
-  margin: 0 auto 12rpx;  /* 方案 A: 24→12 */
-}
-
-.complexity-options {
-  display: flex;
-  justify-content: center;
-  gap: 16rpx;
-}
-
-.complexity-option {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  height: 56rpx;  /* 方案 A: 64→56,节省 8rpx */
-  border-radius: 32rpx;
-  border: 2rpx solid #E5E7EB;
-  background: #FFFFFF;
-  font-size: 24rpx;
-  color: #7f8c8d;
-  transition: all 0.25s ease;
-  gap: 8rpx;
-}
-
-.complexity-option:active {
-  transform: scale(0.95);
-}
-
-/* 快速想法 - 品牌绿 */
-.complexity-option.complexity-quick.active {
-  background: #43B692;
-  border-color: #43B692;
-  color: #FFFFFF;
-  font-weight: 500;
-  box-shadow: 0 4rpx 12rpx rgba(67, 182, 146, 0.3);
-}
-
-.complexity-option.complexity-quick {
-  color: #43B692;
-  border-color: #43B692;
-}
-
-/* 深度创作 - 辅色蓝 */
-.complexity-option.complexity-standard.active {
-  background: #3F88C5;
-  border-color: #3F88C5;
-  color: #FFFFFF;
-  font-weight: 500;
-  box-shadow: 0 4rpx 12rpx rgba(63, 136, 197, 0.3);
-}
-
-.complexity-option.complexity-standard {
-  color: #3F88C5;
-  border-color: #3F88C5;
-}
-
-/* 专业项目 - 强调金 */
-.complexity-option.complexity-professional.active {
-  background: #F4A460;
-  border-color: #F4A460;
-  color: #FFFFFF;
-  font-weight: 500;
-  box-shadow: 0 4rpx 12rpx rgba(244, 164, 96, 0.35);
-}
-
-.complexity-option.complexity-professional {
-  color: #F4A460;
-  border-color: #F4A460;
-}
-
-.complexity-emoji {
-  font-size: 26rpx;
-}
-
-.complexity-name {
-  font-size: 24rpx;
-  white-space: nowrap;
-}
-
-/* 专业项目提示文案 */
-.complexity-hint {
-  margin-top: 12rpx;
+.refinement-area {
+  margin: 24rpx auto 16rpx;
+  padding: 0 24rpx;
   text-align: center;
 }
 
-.complexity-hint-text {
+.refine-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 32rpx;
+  background: linear-gradient(90deg, #43B692 0%, #3F88C5 100%);
+  border-radius: 999rpx;
+  color: #fff !important;
+  font-size: 26rpx;
+  border: none;
+  box-shadow: 0 4rpx 12rpx rgba(67, 182, 146, 0.25);
+  transition: all 0.3s;
+  line-height: 1.4;
+}
+
+.refine-btn::after {
+  border: none;
+}
+
+.refine-btn-hover {
+  transform: scale(0.96);
+  box-shadow: 0 2rpx 8rpx rgba(67, 182, 146, 0.18);
+}
+
+.refine-counter {
   font-size: 22rpx;
-  color: #F4A460;
-  line-height: 1.5;
+  opacity: 0.85;
+  margin-left: 8rpx;
 }
 
-/* 专业项目：输入框金色边框 */
-.input-area-professional {
-  border: 2rpx solid #F4A460 !important;
-  box-shadow: 0 8rpx 24rpx rgba(244, 164, 96, 0.15) !important;
+.refinement-done {
+  padding: 16rpx 24rpx;
 }
 
-/* 专业项目：结果卡片金色上边框 */
-.result-card-professional {
-  border-top: 4rpx solid #F4A460;
+.refine-done-text {
+  font-size: 24rpx;
+  color: #999;
 }
 
-/* 专业项目徽标 */
-.professional-badge {
+/* 第 N 轮迭代徽标(左上角 + 蓝色辅色) */
+.refinement-badge {
   position: absolute;
   top: -1rpx;
-  right: 24rpx;
-  background: #F4A460;
+  left: 24rpx;
+  background: #3F88C5;
   color: #FFFFFF;
   font-size: 22rpx;
   font-weight: 500;
   padding: 6rpx 20rpx;
   border-radius: 0 0 16rpx 16rpx;
   z-index: 3;
-  box-shadow: 0 4rpx 12rpx rgba(244, 164, 96, 0.3);
+  box-shadow: 0 4rpx 12rpx rgba(63, 136, 197, 0.25);
 }

@@ -238,19 +238,29 @@ Page({
     referenceImageUrl: '', // 参考图片URL(服务器)
     referenceText: '', // 参考模式下的输入文本
 
-    // Stage 1: 任务复杂度三档
-    currentComplexity: 'quick', // 默认：快速想法
-    complexityOptions: [
-      { id: 'quick',        name: '快速想法', emoji: '🔸', color: '#43B692' },
-      { id: 'standard',     name: '深度创作', emoji: '🔹', color: '#3F88C5' },
-      { id: 'professional', name: '专业项目', emoji: '💎', color: '#F4A460' }
-    ],
+    // Stage 2 D018a: 上下文注入(C 方案)— 「✨ 基于此继续优化」最多 3 轮
+    refinementRound: 0,            // 当前迭代轮次,0 = 初次生成,1-3 = 第 N 次基于上轮优化
+    MAX_REFINEMENT_ROUNDS: 3,      // D018a 上限(前端硬约束,后端不感知)
+    previousOutput: '',            // 上一轮 output(将作为下一轮 context_prompt 注入)
   },
 
-  // Stage 1: 切换任务复杂度（仅 UI 层，不改 API 请求逻辑，Wave 2 再加 complexity 参数）
-  switchComplexity: function(e) {
-    var id = e.currentTarget.dataset.id;
-    this.setData({ currentComplexity: id });
+  // Stage 2 D018a: 点击「✨ 基于此继续优化」— 把当前 result 注入下一次 generateContent 的 context_prompt
+  onRefineFromCurrent: function() {
+    if (this.data.refinementRound >= this.data.MAX_REFINEMENT_ROUNDS) {
+      wx.showToast({ title: '已达 3 轮上限', icon: 'none' });
+      return;
+    }
+    if (!this.data.fullContent) {
+      wx.showToast({ title: '暂无可优化内容', icon: 'none' });
+      return;
+    }
+    // 把当前轮的 fullContent 作为下一轮的上下文存起来,然后 +1 轮触发标准 generate 流程
+    this.setData({
+      previousOutput: this.data.fullContent,
+      refinementRound: this.data.refinementRound + 1
+    });
+    // 走原 onGeneratePrompt(它会调 generateContent / generateImageDescription),由它在 body / URL 里挂 context_prompt
+    this.onGeneratePrompt();
   },
 
   // 新增：切换风格的方法
@@ -452,10 +462,14 @@ Page({
   onReferenceInputChange: function(e) {
     const text = e.detail.text;
     // console.log('参考模式输入变化:', text);
-    
-    this.setData({
-      referenceText: text
-    });
+
+    var patch = { referenceText: text };
+    // Stage 2 D018a: 用户改参考输入文本 → 视为开启新主题,重置上下文注入链
+    if (this.data.refinementRound > 0) {
+      patch.refinementRound = 0;
+      patch.previousOutput = '';
+    }
+    this.setData(patch);
   },
 
   // 生成图片描述(SSE流式)
@@ -470,9 +484,11 @@ Page({
     if (content) {
       url += `&content=${encodeURIComponent(content)}`;
     }
-    // 🔑 D016 三档 complexity 透传（quick/standard/professional）
-    url += `&complexity=${encodeURIComponent(this.data.currentComplexity)}`;
-    
+    // 🔑 Stage 2 D018a: 上下文注入(C 方案)— 仅在 refinementRound > 0 时挂 context_prompt
+    if (this.data.refinementRound > 0 && this.data.previousOutput) {
+      url += `&context_prompt=${encodeURIComponent(this.data.previousOutput)}`;
+    }
+
     // console.log('请求URL:', url);
     
     // 🔑 生成会话ID，用于appendToBuffer验证
@@ -993,11 +1009,15 @@ Page({
     }
   },
 
-  onInputChange(e) {
-    this.setData({
-      inputText: e.detail.value
-    });
-  },
+  onInputChange(e) {
+    var patch = { inputText: e.detail.value };
+    // Stage 2 D018a: 用户改输入框文本 → 视为开启新主题,重置上下文注入链
+    if (this.data.refinementRound > 0) {
+      patch.refinementRound = 0;
+      patch.previousOutput = '';
+    }
+    this.setData(patch);
+  },
 
   // 启用外部点击捕获 - 当输入框获得焦点时调用
   enableOutsideClickCapture: function() {
@@ -2355,7 +2375,10 @@ Page({
         client_session: this.data.generationSessionId,  // 🔑 前端会话ID
         request_time: Date.now(),  // 🔑 请求时间
         user_label: this.data.currentSelectionText || '',  // 🔑 用户选择的完整标签
-        complexity: this.data.currentComplexity,  // 🔑 D016 三档：quick/standard/professional
+        // 🔑 Stage 2 D018a: 上下文注入(C 方案)— 仅在 refinementRound > 0 时挂 context_prompt
+        ...(this.data.refinementRound > 0 && this.data.previousOutput
+          ? { context_prompt: this.data.previousOutput }
+          : {}),
         // 添加style参数支持
         ...((() => {
           const styleMapping = {

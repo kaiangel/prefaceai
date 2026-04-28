@@ -1,12 +1,60 @@
 # Backend(后端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-25 10:30 (Wave 2 Round 3 收尾)
+> 上次更新: 2026-04-28 (Stage 2 Phase 1 + Phase 2 合并 spawn)
 > 角色: backend
 
 ---
 
 ## 已完成任务
+
+### [2026-04-28] Stage 2 Phase 1(三档下架 D017)+ Phase 2(C 方案 上下文注入 D018a)合并 ✅
+
+- **任务编号**: Stage 2 backend(并行 spawn 3 teammate 之一)
+- **决策依据**: D017(三档鸡肋下架)+ D018(Stage 2 启动 C 方案)+ D018a(细节锁:按钮 / 上限 3 轮 / system prompt PM 草稿)
+
+#### 修改文件清单
+
+| 文件 | 改动摘要 | 行数变化 |
+|---|---|---|
+| `sumai/stream.py` | Phase 1: 删 `COMPLEXITY_DIRECTIVES` dict + `resolve_complexity()` + 17 处端点引用 · Phase 2: 加 `CONTEXT_INJECTION_TEMPLATE` + `resolve_context()` + 17 处端点 ctx 注入(每处从 1 行变 3 行) | +約 30 净增 |
+| `sumai/stream_en.py` | 同上(EN 版,`CONTEXT_INJECTION_TEMPLATE_EN` + 14 端点) | +約 25 净增 |
+
+#### Phase 1 验证(grep 残余必须为 0)
+
+```
+$ grep -rn "COMPLEXITY_DIRECTIVES\|resolve_complexity\|test_complexity" --include="*.py"
+(空,0 行)
+```
+
+#### Phase 2 验证(CONTEXT_INJECTION 引用计数)
+
+```
+stream.py:    CONTEXT_INJECTION_TEMPLATE   = 18 (1 定义 + 17 端点)  ✅
+stream.py:    resolve_context              = 18 (1 定义 + 17 端点)  ✅
+stream_en.py: CONTEXT_INJECTION_TEMPLATE_EN = 15 (1 定义 + 14 端点) ✅
+stream_en.py: resolve_context              = 15 (1 定义 + 14 端点)  ✅
+```
+
+#### 编译 + 测试基线
+
+- `python3 -m py_compile sumai/stream.py sumai/stream_en.py` → **OK**
+- `pytest sumai/tests/` → **89 passed / 95 skipped / 3 xfailed / 2 xpassed / 0 failed**(基线 92 - test_complexity 删除 3 stub = 89,无回归)
+
+#### 关键设计点
+
+1. **后端不感知轮次**: 只检查 `context_prompt` 字段是否存在,不维护 round counter,前端 D018a 的 3 轮上限完全靠前端 counter 强制
+2. **Fallback 友好**: 不传 / 传空 / 传 None / 全空白 → `resolve_context()` 返 None → 端点行为完全等同改动前
+3. **5000 字符截断**: 防止上一轮巨大 output 吃光 max_tokens
+4. **不动 system prompt 字符串本身**: 只在末尾追加上下文 block,Stage 1 删除不影响 prompt 质量
+5. **stream_en.py 的英文上下文模板独立**: `[Context] The prompt the user obtained from the previous round is: ...`,保持英文 LLM 输出语言一致性
+6. **不引入新依赖**: 只用 stdlib
+
+#### 唯一特殊端点
+
+`/describeImageStream`(stream.py L1736)的 ctx 注入是 4 空格缩进(在 generate() 函数外的 endpoint handler 内,不在 generate 闭包里),其余 30 端点都是 8 空格缩进。这与 Stage 1 改动模式完全一致,只是替换语句不同。
+
+---
 
 ### [2026-04-25 10:30] W2-4 (R3-A) Stage 1 complexity 三档 + R3-B 全端点切换 + 旧函数删除 ✅
 
@@ -256,3 +304,11 @@
 - 2026-04-24 22:30: W2-1 RED-002 凭证外移 + 强密钥 完成
 - 2026-04-24: RED-001 Anthropic → Qwen 3.6 全量迁移 完成
 - 2026-04-24: 多 Agent 系统初始化
+
+---
+
+## 2026-04-27 + 2026-04-28 同步 note
+
+- **2026-04-27**:Stage 1 真机回归 + 三轮 UX hotfix(scroll-view enable-flex + display:flex 双开 bug,真因 GRAY-007 已纳入 KNOWN_ISSUES)。@frontend 主修,backend 角色未参与。详见 `daily-sync/2026-04-27.md`。
+- **2026-04-28**:Founder 完成 5 人 Mom Test + Sean Ellis 40% 数据,验证"复杂任务 beachhead"假设;**D017 决策 Stage 1 三档复杂度下架**(Founder verdict "鸡肋");**D018 决策 Stage 2 启动**,先做 C 方案上下文注入。详见 `daily-sync/2026-04-28.md` + `decisions/DECISIONS.md`。
+- 待 PM 出 spawn 拆解规划等 Founder "可以" 后,backend 角色可能被派发任务(详见 `handoffs/PENDING.md`)。

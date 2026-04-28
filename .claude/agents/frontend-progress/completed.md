@@ -1,12 +1,40 @@
 # Frontend(前端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-27 23:50 UX Hotfix 第三轮深修(scroll-view 内部异常空白根因修复)
+> 上次更新: 2026-04-28 14:31 三档下架(D017)+ Stage 2 C 方案上下文注入(D018a)合并完成
 > 角色: frontend
 
 ---
 
 ## 已完成任务
+
+### 2026-04-28 14:31 — Phase 1 D017 三档下架 + Phase 2 D018a Stage 2 C 方案 上下文注入(合并)
+
+**背景**:Founder 5 人 Mom Test + Sean Ellis 40% 数据后判断 Stage 1 三档"鸡肋",同意下架并直接进 Stage 2。PM 1 轮 spawn 3 teammate 并行(@backend / @frontend / @tester),前端在 `pages/index/{wxml,wxss,js}` 一次性合并 Phase 1 删除 + Phase 2 新增,避免两轮 spawn 协调成本。
+
+**Phase 1 改动**:
+- WXML 删除 `.complexity-selector` 整段 + `currentComplexity === 'professional'` 两处 class binding + `.professional-badge` 块
+- WXSS 删除整片 Stage 1 三档样式区(L1138-1257,共 9 个 selector + 3 档 .active 变体 + .input-area-professional / .result-card-professional / .professional-badge)
+- JS 删除 data 块 `currentComplexity` + `complexityOptions`,删除 `switchComplexity` method,删除 `generateContent` body 的 `complexity` 字段,删除 `generateImageDescription` URL 的 `&complexity=...`
+
+**Phase 2 改动(D018a 产品契约:context_prompt 字段 / 3 轮上限 / 「✨ 基于此继续优化」按钮)**:
+- data 块新增 `refinementRound: 0` / `MAX_REFINEMENT_ROUNDS: 3` / `previousOutput: ''`
+- 新增 method `onRefineFromCurrent`(校验上限 + 校验 fullContent + setData + 调用 onGeneratePrompt)
+- 双路径挂载 context_prompt(generateContent body 用 spread / generateImageDescription URL 用 query string),仅在 refinementRound > 0 时挂载(fallback 友好)
+- 双 reset 点(onInputChange + onReferenceInputChange,输入文本变化 → 视为新主题 → 重置链路)
+- WXML 新增 `.refinement-badge`(左上角第 N 轮迭代徽标)+ `.refinement-area` + 「✨ 基于此继续优化 (剩 N 次)」按钮 + 上限态 refinement-done 灰提示
+- WXSS 新增 `.refinement-area` / `.refine-btn`(渐变绿→蓝 pill)/ `.refine-btn-hover` / `.refine-counter` / `.refinement-done` / `.refine-done-text` / `.refinement-badge`(占据原 professional-badge 视觉位置 + 改用左上角 + 蓝色辅色)
+
+**验证**:
+- pytest tests/ → **18/18 PASS**(零回归)
+- grep complexity 在 pages/index/* → 0 hit ✅
+- 主包尺寸净变化 +9 B(wxml -87B + wxss -1214B + js +1310B)— 远低于 5KB 上限
+- 新增 px 单位 0(全部 rpx)
+- WXML / setData / 路由 / 无 DOM / 无 npm — 全合规
+
+**风险已记录(在 current.md)**:previousOutput 字段过长 + URL query 长度限制(generateImageDescription 走 query),建议 @backend Round 1 完成后双方对齐是否改 POST 或前端做截断。
+
+---
 
 ### 2026-04-27 23:50 UX Hotfix 第三轮深修: scroll-view scroll-x + enable-flex 内部异常空白修复
 

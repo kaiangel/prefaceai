@@ -30,3 +30,11 @@
 - 2026-04-25 Wave 2 全部完成: Stage 1 端到端就绪,可启动 Stage 1 营销筹备(Sean Ellis 40% 测量准备)
 - 2026-04-24 Session 3 Wave 2 R2 补 note: 本 Wave 未参与,对外文案需下架"混元"说法
 - 2026-04-24: 多 Agent 系统初始化
+
+---
+
+## 2026-04-27 + 2026-04-28 同步 note
+
+- **2026-04-27**:Stage 1 真机回归 + 三轮 UX hotfix(scroll-view enable-flex + display:flex 双开 bug,真因 GRAY-007 已纳入 KNOWN_ISSUES)。@frontend 主修,resonance 角色未参与。详见 `daily-sync/2026-04-27.md`。
+- **2026-04-28**:Founder 完成 5 人 Mom Test + Sean Ellis 40% 数据,验证"复杂任务 beachhead"假设;**D017 决策 Stage 1 三档复杂度下架**(Founder verdict "鸡肋");**D018 决策 Stage 2 启动**,先做 C 方案上下文注入。详见 `daily-sync/2026-04-28.md` + `decisions/DECISIONS.md`。
+- 待 PM 出 spawn 拆解规划等 Founder "可以" 后,resonance 角色可能被派发任务(详见 `handoffs/PENDING.md`)。

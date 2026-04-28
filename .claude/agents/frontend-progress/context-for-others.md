@@ -1,18 +1,104 @@
 # Frontend(前端) - 给其他角色的上下文
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-27 23:50 UX Hotfix 第三轮深修(scroll-view 内部异常空白根因修复)
+> 上次更新: 2026-04-28 14:31 三档下架(D017)+ Stage 2 C 方案 上下文注入(D018a)合并完成
 > 角色: frontend
 
 ---
 
 ## 当前状态
 
-✅ **2026-04-27 23:50 UX Hotfix 第三轮深修完成**(scroll-view scroll-x + enable-flex 显式 height + 移除 enable-flex/display:flex 双开 bug)
+✅ **2026-04-28 14:31 — Phase 1(D017 三档下架)+ Phase 2(D018a Stage 2 C 方案 上下文注入)合并完成**
+✅ 2026-04-27 23:50 UX Hotfix 第三轮深修完成(scroll-view scroll-x + enable-flex 显式 height + 移除 enable-flex/display:flex 双开 bug)
 ✅ 2026-04-27 23:30 UX Hotfix 方案 B 完成(page 高度解锁)
-✅ Wave 2 Round 3 R3-C 完成(complexity 透传 SSE)
+✅ Wave 2 Round 3 R3-C 完成(complexity 透传 SSE)— 已下架,改为 context_prompt
 ✅ Wave 2 Round 2 W2-3 完成(hunyuan 残留清理 + wanxiang 路由确认)
 ✅ Wave 1 Stage 1 UX 完成
+
+---
+
+## 给 @backend 的上下文(2026-04-28 D018a Stage 2 C 方案)
+
+### context_prompt 字段契约(已与 @backend 在 spawn 任务书中对齐)
+
+- **字段名**:`context_prompt`(string)
+- **透传位置 1**:`generateContent` POST body(常规生成 31 端点),与 `style` 同级
+- **透传位置 2**:`generateImageDescription` URL query(`/describeImageStream` SSE),`&context_prompt=...`
+- **挂载条件**:仅在 `refinementRound > 0 && previousOutput` 同时为真时挂载,初次生成不挂(fallback 友好)
+- **轮次上限**:**3 轮由前端硬约束**,后端不感知 round 概念,只看是否收到 context_prompt 字段
+
+### 后端 system prompt 写法(D018a PM 草稿,Founder 已批)
+
+```
+【上下文】用户上一轮已得到的 prompt 是:
+{上一轮 output}
+
+现在用户希望基于此继续优化。请保留有效部分,
+根据用户新的输入做改进/补充/调整。
+```
+
+### 联调建议
+
+- 用文生文模型先验证(返回最快、可控性最强)
+- 第 1 轮初次生成 → 无 context_prompt 字段,后端走原 path
+- 第 2 轮按下「✨ 基于此继续优化」→ body 多 `context_prompt`,后端把它注入 system prompt block
+- 期望第 2 轮输出会"延续 + 深化"第 1 轮的方向,而非完全推翻
+
+### 已删除字段(@backend Round 1 同时删除)
+
+- ❌ `complexity`(D017 下架)— 前端已在 generateContent body + generateImageDescription URL 中清除,后端可同步删 stream.py / stream_en.py 的 directive
+
+### 风险提示给 @backend
+
+- `generateImageDescription` 走 URL query 携带 `context_prompt`(可能很长的 prompt 文本),警惕 nginx default `large_client_header_buffers` 8KB 限制
+- 若后端测出 414 URI Too Long → 双方协调:要么 nginx 调 buffer,要么前端把 generateImageDescription 改 POST,要么前端对 previousOutput 做长度截断(如截 4000 字符)
+
+---
+
+## 给 @tester 的上下文(2026-04-28 D018a)
+
+### 测试范围(Phase 1 + Phase 2 合并回归)
+
+| 模块 | 期望 |
+|---|---|
+| pytest tests/(xuhua-wx)| 18/18 PASS(本次基线持平已验证)|
+| 前端 grep complexity / currentComplexity / complexityOptions / switchComplexity | 在 pages/index/* 0 hit |
+| 前端 grep refinementRound / MAX_REFINEMENT_ROUNDS / previousOutput / onRefineFromCurrent / context_prompt | 在 pages/index/* 多处命中(已罗列在 current.md)|
+
+### 手动回归点(等 Founder 真机验证 / @tester 设计自动测试)
+
+1. 首页中部三档按钮区彻底消失,空间收紧约 80rpx
+2. 生成完成后 result-card 底部出现「✨ 基于此继续优化 (剩 3 次)」按钮
+3. 点击 → 触发新一轮生成 → 完成后 result-card 左上角浮现「第 2 轮迭代」蓝色徽标 + counter 变 (剩 2 次)
+4. 改 textarea 内容(idea 模式) → 按钮 counter 重置回 (剩 3 次) + 徽标消失
+5. 同样 reference 模式下改 referenceText 也会触发重置
+6. 连点 3 次后按钮消失,显示"已达 3 轮迭代上限,请重新点亮灵感开始新轮次"灰提示
+7. 生成中(isGenerating === true)按钮和上限态都不显示(避免抢焦点)
+
+### 建议的测试 stub(对应 Phase 2 spawn 任务书 @tester 部分)
+
+- `test_context_injection_field_present_when_round_gt_0`(扫 pages/index/index.js 验证字段挂载逻辑)
+- `test_context_injection_skipped_on_initial_generation`(扫验证 refinementRound === 0 时不挂载)
+- `test_max_refinement_rounds_constant_is_3`(常量值校验)
+
+---
+
+## 给 @pm / @devops 的上下文
+
+### 主包尺寸
+
+- 本次净变化 **+9 B**(几乎持平):wxml -87B + wxss -1214B + js +1310B
+- 当前主包 ~800 KB,距 2MB 仍充足
+
+### 文件变更清单(给 PM 审查)
+
+- `pages/index/index.wxml`(三档 UI 删除 + 新 refinement-area / refinement-badge)
+- `pages/index/index.wxss`(Stage 1 三档样式整片删除 + 新 .refinement-* / .refine-* 样式)
+- `pages/index/index.js`(data 块替换 + 新 onRefineFromCurrent + 双路径 context_prompt 挂载 + 双 input reset 点)
+- `.claude/agents/frontend-progress/{current,completed,context-for-others}.md`(三件套全更新)
+- `.team-brain/TEAM_CHAT.md`(本次完成消息追加)
+
+按协议**未自行 commit**,等 PM 审查通过后统一 commit。
 
 ---
 

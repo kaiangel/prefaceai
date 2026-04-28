@@ -145,3 +145,72 @@
 - 2026-04-24 Session 3: Wave 1 全部完成(4 teammate 并行) ✅
 - 2026-04-24 Session 3: D009-D013 决策登记 ✅
 - 2026-04-24 Session 3: app.js labelSync 僵尸代码清理 ✅
+
+---
+
+## 当前待交接(2026-04-28 Stage 1 下架 + Stage 2 启动)
+
+### ✅ 04-27 三轮 UX hotfix 完成
+
+- ✅ 方案 A padding/margin 微调(commit 6c82c37,失败但保留为基线)
+- ✅ 方案 B page 高度锁死解除(commit 8538ee9,部分有效)
+- ✅ 方案 C scroll-view enable-flex + display:flex 双开修复(commit 3d19d27,真因 ✅)
+
+### ✅ 04-28 战略数据验证完成(Founder)
+
+- ✅ 5 人 Mom Test 访谈
+- ✅ Sean Ellis 40% 真实问卷
+- ✅ 数据验证"复杂任务 beachhead"假设
+
+### 🚀 Stage 1 三档下架(D017,本周内)
+
+- @backend: 删 COMPLEXITY_DIRECTIVES dict + resolve_complexity 函数(stream.py + stream_en.py)+ 31 端点内 directive 注入
+- @frontend: 删 complexity-selector wxml + complexity-* 全部 wxss + currentComplexity / complexityOptions / switchComplexity js + 透传 complexity 字段
+- @tester: 删 test_complexity.py + 清理相关断言;回归 sumai 92 passed / xuhua-wx 18/18
+
+### 🚀 Stage 2 第一个最小补丁(D018,本周内)
+
+**C 方案 · 上下文注入(Conversational Refinement)**:
+- @backend: stream.py 各端点支持新参数 `context_prompt`(上一轮 output),写入 system prompt context block
+- @backend: 验证 Qwen 3.6 在多轮 context 下的输出质量(简单 sanity test)
+- @frontend: result-card 内加 "基于此继续优化" 按钮,点击后把 result 作为 context 注入下一次 generateContent
+- @frontend: 加视觉提示"第 N 轮迭代",让用户感知 Investment
+- @tester: 加 test_context_injection.py 至少 3 个 stub
+- 工作量预估 3-5 天
+
+### 🟡 Founder 外部任务(待合适窗口)
+
+- 生产部署 .env(按 sumai/docs/RED-002_env_migration_guide.md 12 步)
+- TLS 证书轮换(D014 P3)
+- git-filter-repo 外部操作(D014 P3)
+- 微信支付商户证书轮换(D014 暂不,触发条件再启)
+
+
+---
+
+## 2026-04-28 PM 地毯审查 D018a 后发现的 follow-up(非本轮 fix)
+
+### 🟡 [F-1 P2] refinementRound state machine race(SSE 失败时卡死)
+
+- **现象**: `onRefineFromCurrent` 点击时立即 `refinementRound + 1`,但如果 SSE 失败/取消/网络挂,result 没更新而 refinementRound 已增加
+- **影响**: 用户感知错乱,可能基于同一 fullContent 重复 refine
+- **修复方向**: 改成 SSE 成功完成回调内 +1,失败时回滚
+- **工作量**: 0.5 天 @frontend
+- **触发条件**: Stage 1 数据观察期发现真实用户报告 / 真机异常网络重现
+
+### 🟡 [F-2 P1] generateImageDescription GET URL 长度风险
+
+- **现象**: GET URL 加 `&context_prompt=...`,5000 字符 ctx + URL encoding ~3x = 15000 字符,可能超 nginx 默认 8KB header buffer
+- **影响**: 真机出 414 URI Too Long,/describeImageStream 在 refinement 时必崩
+- **修复方向**: 改 POST(更彻底) / 前端截短到 2000 字符 / nginx 调大 buffer(@devops)
+- **工作量**: @frontend 改 POST 1 天 / 仅截短 0.5 天
+- **触发条件**: Founder 真机测试 /describeImageStream 的 refinement(图生 prompt 模式 + 点继续优化)出 414
+
+### 🟡 [F-3 P2] previousOutput 可能被后端截断,前端不感知
+
+- **现象**: ctx > 5000 字符 时后端 resolve_context 截断,前端不知道丢了多少
+- **影响**: 用户感觉"模型没看完整"但前端无提示
+- **修复方向**: 前端发送前自检 length > 5000 时弹 toast 提醒"上轮内容过长,将基于前 5000 字符优化"
+- **工作量**: @frontend 0.5 小时
+- **触发条件**: 用户上一轮 prompt 较长时
+

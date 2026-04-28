@@ -1,12 +1,37 @@
 # Tester(测试) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-25 Wave 2 Round 3 D
+> 上次更新: 2026-04-28 D017 三档下架 + D018a Stage 2 上下文注入(Phase 1+2 合并)
 > 角色: tester
 
 ---
 
 ## 已完成任务
+
+### 2026-04-28 D017 三档下架 + D018a Stage 2 上下文注入(Phase 1+2 合并)
+
+**Phase 1 — 三档相关测试清理(D017)** ✅
+- 删除 `sumai/tests/test_complexity.py`(R3-D 创建的 3 active test,@backend 已删 stream.py 顶部 dict + 函数,sensor 凋零)
+- 残留扫描清理 `sumai/tests/README.md` 旧表格条目(改为 D017 后下架记录 + Stage 2 章节)
+- `test_sse_is_pro_branch.py:113 test_is_pro_determines_system_prompt_complexity` 保留(此处 complexity 指 max_tokens 精细度,非 D016 三档)
+
+**Phase 2 — Stage 2 D018a 上下文注入测试 stub** ✅
+- 新建 `sumai/tests/test_context_injection.py`(~250 行,4 test:3 active + 1 skip)
+  - Test 1 模板常量 + 关键短语 + {previous_output} 占位符(zh + en 双覆盖)
+  - Test 2 resolve_context 函数签名 + data.get('context_prompt') + 5000 截断
+  - Test 3 隔离 exec 加载 resolve_context,验证 None/空/6000截断/边界5000(避免 import stream.py 顶部 anthropic + os.environ 崩)
+  - Test 4 端点级集成测试 skip stub(完整 TODO 断言代码已写)
+
+**Phase 3 — 全量回归** ✅
+- xuhua-wx 18 passed(持平基线)
+- sumai 92 passed / 96 skipped / 3 xfailed / 2 xpassed(passed 持平 R3-D 基线 92,skipped +1 因新 stub)
+
+**Phase 4 — HARNESS_HEALTH.md 更新** ✅
+- Sensor 表 complexity 行标 D017 (2026-04-28) 下架
+- 新增 D018a test_context_injection.py 行
+- 最近变更记录详细条目追加
+
+---
 
 ### 2026-04-25 Session 3 Wave 2 Round 3 D(R3-D 收尾,Wave 2 全部完成)
 
@@ -108,3 +133,11 @@
 - 2026-04-24 Session 3 Wave 1: 5 测试文件 + TOCTOU 发现
 - 2026-04-24 Session 2: sumai 185 test 骨架
 - 2026-04-24: 多 Agent 系统初始化
+
+---
+
+## 2026-04-27 + 2026-04-28 同步 note
+
+- **2026-04-27**:Stage 1 真机回归 + 三轮 UX hotfix(scroll-view enable-flex + display:flex 双开 bug,真因 GRAY-007 已纳入 KNOWN_ISSUES)。@frontend 主修,tester 角色未参与。详见 `daily-sync/2026-04-27.md`。
+- **2026-04-28**:Founder 完成 5 人 Mom Test + Sean Ellis 40% 数据,验证"复杂任务 beachhead"假设;**D017 决策 Stage 1 三档复杂度下架**(Founder verdict "鸡肋");**D018 决策 Stage 2 启动**,先做 C 方案上下文注入。详见 `daily-sync/2026-04-28.md` + `decisions/DECISIONS.md`。
+- 待 PM 出 spawn 拆解规划等 Founder "可以" 后,tester 角色可能被派发任务(详见 `handoffs/PENDING.md`)。

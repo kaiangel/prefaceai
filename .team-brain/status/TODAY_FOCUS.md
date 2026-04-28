@@ -3,53 +3,64 @@
 > 维护者: PM(Coordinator 兼任)
 > 更新频率: 每日
 
-## 2026-04-24 Session 3 · Wave 2 进行中
+## 2026-04-28 · Stage 1 三档下架 + Stage 2 启动
 
-### 🎯 本 Session 主线
+### 🎯 今日主线
 
-**Wave 1**(早):Stage 1 UX + RED-001 Qwen 迁移 + 证书整理 + 测试扩展 ✅ 完成并 push
-**Wave 2 Round 1**(中):RED-002 凭证外移 + 基线 + env 指南草稿 ✅ 完成
-**Wave 2 Round 2**(晚):TOCTOU + 方案 Y + hunyuan 前端清理 + env 指南定稿 ✅ 完成
-**Wave 2 Round 3**(2026-04-25):complexity 三档 directive + 31 端点全切 validate_and_deduct + 前端透传 + 测试激活 ✅ 完成,Wave 2 全部收官
+1. ✅ Founder 完成 Session 1 战略文档要求"必做":5 人 Mom Test 访谈 + Sean Ellis 40% 真实问卷
+2. ✅ 数据验证"复杂任务 beachhead"假设成立(Founder 简述"数据没问题")
+3. ✅ **D017 决策**:Stage 1 三档复杂度功能下架(Founder verdict "鸡肋")
+4. ✅ **D018 决策**:Stage 2 第一个最小补丁选 C 方案 · 上下文注入(等 Founder 拍板细节)
+5. 🟡 Audit 全套文档,补齐 04-27 三轮 hotfix + 04-28 Stage 1 verdict 登记
+6. 🟡 出三档下架 + Stage 2 启动的拆解规划等 Founder "可以"
+7. 🟡 spawn @backend + @frontend + @tester 执行
 
-### 🔔 需要 Founder 关注(Wave 2 收官后)
+### 🔔 需要 Founder 关注
 
-1. **审查 PM 待发的 Wave 2 完整总结报告**
-2. **批准 Wave 2 收官 commit + push 双 remote**(R3 三个 teammate 产出待提交)
-3. **真机验证 Stage 1 三档**(端到端就绪,前后端都到位)
-4. **生产部署**:按 `sumai/docs/RED-002_env_migration_guide.md` 12 步 checklist 部署 .env + Wave 2 代码
-5. **TLS 证书轮换待合适窗口**(D014 P3,不紧急)
+- 审查 PM 待发的"三档下架 + Stage 2 启动"拆解规划
+- C 方案上下文注入的产品形态最终敲定(按钮文案 / 上下文 system prompt 写法)
 
-### 📊 Wave 1-2 累计数据(收官 2026-04-25)
+### 📊 累计警报状态
 
-- sumai 测试: 89 → **92 passed** / 95 skipped / 3 xfailed / 2 xpassed(R3-D 收尾基线)
-- xuhua-wx 测试: 18/18 ✅(持平)
-- sumai 代码改动: stream.py + stream_en.py 大改(directive + validate_and_deduct + 方案 Y + 31 端点全切)+ mainv2/note/pay_stripe 凭证外移
-- xuhua-wx 代码改动: pages/index/ Stage 1 UX(Wave 1)+ hunyuan 清除(R2 主包 -1.5KB)+ complexity 透传(R3-C)
-- 文档: 27 环境变量外移 + 772 行 RED-002 env 迁移指南 + 280 行 RED-003 指南(附 D014 banner)+ 三轮 daily-sync
-- 决策: D009-D016 共 8 条
-- xhteam dogfood: 三轮 9 teammate **0 修复**全通过
+- 🔴 红警:全闭环
+- 🟡 黄警:全解决
+- 🟢 灰警:GRAY-001~007 留 Stage 2+(GRAY-007 是 04-27 新增 scroll-view bug)
 
 ---
 
-## 2026-04-24 Session 3 Wave 1 · 已完成
+## 2026-04-27 · 三轮 UX hotfix(已完成)
 
-- Wave 1 四 teammate 并行,全通过
-- GitHub 迁移 kaiangel/prefaceai ✅
-- sumai push 到 101.132.69.232 ✅
-- D009-D013 登记
+Founder 真机回归 Stage 1 后,经历三轮 hotfix 才彻底修好:
+- 方案 A padding/margin 微调(失败)
+- 方案 B page 高度锁死解除(部分有效)
+- 方案 C scroll-view enable-flex + display:flex 双开 bug(✅ 真因)
 
-## 2026-04-24 Session 2 · PORTING(已完成)
+详见 `daily-sync/2026-04-27.md`。
 
-- Phase 1-4 多 Agent 系统初始化
-- 18/18 pytest PASS
-- sumai/CLAUDE.md 592 行
-- sumai-deep-dive 归档
+---
 
-## 2026-04-22 Session 1 · 战略讨论(已完成)
+## 2026-04-25 · Wave 2 Round 3 收官(已完成)
+
+- complexity 三档 directive(R3-A,本日已决定下架)
+- 31 端点全切 validate_and_deduct(R3-B,保留)
+- 前端透传 complexity(R3-C,本日下架)
+- 测试激活/清理(R3-D)
+
+---
+
+## 2026-04-24 · Wave 1 + Wave 2 Round 1+2(已完成)
+
+- Wave 1 GitHub 迁移 + Stage 1 UX 上线(本日已决定下架三档,Hero 文案保留)
+- Wave 2 R1 RED-002 凭证外移
+- Wave 2 R2 TOCTOU 基础 + 方案 Y + hunyuan 清除
+
+---
+
+## 2026-04-22 · Session 1 战略讨论(已完成)
 
 - Beachhead 锁定
 - 5 条 Counter-Positioning
+- Stage 1-3 路线图
 
 ---
 
