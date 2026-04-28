@@ -357,3 +357,27 @@
 
 **Hero 文案保留**(定位文案"专业创作者的 AI Prompt 工作台"是有效的)
 
+
+---
+
+## STAGE-2 D018a/b · 伪上下文注入架构限制(2026-04-28 PM verdict)
+
+**判定**: D018a 上下文注入 + D018b directive 强化 + 用户输入框 整套实现的局限
+- LLM 看到 system = B + D(D 含 C 整段),user = A(原始)
+- LLM 倾向"保留有效部分"(directive 措辞)+ 把"更换"当微调
+- "保留 vs 更换"措辞矛盾,模型选保守
+- 注入位置在 system 末尾,优先级低于 system 开头的原始 B
+- Founder 真机:用户写"换场域和角色",输出几乎复述上一轮
+
+**替代方案 D019**: 真·多轮对话(chat completion 原生)
+- 删 CONTEXT_INJECTION_TEMPLATE / REFINE_INSTRUCTION_TEMPLATE
+- conversation_history append [{user:A}, {assistant:C}, {user:用户修改指示}]
+- 用户消息**变了**(不再是 A,而是"对 C 的具体不满"),LLM 真听话
+- D018a/b 整套 directive 即将被废弃
+- F-4 .replace() 链式问题自动消失(不再用 .replace 拼)
+
+**Founder 决策**(2026-04-28):
+- Token 消耗增长接受
+- UI 不展示历史(选项 a)
+- 输入框 placeholder 改"告诉 AI 要怎么改(如:换个场域和角色...)"
+- 跳过填写时给默认兜底"请基于以上输出做明显改进"

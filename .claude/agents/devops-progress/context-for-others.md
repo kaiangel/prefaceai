@@ -185,3 +185,13 @@
 - **决策点**:选方案 (a') Supervisor + start.sh + EnvironmentFile(推荐,最小改动)**还是** (b) 切 systemd(借机升级)
 - **切换 FLASK_SECRET_KEY 的窗口**:建议周一早 7:00(PC Web 用户会全部登出,小程序不受影响)
 - **18 个 🔴 强读变量的真值收集**:建议从 1Password / 密码管理器拿齐后再执行 Phase 3
+
+---
+
+## 2026-04-28 PM(后续)· D018b 完成 + 诊断日志 + D019 即将启动
+
+- **D018b 双 remote push**:sumai a36ebe0(directive 强化 + refine_instruction)+ xuhua-wx 764f408(方案 b 输入框 + 按钮 nowrap + counter 剩 2)
+- **诊断日志**:xuhua-wx 11a15d6 加 8 处 [D018b] console.log,Founder 真机重测以观察 refine_instruction 是否端到端通
+- **Founder 真机反馈**:输出几乎复述上一轮 → PM 诊断为"伪上下文注入"架构限制(directive 在 system 末尾优先级低,且"保留有效部分"措辞与"更换"指令矛盾)
+- **D019 决定(2026-04-28 Founder 拍板)**: 改造为**真·多轮对话**(LLM 原生 chat completion 模式),user message 是用户的修改指示而不是再发原 idea。D018a/b 整套 directive 即将被 D019 替代,F-4 自动消失
+- 待 PM 出 D019 拆解规划等 Founder "可以",devops 角色可能被派发任务

@@ -65,3 +65,17 @@ Founder 真机回归 Stage 1 后,经历三轮 hotfix 才彻底修好:
 ---
 
 (历史记录往下追加)
+
+---
+
+## 2026-04-28 PM(后续)· D018b 完成 + D019 真·多轮对话即将启动
+
+- ✅ D018b sumai a36ebe0 + xuhua-wx 764f408 + 诊断日志 11a15d6
+- ✅ Founder 真机反馈"基本无变化",诊断为伪上下文注入架构限制
+- 🚀 D019 决定:改造为真·多轮对话(chat completion 多轮模式)
+  - 后端删 CONTEXT_INJECTION_TEMPLATE / REFINE_INSTRUCTION_TEMPLATE 整套(D018a/b 即将被替代)
+  - 后端接收 history 数组直接喂 LLM
+  - 前端维护 conversationHistory + 输入框文案改为"必填(给默认兜底)"
+  - 3 轮上限保持 / UI 不展示历史(选项 a)
+  - 工作量 1.5-2 天
+- 待 Founder 对 D019 拆解规划说"可以"

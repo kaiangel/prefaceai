@@ -60,3 +60,12 @@ D001-D008(Session 1-2)+ D009-D013(Wave 1)+ D014-D016(Wave 2)+ **D017-D018(Stage 
 
 - 🟡 生产部署 .env(按 RED-002 env 迁移指南)
 - 🟡 TLS 证书轮换(D014 P3,合适窗口)
+
+---
+
+## 2026-04-28 PM 追加 · D018b 完成 + D019 启动准备
+
+- **D018b**:directive 强化 + refine_instruction 用户输入框,**Founder 真机判定效果不达预期**(伪上下文注入架构限制)
+- **D019**:改造为真·多轮对话,D018a/b directive 整套即将被替代
+- 决策累计: D001-D018a-D018b → 19+ 条
+- 测试 sumai 94 passed / xuhua-wx 18/18 持平

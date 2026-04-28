@@ -155,3 +155,13 @@
 - ⚠️ 派发前先更新文档
 - ⚠️ 部分 subagent(@tester / @frontend)本轮无法写 `.claude/agents/*-progress/`,由 PM 代写
 - ⚠️ sumai 是嵌套独立 git,commit/push 要分别操作
+
+---
+
+## 2026-04-28 PM(后续)· D018b 完成 + 诊断日志 + D019 即将启动
+
+- **D018b 双 remote push**:sumai a36ebe0(directive 强化 + refine_instruction)+ xuhua-wx 764f408(方案 b 输入框 + 按钮 nowrap + counter 剩 2)
+- **诊断日志**:xuhua-wx 11a15d6 加 8 处 [D018b] console.log,Founder 真机重测以观察 refine_instruction 是否端到端通
+- **Founder 真机反馈**:输出几乎复述上一轮 → PM 诊断为"伪上下文注入"架构限制(directive 在 system 末尾优先级低,且"保留有效部分"措辞与"更换"指令矛盾)
+- **D019 决定(2026-04-28 Founder 拍板)**: 改造为**真·多轮对话**(LLM 原生 chat completion 模式),user message 是用户的修改指示而不是再发原 idea。D018a/b 整套 directive 即将被 D019 替代,F-4 自动消失
+- 待 PM 出 D019 拆解规划等 Founder "可以",coordinator 角色可能被派发任务
