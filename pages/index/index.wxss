@@ -1147,7 +1147,7 @@ button.tool-button::after {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 16rpx 32rpx;
+  padding: 16rpx 28rpx;
   background: linear-gradient(90deg, #43B692 0%, #3F88C5 100%);
   border-radius: 999rpx;
   color: #fff !important;
@@ -1156,6 +1156,12 @@ button.tool-button::after {
   box-shadow: 0 4rpx 12rpx rgba(67, 182, 146, 0.25);
   transition: all 0.3s;
   line-height: 1.4;
+  /* D018b Fix 1: 防止真机文字换行 */
+  white-space: nowrap;
+}
+
+.refine-btn-text {
+  white-space: nowrap;
 }
 
 .refine-btn::after {
@@ -1170,7 +1176,8 @@ button.tool-button::after {
 .refine-counter {
   font-size: 22rpx;
   opacity: 0.85;
-  margin-left: 8rpx;
+  margin-left: 6rpx;
+  white-space: nowrap;
 }
 
 .refinement-done {
@@ -1195,4 +1202,74 @@ button.tool-button::after {
   border-radius: 0 0 16rpx 16rpx;
   z-index: 3;
   box-shadow: 0 4rpx 12rpx rgba(63, 136, 197, 0.25);
+}
+
+/* ===== Stage 2 D018b: 方案 b · 继续优化要求输入框 ===== */
+.refine-input-area {
+  margin: 24rpx 24rpx 16rpx;
+  padding: 24rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  border: 2rpx solid rgba(67, 182, 146, 0.3);
+  box-sizing: border-box;
+}
+
+.refine-instruction-box {
+  width: 100%;
+  min-height: 120rpx;
+  max-height: 200rpx;
+  padding: 16rpx;
+  font-size: 28rpx;
+  color: #2c3e50;
+  line-height: 1.6;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.refine-input-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.refine-cancel-btn {
+  padding: 12rpx 28rpx;
+  background: rgba(0, 0, 0, 0.05);
+  color: #666 !important;
+  font-size: 26rpx;
+  border-radius: 999rpx;
+  border: none;
+  line-height: 1.4;
+}
+
+.refine-cancel-btn::after {
+  border: none;
+}
+
+.refine-cancel-btn-hover {
+  transform: scale(0.95);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.refine-confirm-btn {
+  padding: 12rpx 28rpx;
+  background: linear-gradient(90deg, #43B692 0%, #3F88C5 100%);
+  color: #fff !important;
+  font-size: 26rpx;
+  border-radius: 999rpx;
+  border: none;
+  box-shadow: 0 4rpx 12rpx rgba(67, 182, 146, 0.25);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.refine-confirm-btn::after {
+  border: none;
+}
+
+.refine-confirm-btn-hover {
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 8rpx rgba(67, 182, 146, 0.18);
 }

@@ -1,14 +1,15 @@
 # Frontend(前端) - 给其他角色的上下文
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 14:31 三档下架(D017)+ Stage 2 C 方案 上下文注入(D018a)合并完成
+> 上次更新: 2026-04-28 D018b 真机反馈四项 fix 完成
 > 角色: frontend
 
 ---
 
 ## 当前状态
 
-✅ **2026-04-28 14:31 — Phase 1(D017 三档下架)+ Phase 2(D018a Stage 2 C 方案 上下文注入)合并完成**
+✅ **2026-04-28 — D018b 真机反馈 4 项 fix 完成**(承接 D018a)
+✅ 2026-04-28 14:31 — Phase 1(D017 三档下架)+ Phase 2(D018a Stage 2 C 方案 上下文注入)合并完成
 ✅ 2026-04-27 23:50 UX Hotfix 第三轮深修完成(scroll-view scroll-x + enable-flex 显式 height + 移除 enable-flex/display:flex 双开 bug)
 ✅ 2026-04-27 23:30 UX Hotfix 方案 B 完成(page 高度解锁)
 ✅ Wave 2 Round 3 R3-C 完成(complexity 透传 SSE)— 已下架,改为 context_prompt
@@ -17,15 +18,36 @@
 
 ---
 
-## 给 @backend 的上下文(2026-04-28 D018a Stage 2 C 方案)
+## 给 @backend 的上下文(2026-04-28 D018b 字段契约更新)
 
-### context_prompt 字段契约(已与 @backend 在 spawn 任务书中对齐)
+### refine_instruction 字段(D018b 新增)
+
+- **字段名**:`refine_instruction`(string,**可空字符串**)
+- **挂载条件**:与 `context_prompt` 完全同步 — 仅在 `refinementRound > 0 && previousOutput` 时挂载
+- **透传位置 1**:`generateContent` POST body,与 `context_prompt` / `style` 同级
+- **透传位置 2**:`generateImageDescription` URL query,`&refine_instruction=...`(URL encoded)
+- **空字符串语义**:用户没填要求 = "AI 自由发挥"(后端可在 system prompt 中省略 instruction block,或写"用户未指定特别要求,请按通用优化方向");后端**必须能区分** "没传字段" vs "传了空字符串"(前者是初次生成,后者是用户明确没填)
+
+**前端示例**(实际代码):
+```js
+// generateContent body
+...(refinementRound > 0 && previousOutput ? {
+  context_prompt: previousOutput,
+  refine_instruction: refineInstruction || ''   // ← D018b 新增
+} : {})
+
+// generateImageDescription URL
+url += `&context_prompt=${enc(previousOutput)}`;
+url += `&refine_instruction=${enc(refineInstruction || '')}`;   // ← D018b 新增
+```
+
+### context_prompt 字段契约(D018a 已锁,D018b 不变)
 
 - **字段名**:`context_prompt`(string)
 - **透传位置 1**:`generateContent` POST body(常规生成 31 端点),与 `style` 同级
 - **透传位置 2**:`generateImageDescription` URL query(`/describeImageStream` SSE),`&context_prompt=...`
 - **挂载条件**:仅在 `refinementRound > 0 && previousOutput` 同时为真时挂载,初次生成不挂(fallback 友好)
-- **轮次上限**:**3 轮由前端硬约束**,后端不感知 round 概念,只看是否收到 context_prompt 字段
+- **轮次上限**:**改为 2 轮(D018b)由前端硬约束**(共 3 次输出 = 初次 + 2 轮继续优化),后端不感知 round 概念,只看是否收到 context_prompt 字段
 
 ### 后端 system prompt 写法(D018a PM 草稿,Founder 已批)
 

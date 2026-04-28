@@ -1,12 +1,40 @@
 # Frontend(前端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 14:31 三档下架(D017)+ Stage 2 C 方案上下文注入(D018a)合并完成
+> 上次更新: 2026-04-28 D018b 真机反馈四项 fix 完成
 > 角色: frontend
 
 ---
 
 ## 已完成任务
+
+### 2026-04-28 — D018b 真机反馈 4 项 fix(承接 D018a)
+
+**背景**:Founder 真机 D018a 后反馈 4 项问题,选**方案 b**(点按钮后展开输入框):
+1. 「✨ 基于此继续优化(剩 3 次)」按钮强制换行(样式)
+2. 继续优化输出变化不大(后端 directive,非前端任务)
+3. 用户没机会输入"继续优化的要求"
+4. counter 应从「剩 2 次」起步(初次算第 1 次,共 3 次)
+
+PM 1 轮 spawn:@frontend(本任务,4 项 fix)+ @backend(directive 强化 + 接 refine_instruction 字段)。
+
+**4 项前端 fix**:
+
+1. **Fix 1 按钮 white-space: nowrap**:`.refine-btn` 加 `white-space: nowrap`,padding 由 32rpx → 28rpx 收紧,`.refine-counter` margin-left 由 8rpx → 6rpx 并加 nowrap。新增 `.refine-btn-text` 包裹主文字也加 nowrap(双重保险)。
+2. **Fix 2 MAX_REFINEMENT_ROUNDS: 3 → 2**:counter "剩 2 次"起步,2 次点击后达上限。文案"已达 3 轮迭代上限"保持不变(因为加上初次输出共 3 次)。
+3. **Fix 3 方案 b · 展开输入框**:`onRefineFromCurrent` 改为只设 `showRefineInput=true`(不立即触发 generate);新增 `onRefineInstructionInput`(input bind)/ `onConfirmRefine`(真正触发 generate + setData previousOutput / refinementRound+1 / showRefineInput=false)/ `onCancelRefine`(收起 + 清空 refineInstruction);WXML 三态:① 主按钮 ② 上限态 ③ 输入框区域(textarea + 取消/确认两按钮);WXSS 新增 `.refine-input-area` / `.refine-instruction-box` / `.refine-input-buttons` / `.refine-cancel-btn`(灰)/ `.refine-confirm-btn`(品牌渐变)。
+4. **Fix 4 refine_instruction 字段透传**:`generateContent` body spread 由 `{ context_prompt }` → `{ context_prompt, refine_instruction }`;`generateImageDescription` URL 加 `&refine_instruction=...`。两处都遵循"refinementRound > 0 时挂载,即使 refineInstruction 为空字符串也传"的契约。
+
+**重置点同步增强**:`onInputChange` + `onReferenceInputChange` 在重置 refinementRound + previousOutput 之外,同时清理 `showRefineInput` + `refineInstruction`(用户改主输入即视为新主题,所有继续优化态归零)。
+
+**验证**:
+- pytest tests/ → **18/18 PASS**(零回归)
+- grep 全部命中:MAX_REFINEMENT_ROUNDS = 2 / showRefineInput / refineInstruction / onConfirmRefine / onCancelRefine / onRefineInstructionInput / refine_instruction
+- 主包尺寸增量 = wxml +1430B + wxss +1572B + js +1957B = **+4959 B = 4.84 KB**(< 5KB ✅)
+- 新增 px 单位 0(全部 rpx)
+- WXML / setData / 路由 / 无 DOM / 无 npm — 全合规
+
+---
 
 ### 2026-04-28 14:31 — Phase 1 D017 三档下架 + Phase 2 D018a Stage 2 C 方案 上下文注入(合并)
 

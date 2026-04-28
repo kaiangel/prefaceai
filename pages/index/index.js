@@ -238,29 +238,62 @@ Page({
     referenceImageUrl: '', // 参考图片URL(服务器)
     referenceText: '', // 参考模式下的输入文本
 
-    // Stage 2 D018a: 上下文注入(C 方案)— 「✨ 基于此继续优化」最多 3 轮
-    refinementRound: 0,            // 当前迭代轮次,0 = 初次生成,1-3 = 第 N 次基于上轮优化
-    MAX_REFINEMENT_ROUNDS: 3,      // D018a 上限(前端硬约束,后端不感知)
+    // Stage 2 D018a/D018b: 上下文注入(C 方案)— 「✨ 基于此继续优化」最多 2 轮(初次 + 2 次继续 = 共 3 次输出)
+    refinementRound: 0,            // 当前迭代轮次,0 = 初次生成,1-2 = 第 N 次基于上轮优化
+    MAX_REFINEMENT_ROUNDS: 2,      // D018b: 改为 2(counter 从"剩 2 次"起步)
     previousOutput: '',            // 上一轮 output(将作为下一轮 context_prompt 注入)
+    // Stage 2 D018b: 方案 b · 点按钮后展开输入框,让用户写"继续优化要求"
+    showRefineInput: false,        // 是否展开"继续优化要求"输入框
+    refineInstruction: '',         // 用户填写的继续优化要求(可空)
   },
 
-  // Stage 2 D018a: 点击「✨ 基于此继续优化」— 把当前 result 注入下一次 generateContent 的 context_prompt
+  // Stage 2 D018b: 点击「✨ 基于此继续优化」— 展开输入框,让用户写继续优化要求(不立即触发 generate)
   onRefineFromCurrent: function() {
     if (this.data.refinementRound >= this.data.MAX_REFINEMENT_ROUNDS) {
-      wx.showToast({ title: '已达 3 轮上限', icon: 'none' });
+      wx.showToast({ title: '已达上限', icon: 'none' });
       return;
     }
     if (!this.data.fullContent) {
       wx.showToast({ title: '暂无可优化内容', icon: 'none' });
       return;
     }
-    // 把当前轮的 fullContent 作为下一轮的上下文存起来,然后 +1 轮触发标准 generate 流程
+    // 不立即触发 generate,先展开输入框让用户填要求(可空)
+    this.setData({
+      showRefineInput: true,
+      refineInstruction: ''
+    });
+  },
+
+  // Stage 2 D018b: 用户在"继续优化要求"输入框输入
+  onRefineInstructionInput: function(e) {
+    this.setData({ refineInstruction: e.detail.value });
+  },
+
+  // Stage 2 D018b: 用户点「✓ 确认优化」— 真正触发 generate(带 refine_instruction + context_prompt)
+  onConfirmRefine: function() {
+    if (this.data.refinementRound >= this.data.MAX_REFINEMENT_ROUNDS) {
+      wx.showToast({ title: '已达上限', icon: 'none' });
+      return;
+    }
+    if (!this.data.fullContent) {
+      wx.showToast({ title: '暂无可优化内容', icon: 'none' });
+      return;
+    }
+    // refineInstruction 保留(generateContent/generateImageDescription 读取后挂载)
     this.setData({
       previousOutput: this.data.fullContent,
-      refinementRound: this.data.refinementRound + 1
+      refinementRound: this.data.refinementRound + 1,
+      showRefineInput: false
     });
-    // 走原 onGeneratePrompt(它会调 generateContent / generateImageDescription),由它在 body / URL 里挂 context_prompt
     this.onGeneratePrompt();
+  },
+
+  // Stage 2 D018b: 用户点「取消」— 收起输入框,refinementRound 不变
+  onCancelRefine: function() {
+    this.setData({
+      showRefineInput: false,
+      refineInstruction: ''
+    });
   },
 
   // 新增：切换风格的方法
@@ -464,10 +497,14 @@ Page({
     // console.log('参考模式输入变化:', text);
 
     var patch = { referenceText: text };
-    // Stage 2 D018a: 用户改参考输入文本 → 视为开启新主题,重置上下文注入链
+    // Stage 2 D018a/D018b: 用户改参考输入文本 → 视为开启新主题,重置上下文注入链 + 收起继续优化输入框
     if (this.data.refinementRound > 0) {
       patch.refinementRound = 0;
       patch.previousOutput = '';
+    }
+    if (this.data.showRefineInput || this.data.refineInstruction) {
+      patch.showRefineInput = false;
+      patch.refineInstruction = '';
     }
     this.setData(patch);
   },
@@ -487,6 +524,8 @@ Page({
     // 🔑 Stage 2 D018a: 上下文注入(C 方案)— 仅在 refinementRound > 0 时挂 context_prompt
     if (this.data.refinementRound > 0 && this.data.previousOutput) {
       url += `&context_prompt=${encodeURIComponent(this.data.previousOutput)}`;
+      // 🔑 Stage 2 D018b: 同时透传"继续优化要求"(可空,后端契约要求 refinementRound>0 时必带,即使空字符串)
+      url += `&refine_instruction=${encodeURIComponent(this.data.refineInstruction || '')}`;
     }
 
     // console.log('请求URL:', url);
@@ -1011,10 +1050,14 @@ Page({
 
   onInputChange(e) {
     var patch = { inputText: e.detail.value };
-    // Stage 2 D018a: 用户改输入框文本 → 视为开启新主题,重置上下文注入链
+    // Stage 2 D018a/D018b: 用户改输入框文本 → 视为开启新主题,重置上下文注入链 + 收起继续优化输入框
     if (this.data.refinementRound > 0) {
       patch.refinementRound = 0;
       patch.previousOutput = '';
+    }
+    if (this.data.showRefineInput || this.data.refineInstruction) {
+      patch.showRefineInput = false;
+      patch.refineInstruction = '';
     }
     this.setData(patch);
   },
@@ -2376,8 +2419,12 @@ Page({
         request_time: Date.now(),  // 🔑 请求时间
         user_label: this.data.currentSelectionText || '',  // 🔑 用户选择的完整标签
         // 🔑 Stage 2 D018a: 上下文注入(C 方案)— 仅在 refinementRound > 0 时挂 context_prompt
+        // 🔑 Stage 2 D018b: 同时透传"继续优化要求"(可空,后端契约要求 refinementRound>0 时必带)
         ...(this.data.refinementRound > 0 && this.data.previousOutput
-          ? { context_prompt: this.data.previousOutput }
+          ? {
+              context_prompt: this.data.previousOutput,
+              refine_instruction: this.data.refineInstruction || ''
+            }
           : {}),
         // 添加style参数支持
         ...((() => {

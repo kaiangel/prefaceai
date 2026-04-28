@@ -376,19 +376,47 @@
           </block>
         </view>
 
-        <!-- Stage 2 D018a: 基于当前 prompt 继续优化(C 方案 上下文注入,最多 3 轮) -->
+        <!-- Stage 2 D018a/D018b: 基于当前 prompt 继续优化(C 方案 上下文注入,共 3 次输出 = 初次 + 2 轮继续) -->
+        <!-- ① 主按钮(未展开输入框 + 未达上限 + 非生成中) -->
         <view class="refinement-area"
-              wx:if="{{!isGenerating && refinementRound < MAX_REFINEMENT_ROUNDS}}">
+              wx:if="{{!isGenerating && refinementRound < MAX_REFINEMENT_ROUNDS && !showRefineInput}}">
           <button class="refine-btn"
                   hover-class="refine-btn-hover"
                   bindtap="onRefineFromCurrent">
-            <text>✨ 基于此继续优化</text>
+            <text class="refine-btn-text">✨ 基于此继续优化</text>
             <text class="refine-counter">(剩 {{MAX_REFINEMENT_ROUNDS - refinementRound}} 次)</text>
           </button>
         </view>
+        <!-- ② 上限态 -->
         <view class="refinement-area refinement-done"
               wx:elif="{{!isGenerating && refinementRound >= MAX_REFINEMENT_ROUNDS}}">
           <text class="refine-done-text">已达 3 轮迭代上限,请重新点亮灵感开始新轮次</text>
+        </view>
+
+        <!-- ③ Stage 2 D018b: 方案 b · 展开的"继续优化要求"输入框(可空)+ 确认/取消 -->
+        <view class="refine-input-area"
+              wx:if="{{showRefineInput && !isGenerating}}">
+          <textarea class="refine-instruction-box"
+                    placeholder="可选:告诉 AI 要重点调整什么(如:节奏更慢、加悬念、去掉某段)"
+                    placeholder-style="color: rgba(52, 73, 94, 0.45)"
+                    value="{{refineInstruction}}"
+                    bindinput="onRefineInstructionInput"
+                    maxlength="500"
+                    show-confirm-bar="{{false}}"
+                    auto-focus="{{true}}"
+                    cursor-spacing="120"></textarea>
+          <view class="refine-input-buttons">
+            <button class="refine-cancel-btn"
+                    hover-class="refine-cancel-btn-hover"
+                    bindtap="onCancelRefine">
+              <text>取消</text>
+            </button>
+            <button class="refine-confirm-btn"
+                    hover-class="refine-confirm-btn-hover"
+                    bindtap="onConfirmRefine">
+              <text>✓ 确认优化</text>
+            </button>
+          </view>
         </view>
       </view>
     </view>

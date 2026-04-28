@@ -1,12 +1,115 @@
 # Backend(后端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 (Stage 2 Phase 1 + Phase 2 合并 spawn)
+> 上次更新: 2026-04-28 (D018b 真机反馈修复)
 > 角色: backend
 
 ---
 
 ## 已完成任务
+
+### [2026-04-28] D018b · Stage 2 上下文注入 真机反馈修复 ✅
+
+- **任务编号**: D018b backend(并行 spawn 2 teammate 之一,与 @frontend 并行)
+- **决策依据**: D018b(2026-04-28 PM)— Founder 真机反馈 4 项 + 选方案 b
+- **背景**: D018a 实施后真机反馈"继续优化变化不大,Qwen 没听 directive";同时缺用户输入框
+- **PM 审查 SOP**: 必须地毯审查(memory 已记)。本轮严禁退回 .format()(D018a P0 fix 不能回滚)
+
+#### 修改文件清单
+
+| 文件 | 改动摘要 | 行数变化 |
+|---|---|---|
+| `sumai/stream.py` | 顶部:CONTEXT_INJECTION_TEMPLATE 措辞强化(加 {refine_instruction_block} 占位符)+ 新增 REFINE_INSTRUCTION_TEMPLATE + resolve_refine_instruction 函数 · 17 端点 ctx 注入从 1 行升级到 4 行(组装 refine_block + 双 .replace) | +約 80 净增 |
+| `sumai/stream_en.py` | 同上(EN 版,REFINE_INSTRUCTION_TEMPLATE_EN + 14 端点) | +約 65 净增 |
+| `sumai/tests/test_context_injection.py` | 新增 2 个 active sensor(test_refine_instruction_template_exists / test_resolve_refine_instruction_function_exists)+ 扩展原 P0 .format() 防御覆盖 REFINE | +約 130 净增 |
+
+#### Fix 1 验证(强化措辞关键词)
+
+zh:
+```
+$ grep -E "明显改写|不要复述|明显升级" stream.py
+(全部命中,且只在 CONTEXT_INJECTION_TEMPLATE 内)
+```
+
+en:
+```
+$ grep -E "substantially rewrite|Do NOT|clearly upgraded" stream_en.py
+(全部命中,且只在 CONTEXT_INJECTION_TEMPLATE_EN 内)
+```
+
+#### Fix 2 验证(新增常量 + 函数)
+
+```
+stream.py:    REFINE_INSTRUCTION_TEMPLATE      = 18 (1 def + 17 端点)  ✅
+stream.py:    resolve_refine_instruction       = 18 (1 def + 17 端点)  ✅
+stream_en.py: REFINE_INSTRUCTION_TEMPLATE_EN   = 15 (1 def + 14 端点)  ✅
+stream_en.py: resolve_refine_instruction       = 15 (1 def + 14 端点)  ✅
+```
+
+#### Fix 3 验证(31 端点新注入模式 + .format 0 残余)
+
+```
+$ grep -c "ctx = resolve_context" stream.py     → 17 ✅
+$ grep -c "ctx = resolve_context" stream_en.py  → 14 ✅
+$ grep -E "TEMPLATE\.format|TEMPLATE_EN\.format|REFINE_INSTRUCTION_TEMPLATE\.format|REFINE_INSTRUCTION_TEMPLATE_EN\.format" stream.py stream_en.py
+(0 行,P0 防御就位)
+$ grep -E "final_system = system \+ CONTEXT_INJECTION_TEMPLATE" stream.py stream_en.py
+(0 行,旧 1-行 pattern 全部清除)
+```
+
+#### Fix 4 验证(test_context_injection.py 新 sensor)
+
+```
+$ pytest tests/test_context_injection.py -v
+test_context_injection_template_exists                  PASSED  (扩展 P0 .format 防御覆盖 REFINE)
+test_resolve_context_function_exists                    PASSED  (无变更)
+test_resolve_context_truncates_oversized_input          PASSED  (无变更)
+test_endpoints_inject_context_when_present              SKIPPED (无变更,等 Flask test client)
+test_refine_instruction_template_exists                 PASSED  🆕 D018b
+test_resolve_refine_instruction_function_exists         PASSED  🆕 D018b
+======================== 5 passed, 1 skipped in 0.03s ==========================
+```
+
+#### 编译 + 全量测试基线
+
+- `python3 -m py_compile sumai/stream.py sumai/stream_en.py` → **OK**
+- `pytest sumai/tests/` → **94 passed / 96 skipped / 3 xfailed / 2 xpassed / 0 failed**(基线 92 + 2 D018b 新 sensor,无回归)
+- `pytest tests/` (xuhua-wx 根) → **18 passed**(持平 ✅)
+
+#### 关键设计点
+
+1. **D018b 措辞强化**: 从"建议性"(D018a)升级为"约束性"(明显改写 / 不要复述 / 明显升级 / clearly upgraded)
+   — Founder 真机反馈 Qwen 不听 D018a directive,需要更强约束。
+2. **refine_instruction 字段可选**: 用户跳过填写 → resolve_refine_instruction 返 None → refine_block 为空字符串
+   → directive 内 `{refine_instruction_block}` 被替换为空 → 等同纯 D018b 措辞强化版,
+   不强制用户必须填写。
+3. **1000 字符截断**: refine_instruction 比 context_prompt 短得多(用户随手写的几句指令),
+   保守上限 1000 字符,防御恶意超长输入吃光 max_tokens。
+4. **.replace() 严格执行(D018a P0 防御)**: 全 4 处 .replace 调用,严禁 .format()。
+   用户上一轮 prompt + 用户继续优化要求都可能含 `{` `}` (如 JSON / Python f-string / 模板变量),
+   .format() 会 KeyError 崩溃。本轮代码 + sensor 双重防御。
+5. **6 个新增/修改占位符**:
+   - CONTEXT_INJECTION_TEMPLATE 多了 `{refine_instruction_block}`(替代 D018a 的简结尾)
+   - REFINE_INSTRUCTION_TEMPLATE 含 `{instruction}`
+   - 注入逻辑两步 .replace:① `{previous_output}` ② `{refine_instruction_block}`(可空)
+6. **不动 system prompt 字符串本身**:仍然只在末尾追加 directive 块,Stage 1 删除不影响 prompt 质量。
+7. **不动 validate_and_deduct + save_prompt_record + 路由 routing**。
+8. **不动其他 sumai/tests/ 文件** — 只在 test_context_injection.py 内新增 2 个 test 函数。
+9. **不引入新 Python 包** — 只用 stdlib + 已有 anthropic/openai。
+
+#### 唯一特殊端点
+
+`/describeImageStream`(stream.py)的 ctx 注入仍是 **4 空格缩进**(在 generate() 函数外的 endpoint handler 内,
+不在 generate 闭包里),其余 30 端点都是 8 空格缩进。本轮单独处理这 1 处。
+
+#### 给 @frontend 的契约总结
+
+新增字段 `refine_instruction`(string,可选):
+- 用户在方案 b 输入框写"重点调慢节奏"等;为空时不影响 directive 注入(向后兼容 D018a 前端)
+- 1000 字符上限(后端会截断)
+- 起步 counter 剩 2(D018b: MAX 3 - 1 初次 = 2 继续优化次)— 后端不感知 counter
+
+---
 
 ### [2026-04-28] Stage 2 Phase 1(三档下架 D017)+ Phase 2(C 方案 上下文注入 D018a)合并 ✅
 

@@ -214,3 +214,25 @@
 - **工作量**: @frontend 0.5 小时
 - **触发条件**: 用户上一轮 prompt 较长时
 
+
+---
+
+## 2026-04-28 PM D018b 地毯审查后追加 follow-up
+
+### 🟢 [F-4 P3] CONTEXT 链式 .replace() 占位符顺序边界
+
+- **现象**: 31 端点用 `CONTEXT_INJECTION_TEMPLATE.replace("{previous_output}", ctx).replace("{refine_instruction_block}", refine_block)` 链式 replace
+- **理论 bug**: 如果 ctx 中**恰好含字符串** `{refine_instruction_block}`,第 2 次 replace 会误处理 ctx 内嵌的那段;反过来 refine_block 含 `{previous_output}` 同样问题
+- **实际触发概率**: 接近 0(用户上轮 LLM 生成的 prompt 不太可能恰好出现这种特定 8/29 字符占位符)
+- **修复方案**: 用 sentinel 中间占位符或一次性 dict replace
+- **判断**: P3 非阻塞,P0 ctx 含 `{}` 已用 `.replace` 替代 `.format` 修复(本轮)。这是更深层的边界,只在罕见场景触发
+- **触发条件**: Founder 收到用户报告"continue 后输出乱了"或测试套有真实 mock 后做端到端验证时
+
+### 🟡 [F-5 P2] onConfirmRefine 双击 race window
+
+- **现象**: 用户极快双击「✓ 确认优化」,setData 异步未完成 + WXML wx:if 重新渲染窗口期内,可能触发两次 onGeneratePrompt → 两次扣 quota
+- **守卫现状**: WXML 用 `&& !isGenerating` 在 isGenerating 期间隐藏按钮区,但 setData 到 isGenerating=true 中间有微秒窗口
+- **修复方向**: 在 `onConfirmRefine` 入口加状态锁 `isRefining`,onGeneratePrompt 异步完成后 reset
+- **工作量**: @frontend 0.5 天
+- **触发条件**: 真机测试快速双击 + 可观察用户报告"扣了 2 次没多优化"
+

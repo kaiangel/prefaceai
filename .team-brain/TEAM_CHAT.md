@@ -1564,3 +1564,217 @@ conversation_history.append({"role": "system", "content": final_system})
 
 **审查 SOP 已存 memory**: 后续每轮完成后逐行读改动找 corner case,不能只 grep+pytest。
 
+
+---
+
+## [2026-04-28 PM] PM · D018a 真机反馈 D018b 修复 spawn
+
+Founder 真机 D018a 后反馈 4 项,选方案 b。并行 spawn:
+- @frontend: 按钮 white-space:nowrap + counter 改剩 2 起步 + 加方案 b 输入框 + 「确认优化」按钮 + state machine
+- @backend: 强化 directive 措辞 + 新增 refine_instruction 字段注入
+
+工作量小但 PM 必须**地毯审查**(memory 已记 SOP)。
+
+
+---
+
+## [2026-04-28] @frontend · D018b 4 项 fix 完成 ✅
+
+**来自**: @frontend(Sonnet 4.6)
+**对象**: @PM
+**任务**: D018b 真机反馈四项 fix(承接 D018a)
+
+### 4 项 fix 实施
+
+| # | 问题 | 修复 |
+|---|------|------|
+| 1 | 「✨ 基于此继续优化(剩 N 次)」按钮真机强制换行 | `.refine-btn` 加 `white-space: nowrap`,padding 32rpx → 28rpx 收紧,`.refine-counter` margin-left 8rpx → 6rpx + nowrap,新增 `.refine-btn-text` 包裹主文字也加 nowrap(双重保险)|
+| 2 | counter 应从「剩 2 次」起步(共 3 次输出) | `MAX_REFINEMENT_ROUNDS: 3 → 2`(L243);"已达 3 轮迭代上限"文案保留(因为加上初次共 3 次)|
+| 3 | 用户没机会输入"继续优化要求"(方案 b) | `onRefineFromCurrent` 改为只设 `showRefineInput=true`(不立即 generate);新增 3 method:`onRefineInstructionInput` / `onConfirmRefine`(真正触发 generate)/ `onCancelRefine`;WXML 三态:① 主按钮 ② 上限态 ③ 输入框区域(textarea + 取消/确认两按钮);WXSS 新增 `.refine-input-area` / `.refine-instruction-box` / `.refine-input-buttons` / `.refine-cancel-btn`(灰)/ `.refine-confirm-btn`(品牌渐变)|
+| 4 | 后端契约 refine_instruction 字段 | `generateContent` body spread 加 `refine_instruction: refineInstruction || ''`;`generateImageDescription` URL 加 `&refine_instruction=...`。两处都遵循"refinementRound > 0 时挂载,即使空字符串也传"|
+
+### 重置点同步增强
+
+`onInputChange` + `onReferenceInputChange` 在原 reset refinementRound + previousOutput 之外,**同时清理** `showRefineInput` + `refineInstruction`(用户改主输入即视为新主题,所有继续优化态归零)。
+
+### 验证
+
+| 项 | 结果 |
+|---|---|
+| `pytest tests/ -v` | **18/18 PASS**(零回归)✅ |
+| `grep MAX_REFINEMENT_ROUNDS` | 已是 `2`(L243)✅ |
+| `grep showRefineInput` | js 9 / wxml 2 ✅ |
+| `grep refineInstruction` | js 22 / wxml 6 ✅ |
+| `grep onConfirmRefine` | js 1 def + wxml 1 bind ✅ |
+| `grep onCancelRefine` | js 1 def + wxml 1 bind ✅ |
+| `grep onRefineInstructionInput` | js 1 def + wxml 1 bind ✅ |
+| `grep refine_instruction`(后端字段)| js 4 处(generateContent + generateImageDescription 各 1 处实际挂载 + 2 处注释)✅ |
+| 主包尺寸增量 | wxml +1430B + wxss +1572B + js +1957B = **+4959 B = 4.84 KB**(< 5KB)✅ |
+| 新增 px 单位 | 0(全部 rpx)✅ |
+| WXML / setData / 路由 / 无 DOM / 无 npm | 全合规 ✅ |
+| scroll-view enable-flex 双开 bug 风险 | N/A(本次未新增 scroll-view)✅ |
+
+### 状态机说明(给 PM 审查参考)
+
+```
+初始态:        showRefineInput=false, refinementRound=0, refineInstruction=''
+  ↓ 点击「✨ 基于此继续优化」(onRefineFromCurrent)
+展开态:        showRefineInput=true,  refinementRound=0(尚未 +1)
+  ↓ ① 用户写指令(可空)→ 点「✓ 确认优化」(onConfirmRefine)
+触发态:        showRefineInput=false, refinementRound=1, previousOutput=fullContent
+              → onGeneratePrompt → generateContent / generateImageDescription
+              → body / URL 自动带 context_prompt + refine_instruction
+  ↓ ② 用户点「取消」(onCancelRefine)
+回到初始态:    showRefineInput=false, refineInstruction=''(refinementRound 不变)
+```
+
+### 给 @backend 的契约提醒
+
+后端在收到 `refine_instruction` 字段时(必伴随 context_prompt),按 D018b system prompt 注入"用户继续优化要求是: {refine_instruction}"。**空字符串视为"用户没填,自由发挥即可"**。前端保证只在 refinementRound > 0 时挂这两个字段。
+
+### 严格 scope
+
+- 只动 `pages/index/{wxml,wxss,js}`
+- 未触碰 `app.js` / 其他 pages / `sumai/` / `tests/` / 其他 agent progress
+- 未自行 commit(等 PM 统一)
+
+### 改动文件清单(等 PM 审查)
+
+- `pages/index/index.wxml`(refinement-area 三态结构 + .refine-input-area 块)
+- `pages/index/index.wxss`(.refine-btn 加 nowrap + 5 个新 selector)
+- `pages/index/index.js`(MAX 改 2 + 2 新 state + onRefineFromCurrent 改逻辑 + 3 新 method + 双路径 refine_instruction 挂载 + 双 reset 点同步清理)
+- `.claude/agents/frontend-progress/{current,completed,context-for-others}.md`
+- `.team-brain/TEAM_CHAT.md`(本条)
+
+### 待 Founder 真机验证 7 步
+
+1. 按钮文案「✨ 基于此继续优化 (剩 2 次)」**不换行**
+2. 点按钮 → 输入框区滑出(textarea + auto-focus + 取消/确认两按钮)
+3. 点「取消」→ 输入框区收起,refinementRound 不变(仍"剩 2 次")
+4. 不写指令直接「✓ 确认优化」→ 触发 generate(refine_instruction 传空)→ 第 2 轮 → 徽标「第 2 轮迭代」+ 按钮变「(剩 1 次)」
+5. 写指令"节奏更慢"再「✓ 确认优化」→ 触发 generate(refine_instruction 传值)→ 后端按指令重写
+6. 连点 2 次 confirm 后(refinementRound = 2)→ 主按钮消失 / "已达 3 轮迭代上限"灰提示出现
+7. 改主输入文本 → counter 重置「剩 2 次」+ 输入框区(若展开)收起 + refineInstruction 清空
+
+@PM 请地毯审查 🙏
+
+
+---
+
+## [2026-04-28 15:13] @backend · D018b 真机反馈修复 完成 ✅
+
+按 PM spawn 指令完成 D018b 4 项 fix,只动 `sumai/stream.py` + `sumai/stream_en.py` + `sumai/tests/test_context_injection.py` 三文件。**严守 D018a P0 fix 约束(.format() 0 残余)**。
+
+### 一、Fix 1 · 强化 CONTEXT_INJECTION_TEMPLATE 措辞
+
+从 D018a "建议性"升级为"约束性",zh + en 镜像同步:
+- zh 加关键词:**明显改写** / 不要复述 / **明显升级** / 调整结构、强化细节、补充示例
+- en 加关键词:**substantially rewrite** / Do NOT simply repeat / **clearly upgraded**
+- 模板新增 `{refine_instruction_block}` 占位符(给 Fix 2 注入用)
+
+### 二、Fix 2 · 新增 refine_instruction 字段后端解析
+
+**stream.py 顶部新增**(stream_en.py 同步 EN 版):
+
+```python
+REFINE_INSTRUCTION_TEMPLATE = "\n\n【用户具体要求】\n{instruction}\n请严格按此要求调整。"
+
+def resolve_refine_instruction(data):
+    raw = data.get('refine_instruction', '')
+    if not raw: return None
+    value = raw.strip()
+    if not value: return None
+    if len(value) > 1000:
+        value = value[:1000] + "...(已截断)"
+    return value
+```
+
+字段契约:string 可选,1000 字符截断,空值 fallback 友好(等同纯 D018b 强化版 directive,与 @frontend 契约对齐)。
+
+### 三、Fix 3 · 31 端点统一新注入模式(.replace 模式,严禁 .format)
+
+```python
+ctx = resolve_context(data)
+if ctx:
+    refine_inst = resolve_refine_instruction(data)
+    refine_block = REFINE_INSTRUCTION_TEMPLATE.replace("{instruction}", refine_inst) if refine_inst else ""
+    directive = CONTEXT_INJECTION_TEMPLATE.replace("{previous_output}", ctx).replace("{refine_instruction_block}", refine_block)
+    final_system = system + directive
+else:
+    final_system = system
+conversation_history.append({"role": "system", "content": final_system})
+```
+
+- stream.py 17 处(16 处 8 空格 + 1 处 4 空格 `/describeImageStream`,单独处理)
+- stream_en.py 14 处(全 8 空格,用 `_EN` 版本常量)
+- **严禁 .format()**(D018a P0 fix 防回归)— 全文 0 处 .format()
+
+### 四、Fix 4 · test_context_injection.py 加 2 active sensor + 扩展 P0 防御
+
+| Test 名 | 状态 | 验证 |
+|---|---|---|
+| `test_refine_instruction_template_exists` | ✅ PASSED 🆕 | REFINE_INSTRUCTION_TEMPLATE/EN 常量 + 关键短语 + `{instruction}` 占位符 + CONTEXT_INJECTION_TEMPLATE 含 `{refine_instruction_block}` 占位符 + D018b 强化关键词("明显改写"/"明显升级"/"substantially rewrite"/"clearly upgraded") |
+| `test_resolve_refine_instruction_function_exists` | ✅ PASSED 🆕 | `def resolve_refine_instruction(data):` 签名 + `data.get('refine_instruction')` 字段读取 + 1000 字符截断保护 |
+
+扩展原 P0 sensor `test_context_injection_template_exists` 加防御:
+
+```python
+assert "REFINE_INSTRUCTION_TEMPLATE.format(" not in stream_py
+assert "REFINE_INSTRUCTION_TEMPLATE_EN.format(" not in stream_en_py
+```
+
+### 五、grep 计数验证(完全匹配预期)
+
+| 文件 | 符号 | 计数 | 期望 | 状态 |
+|---|---|---|---|---|
+| stream.py | `REFINE_INSTRUCTION_TEMPLATE` | 18 | 1 def + 17 端点 | ✅ |
+| stream.py | `resolve_refine_instruction` | 18 | 1 def + 17 端点 | ✅ |
+| stream.py | `ctx = resolve_context` | 17 | 17 端点 | ✅ |
+| stream_en.py | `REFINE_INSTRUCTION_TEMPLATE_EN` | 15 | 1 def + 14 端点 | ✅ |
+| stream_en.py | `resolve_refine_instruction` | 15 | 1 def + 14 端点 | ✅ |
+| stream_en.py | `ctx = resolve_context` | 14 | 14 端点 | ✅ |
+
+**禁忌检查**:`*TEMPLATE*.format(` 全文计数 = **0** ✅;旧 1-行 pattern 残余 = **0** ✅
+
+### 六、py_compile + pytest 基线
+
+- `python3 -m py_compile sumai/stream.py sumai/stream_en.py` → **OK** ✅
+- `pytest sumai/tests/test_context_injection.py -v` → **5 passed / 1 skipped** ✅(原 3 active + 1 skip + D018b 新 2 active 全 PASS)
+- `pytest sumai/tests/` → **94 passed / 96 skipped / 3 xfailed / 2 xpassed / 0 failed**(基线 92 + 2 D018b 新 sensor,**无回归**)
+- `pytest tests/`(xuhua-wx 根) → **18 passed**(持平)
+
+### 七、与 @frontend 契约对齐确认
+
+读 @frontend 上一条完成消息,契约完全对齐:
+- 字段名 `refine_instruction` ✅(@frontend 双路径都挂)
+- 空字符串视为"用户没填" ✅(后端 `resolve_refine_instruction` 空 → 返 None → refine_block = "")
+- 只在 refinementRound > 0 时挂 ✅(后端无要求,但前端这样做更清晰)
+- 后端 `refine_instruction` 不传 / 空 → 等同 D018b 强化措辞但无【用户具体要求】块 ✅
+
+### 八、风险点(无)
+
+- ✅ 全文 0 处 .format()(D018a P0 防回归)
+- ✅ 31 端点全部一致改动
+- ✅ refine_instruction 不传 / 空 → 等同 D018b 强化措辞版(向后兼容,前端 D018a → D018b 平滑)
+- ✅ context_prompt 不传 / 空 → 整个 directive 不注入(等同 Stage 1)
+- ✅ 不动 system prompt 字符串本身
+- ✅ 不动 validate_and_deduct + save_prompt_record + 路由 routing
+- ✅ 不动 mainv2.py / note.py / pay_stripe.py
+- ✅ 不动其他 sumai/tests/ 文件
+- ✅ py_compile + pytest 全过
+
+### 九、未自行 commit
+
+按协议,等 PM 审查通过后统一 commit。改动文件清单:
+
+**sumai 仓库**(独立 git remote):
+- `sumai/stream.py`(顶部新 REFINE 常量+函数 / 强化 CONTEXT 模板;17 端点 ctx 注入升级)
+- `sumai/stream_en.py`(EN 版镜像同步)
+- `sumai/tests/test_context_injection.py`(新 2 active sensor + 扩展 P0 防御)
+
+**xuhua-wx 仓库**:
+- `.claude/agents/backend-progress/{current,completed,context-for-others}.md`(三件套全更新)
+- `.team-brain/TEAM_CHAT.md`(本条追加)
+
+@PM 请地毯审查 🙏
+
