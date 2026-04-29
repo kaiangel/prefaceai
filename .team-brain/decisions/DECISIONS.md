@@ -261,3 +261,68 @@
 
 **契约新增字段**:`refine_instruction`(string,可选,用户继续优化的具体要求)
 
+
+---
+
+## D020 · D019 v1 真机失败 真因诊断 + D020 修复方案(2026-04-28 PM 地毯审查)
+
+### 真因诊断(PM 深度代码审查发现)
+
+D019 v1 真机测试失败:Founder 用激进指令"禁止用冯·卡门、图灵和帕森斯,换 NASA JPL"
+仍得到冯·卡门 + 帕森斯 + NASA JPL 的输出。地毯审查 stream.py 后定位 4 个真相:
+
+**真相 1**: Pro 用户实际用 **`deepseek-v3-250324`**,不是 Qwen 3.6 Plus(stream.py L275)
+- sumai/CLAUDE.md 文档严重过时(还写 qwen-plus-latest)
+- DeepSeek-V3 在中文 schema 锁定场景下 multi-turn instruction following 有局限
+
+**真相 2**: System Prompt B 是超强 schema 锁定指令(2000+ 字符)
+- "始终保持提示词炼金术士身份" + "确保专家角色与用户需求高度相关" + "π 型角色"
+- 完全是 single-shot prompt optimizer 设计,没有任何 multi-turn handling
+- LLM 优先听 system schema 约束,弱化用户最新指令
+
+**真相 3**: D019 v1 的契约 100% 通(Founder 日志确认 historyTurns: 3, lastUserContent 是用户禁止指令)
+- L181-182 的 `if not history:` 守卫已生效
+- LLM 真的收到 [system, user:A, assistant:C, user:R] 4 条 messages
+- 但 LLM 选择"保留 schema + 局部洗名字"而不是"全部重做"
+
+**真相 4**: P0 fix(commit 7497c5a)在 31 端点全部生效,代码层面无 bug
+
+### 结论
+
+**D019 v1 的契约 100% 通,但 LLM 行为受 system prompt B 锁定 + 模型本身限制**。
+不是工程 bug,是 prompt engineering + 模型选型问题。
+
+### D020 修复决策(Founder 拍板"听你的做")
+
+**3 个并行修复**:
+
+1. **D019 multi-turn footer**(Founder 选方案 A):
+   - 只在 history 非空时,在 system 末尾追加多轮 handling 指令
+   - 强约束:用户禁止的元素绝不出现 / 用户说"换"必须给完全不同的 / 用户说"完全不一样"必须 80%+ 重写
+   - 不动 31 端点的 system prompt 字符串本身,仅追加 footer
+
+2. **多轮 temperature 调高**(0.6 → 0.85):
+   - 仅在 history 非空时调温
+   - 鼓励 LLM 跳出"复述上轮"的概率分布
+   - 初次生成不变(0.6,质量优先)
+
+3. **Pro 模型从 deepseek-v3 切到 qwen3.6-plus**(Founder 额外决策):
+   - 原因 1: 与 sumai/CLAUDE.md 文档不一致(用户体感统一)
+   - 原因 2: Qwen 3.6 Plus 在 multi-turn instruction following 上预期更好
+   - 原因 3: D011 已经决定免费 qwen3.6-flash / Pro qwen3.6-plus 差异化(sumai/.env.example 也是这套);现在补齐 deepseek-v3 这个 mismatch
+   - **免费用户保持 qwen3.6-flash 不变**
+
+### 涉及代码
+
+- `sumai/stream.py` 31 端点 `model_name = "deepseek-v3-250324"` → `"qwen3.6-plus-2026-04-02"`
+- `sumai/stream.py` 31 端点拼装时,history 非空时:
+  - system += FOOTER
+  - temperature = 0.85
+- `sumai/stream_en.py` 镜像
+- `sumai/tests/test_multi_turn_history.py` 加 D020 sensor
+
+### 文档同步
+
+- sumai/CLAUDE.md L122/L130/L247/L259 LLM 表全面修正(Pro qwen3.6-plus / 免费 qwen3.6-flash)
+- KNOWN_ISSUES 加新条:D019 v1 multi-turn 失败诊断 + D020 修复
+

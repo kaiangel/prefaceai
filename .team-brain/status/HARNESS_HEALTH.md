@@ -1,6 +1,6 @@
 # Harness 健康度看板
 
-> 上次更新: 2026-04-28 D019 真·多轮对话 messages history(@tester)
+> 上次更新: 2026-04-28 21:43 D020 防御 sensor(@tester)— footer + 调温 + Pro 模型切换 4 sensor **全 PASS** ✅(@backend 21:42:53 完成 31 端点应用 + Pro 模型切换 + sumai/CLAUDE.md 同步更新)
 > 更新者: PM(Coordinator 兼 PM)
 > 更新频率: 每周一次,或每个重大 TASK 完成后
 
@@ -45,11 +45,15 @@
 | ~~complexity 三档 directive(D016)~~ | ~~test_complexity.py~~ | ❌ **D017 (2026-04-28) 下架** — Founder verdict "鸡肋",@backend 删 stream.py 顶部 dict + 函数,@tester 删测试文件 |
 | ~~Stage 2 上下文注入(D018a/b system prompt 注入)~~ | ~~test_context_injection.py~~ | ❌ **D019 (2026-04-28) 下架** — Founder 真机反馈 D018a/b directive 注入 LLM 仍复述不改写,真因是非真·多轮对话;改用 messages history extend(下方 D019 sensor) |
 | **Stage 2 D019 真·多轮对话 (messages history)** | test_multi_turn_history.py(3 active + 1 skip) | ✅ **3/3 active passed + 1 skip stub**(DEFAULT_REFINE_FALLBACK + HISTORY_CHAR_BUDGET + def resolve_history + 31 端点 extend grep + role 白名单/JSON 容错/单 5000+总 6000 截断 隔离 exec 验证) |
+| **Stage 2 D020 multi-turn footer 常量(防误删/简化)** | test_d020_multi_turn_footer_constant_exists | ✅ **PASS**(MULTI_TURN_FOOTER + MULTI_TURN_FOOTER_EN 顶部定义,关键短语锁定:zh "多轮对话特别处理"/"最高优先级"/"禁止用 X"/"换一个"/"完全不一样";en "multi-turn special handling"/"highest priority"/"do not use"/"completely different") |
+| **Stage 2 D020 multi-turn temperature 调高** | test_d020_multi_turn_temperature_is_increased | ✅ **PASS**(MULTI_TURN_TEMPERATURE = 0.85 + EN 同步,>= 0.8 阈值,鼓励 LLM 跳出"复述上轮"概率分布) |
+| **Stage 2 D020 Pro 模型 qwen3.6-plus(防回归 deepseek-v3)** | test_d020_pro_model_is_qwen_not_deepseek | ✅ **PASS**(`deepseek-v3-250324` 0 hits 完全清除,`qwen3.6-plus-2026-04-02` 已切换,`qwen3.6-flash-2026-04-16` 免费分支保留) |
+| **Stage 2 D020 31 端点应用 footer + 调温** | test_d020_endpoints_apply_footer_when_history_present | ✅ **PASS**(stream.py MULTI_TURN_FOOTER 35 / MULTI_TURN_TEMPERATURE 35;stream_en.py MULTI_TURN_FOOTER_EN 29 / MULTI_TURN_TEMPERATURE_EN 29;final_system zh 85 / en 70;final_temperature zh 68 / en 56 — 全部远超阈值) |
 | **/wanxiangStream 注册存在** | test_orphan_endpoints::test_wanxiang_stream_is_present | ✅ R3-D xfail 已移除,改为正向断言(本地 skip 因缺 app fixture,生产 venv pass) |
 | **wanxiangStream 用 Qwen(合规)** | test_qwen_client::test_wanxiang_stream_uses_qwen | ✅ passed(R3-D 替代旧 test_hunyuan_stream_uses_qwen) |
 | **/hunyuanStream 已下架** | test_endpoints_exist + test_sse_stream_structure 列表 | ✅ R3-D 已替换为 /wanxiangStream(本地 skip,生产 venv pass) |
 
-**合计**: 193 个 test case,**92 passed / 96 skipped / 3 xfailed / 2 xpassed**(D019 基线 [2026-04-28]。删除 test_context_injection.py(D018a/b system prompt 注入路线被 D019 真·多轮对话替代,5 active + 1 skip 全删);新建 test_multi_turn_history.py(3 active + 1 skip,resolve_history + 31 端点 extend 静态扫描 + role 白名单/JSON 容错/截断 隔离 exec 功能验证)。total -3+3=0, passed 92 持平 D018a 基线,skipped 96 持平。)
+**合计**: 198 个 test case,**97 passed / 0 failed / 96 skipped / 3 xfailed / 2 xpassed**(D020 收尾 [2026-04-28 21:43]。新增 test_d020_multi_turn_footer_constant_exists / test_d020_multi_turn_temperature_is_increased / test_d020_pro_model_is_qwen_not_deepseek / test_d020_endpoints_apply_footer_when_history_present 共 4 个 active sensor 全 PASS;@backend 21:42:53 完成 31 端点 footer + 调温应用 + Pro 模型切换 deepseek-v3 → qwen3.6-plus(stream.py + stream_en.py)+ sumai/CLAUDE.md D020 闭环同步。passed +5 vs D019 基线 92,total +5 vs D019 193。)
 
 ---
 
@@ -109,6 +113,30 @@
 ---
 
 ## 最近变更记录
+
+- **2026-04-28 21:43 D020 收尾 — 4 sensor 全 PASS(@tester + @backend 协同)**:
+  - **背景**: D019 v1 真机失败 → PM 地毯审查 4 真相:Pro 实际 deepseek-v3(非 Qwen 3.6 Plus,文档过时);System Prompt B 是 2000+ 字符 schema 锁定无 multi-turn handling;D019 契约 100% 通,LLM 行为受 system + 模型双重限制选"保留 schema + 局部洗名字";不是工程 bug 是 prompt engineering + 模型选型问题。
+  - **D020 三件套修复**(Founder 拍板"听你的做"):(A)history 非空时 system 末尾追加 MULTI_TURN_FOOTER 强约束指令;(B)多轮 temperature 0.6 → 0.85(history 非空时调温,初次保持 0.6);(C)Pro 模型 deepseek-v3 → qwen3.6-plus-2026-04-02(免费保持 qwen3.6-flash-2026-04-16)。
+  - **新增 4 个 active sensor 追加到 `tests/test_multi_turn_history.py`**(总 ~680 行):
+    - `test_d020_multi_turn_footer_constant_exists`: stream.py + stream_en.py 顶部 MULTI_TURN_FOOTER / _EN 常量定义存在;关键短语锁定 — zh `多轮对话特别处理` / `最高优先级` / `禁止用` / `换一个` / `完全不一样`,en `multi-turn special handling` / `highest priority` / `do not use` / `completely different`(防误删/简化)→ ✅ **PASS**
+    - `test_d020_multi_turn_temperature_is_increased`: stream.py + stream_en.py MULTI_TURN_TEMPERATURE / _EN 常量值 >= 0.8(D020 拍板 0.85,防回滚到 0.6 单档)→ ✅ **PASS**
+    - `test_d020_pro_model_is_qwen_not_deepseek`: stream.py + stream_en.py 不含 `deepseek-v3-250324`,含 `qwen3.6-plus-2026-04-02`(Pro)+ `qwen3.6-flash-2026-04-16`(免费)— 防回归 deepseek-v3 / 漏切 / 漏接 EN 版 → ✅ **PASS**
+    - `test_d020_endpoints_apply_footer_when_history_present`: 31 端点(zh 17 + en 14)grep 计数 — MULTI_TURN_FOOTER 引用 >= 18 / MULTI_TURN_TEMPERATURE >= 18 / MULTI_TURN_FOOTER_EN >= 15 / MULTI_TURN_TEMPERATURE_EN >= 15;final_system / system_with_footer / multi_turn_system 变量名 zh >= 17 / en >= 14;final_temperature / multi_turn_temperature / effective_temperature 变量名 zh >= 17 / en >= 14(防漏接端点 / 命名误差)→ ✅ **PASS**
+  - **实测 D020 grep 计数(全部远超 sensor 阈值)**:
+    - stream.py `MULTI_TURN_FOOTER` = **35** / `MULTI_TURN_TEMPERATURE` = **35**(阈值 18)
+    - stream_en.py `MULTI_TURN_FOOTER_EN` = **29** / `MULTI_TURN_TEMPERATURE_EN` = **29**(阈值 15)
+    - stream.py `final_system` = **85** / `final_temperature` = **68**(阈值 17)
+    - stream_en.py `final_system` = **70** / `final_temperature` = **56**(阈值 14)
+    - stream.py `qwen3.6-plus-2026-04-02` = **2** / stream_en.py = **1**
+    - stream.py + stream_en.py `deepseek-v3-250324` = **0**(完全清除)
+  - **协同时间线**:
+    - 21:36 @tester 启动,发现 stream.py + stream_en.py mtime 21:35 刚动,顶部常量已就位但 31 端点未应用
+    - 21:38 @tester 追加 4 sensor + 跑回归(2 PASS / 2 FAIL,反映实时进度)
+    - 21:42:53 @backend 完成 31 端点应用 + Pro 模型切换 + sumai/CLAUDE.md D020 闭环同步
+    - 21:43 @tester 重跑回归 4/4 PASS,确认 D020 sensor 闭环
+  - **基线**: xuhua-wx 18/18 passed(持平,零回归) | sumai **97 passed / 0 failed / 96 skipped / 3 xfailed / 2 xpassed = 198 total**(passed +5 vs D019 基线 92,total +5 vs D019 193)
+  - **风险提示**: @backend `backend-progress` 三件套时间戳停在 16:21 D019,**未刷新到 D020** — 建议 PM 监督 @backend 完成 D020 三件套刷新
+  - **预期效果(待真机验证)**: D020 上线后真机多轮"完全不一样"指令应得到与上轮 80%+ 不同的输出(footer 强约束 + 调温 + Qwen 3.6 Plus 多轮 instruction following 改善)。建议 Founder/PM 触发真机回归 5 关键流程 + 1 多轮"完全不一样"测试。
 
 - **2026-04-28 D019 真·多轮对话 messages history(@tester)**:
   - **删除 `tests/test_context_injection.py`**(D018a/b 整套 system prompt 注入测试,5 active + 1 skip):D018a/b 用 system prompt 注入 context_prompt + refine_instruction 让 LLM "继续优化",Founder 真机反馈仍然复述不改写 — 真因是非真·多轮对话,LLM 缺乏"前一轮我说过什么、用户的反馈"的真实上下文。D019 改用 messages history extend(真·多轮对话)替代,旧测试整套淘汰。

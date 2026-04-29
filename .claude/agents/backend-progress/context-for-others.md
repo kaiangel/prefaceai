@@ -1,24 +1,30 @@
 # Backend(后端) - 给其他角色的上下文
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 (D019 真·多轮对话改造完成)
+> 上次更新: 2026-04-28 (D020 多轮 footer + 调温 + Pro 切 Qwen)
 > 角色: backend
 
 ---
 
 ## 当前状态速览
 
-[2026-04-28] **D019 真·多轮对话改造 完成**(Stage 2,替代 D018a/b 伪上下文注入):
+[2026-04-28] **D020 真·多轮对话二次修复 完成**(承接 D019 v1 真机失败诊断):
 
-- ✨ D018a/b 整套(`CONTEXT_INJECTION_TEMPLATE` / `REFINE_INSTRUCTION_TEMPLATE` /
-  `resolve_context` / `resolve_refine_instruction`)在 stream.py + stream_en.py 完全清除
-- ✨ 新增 D019 基础设施:`DEFAULT_REFINE_FALLBACK` 常量 + `HISTORY_CHAR_BUDGET=6000` +
-  `resolve_history()` 函数(role 白名单 + JSON 容错 + 三层截断)+ `_log_d019_assembly()` helper
-- ✨ 31 SSE 端点(stream.py 17 + stream_en.py 14)统一改为 `[system, ...history, current_user]`
-  顺序的 conversation_history 拼装,不再追加 directive
-- ✨ 详细 [D019] 日志全覆盖(50 处),Founder 强制要求,便于真机调试
-- ✅ 全文 0 处 .format()(D018a P0 fix 永久红线,D019 用 json.loads + .replace 不冲突)
-- ✅ py_compile + pytest 92 passed,test_multi_turn_history 4 sensor 3 PASS / 1 SKIP
+- ✨ 新增 `MULTI_TURN_FOOTER` + `MULTI_TURN_TEMPERATURE = 0.85`(zh/en 各一份),history 非空时拼到 system 末尾,强约束 LLM 严格按用户最新指令重做
+- ✨ 31 端点 generate() 内拼装时按 history 切 `final_system` / `final_temperature`,初次模式完全不变(向后兼容)
+- ✨ `botPromptStreamBak` Pro 路径切换 `deepseek-v3-250324` → `qwen3.6-plus-2026-04-02`(D011 闭环,免费保持 `qwen3.6-flash` + 豆包路径不动)
+- ✨ `sumai/CLAUDE.md` LLM 模型表全面修正(qwen-plus-latest / claude-haiku-4-5 / deepseek-v3 历史字样修正,D011 + D020 简要说明)
+- ✨ [D020] 详细 print 日志(每端点 ≥ 2 处,Founder 强制要求,stream.py 51 处 + stream_en.py 42 处)
+- ✅ 全文 0 处 `.format()`(D018a P0 永久红线)
+- ✅ deepseek-v3-250324 全清零
+- ✅ 不动 D019 基础设施(`resolve_history` / `_log_d019_assembly` / role 白名单 / JSON 容错完整保留)
+- ✅ py_compile + pytest 97 passed(基线 92 + @tester 预先添加的 4 个 D020 sensor + 1 dup_user sensor 全 PASS,无回归)
+
+### D019 状态(本次保留 + 叠加 footer)
+
+- ✅ D019 真·多轮对话基础设施 100% 保留(messages 顺序 `[system+footer, ...history, current_user]`)
+- ✅ D018a/b 整套已在 D019 时清除(本次未涉及)
+- ✅ history JSON 解析 / role 白名单 / 三层截断 全保留
 
 ---
 
@@ -215,33 +221,39 @@ Qwen 3.6 Plus max_tokens=8630 token ≈ 25KB 字符,**安全余量充足**。
 ## 给 PM: KNOWN_ISSUES / DECISIONS 状态更新建议
 
 可在 KNOWN_ISSUES.md / DECISIONS.md 标:
-- **D019 真·多轮对话改造 ✅ backend 已完成**(待 PM commit + @frontend / @tester 同轮完成后整体上线)
-- D018a / D018b 状态更新:**已废弃,被 D019 取代**(KNOWN_ISSUES 加 STAGE-2 D019 verdict 替代 D018a/b 条目)
-- 不动 RED-001 / RED-002 / RED-003 状态
-- D018a P0 fix(709335c).format() → .replace() 不再相关(D019 不用任何 .format,用 json.loads + .replace)
+- **D020 多轮 footer + 调温 + Pro 切 Qwen ✅ backend 已完成**(待 PM 地毯审查 → 统一 commit)
+- KNOWN_ISSUES Stage 2 D019 v1 verdict 段:可加补充行"D020 修复已上线 backend,待真机验证"
+- 不动 RED-001 / RED-002 / RED-003 状态(D020 不涉及)
+- sumai/CLAUDE.md L424 RED-001 段已标 ✅ 已解决(Wave 1 + D020 闭环)— 可同步 KNOWN_ISSUES
+- D018a P0 fix `.format()` → `.replace()` 不再相关(D020 不用任何 format,用字符串拼接)
 
 PENDING.md 可标:
-- D019 backend ✅(本次完成,3 sensor 全过 + 1 stub)
-- D019 frontend / D019 tester — 等同轮完成
+- D020 backend ✅(本次完成,4 个 D020 sensor 全过 + 1 dup_user sensor 全过)
+- D020 真机验证 — 等 PM 统一 commit 后 push 到 sumai 远程,Founder 真机回归"禁止 X"指令场景
 
 PM 地毯审查关注点(memory feedback_carpet_code_review.md):
-1. ✅ 31 端点全部一致替换(grep `history = resolve_history(data)` = 17 + 14 = 31)
-2. ✅ messages 顺序 [system, ...history, current_user] 严守(看 _log_d019_assembly role 序列)
-3. ✅ system 始终 messages[0](LLM chat completion 规范)
-4. ✅ /describeImageStream 4 空格特殊处理正确(image+text user 在 generate 内 append)
-5. ✅ resolve_history role 白名单 + JSON 容错 + 三层截断(smoke 8 用例验证)
-6. ✅ 0 处 .format()(D018a P0 防回归)
-7. ✅ DEFAULT_REFINE_FALLBACK / HISTORY_CHAR_BUDGET / resolve_history / _log_d019_assembly 全 4 个 D019 符号 stream.py + stream_en.py 都有
-8. ✅ [D019] 日志全覆盖:请求入口 / history 解析 / 拼装完成 / role 序列 / 最后 user / 响应完成 / EN 镜像
-9. ✅ 不引入新 Python 包
+1. ✅ MULTI_TURN_FOOTER 文案是否足够强约束(对照 Founder 真机失败案例:NASA JPL / 冯·卡门 / 帕森斯)
+2. ✅ 31 端点全部一致替换(grep `final_temperature` = 17×4 / 14×4 精确匹配)
+3. ✅ messages 顺序 `[system+footer, ...history, current_user]` 严守(看 _log_d019_assembly role 序列)
+4. ✅ describeImageStream 4-空格特殊处理(generate() 外切 final_system,内 chat call 用 final_temperature)
+5. ✅ botPromptStreamBak Pro 切 qwen3.6-plus(免费豆包路径完全不动)
+6. ✅ deepseek-v3-250324 全清零(grep = 0)
+7. ✅ 0 处 `.format()`(D018a P0 永久红线)
+8. ✅ [D020] 日志全覆盖(每端点 ≥ 2 处:模式启用 + 最终调用)
+9. ✅ sumai/CLAUDE.md 文档同步(qwen-plus-latest / claude-haiku-4-5 历史字样修正)
+10. ✅ 不引入新 Python 包,不动 D019 基础设施,不动 system prompt 字符串本身
 
 ---
 
 ## 历史变更记录
 
-### [2026-04-28] D019 真·多轮对话改造(本次)
+### [2026-04-28] D020 多轮 footer + 调温 + Pro 切 Qwen + sumai/CLAUDE.md 同步(本次)
 
-详见 `current.md` + `completed.md`。
+详见 `current.md` + `completed.md`。**保留**。
+
+### [2026-04-28] D019 真·多轮对话改造
+
+详见 `completed.md`。**保留**(D019 基础设施被 D020 叠加使用)。
 
 ### [2026-04-28] D018b 真机反馈修复
 

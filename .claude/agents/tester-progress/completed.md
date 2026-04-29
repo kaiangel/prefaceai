@@ -1,12 +1,81 @@
 # Tester(测试) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 D019 真·多轮对话 messages history sensor
+> 上次更新: 2026-04-28 21:38 D020 防御 sensor 4 个就位
 > 角色: tester
 
 ---
 
 ## 已完成任务
+
+### 2026-04-28 21:43 D020 防御 sensor 4/4 PASS(footer + 调温 + Pro 模型 + 31 端点应用)
+
+**背景**: D019 v1 真机失败 → PM 地毯审查 4 真相(Pro 实际 deepseek-v3 文档过时;System Prompt B 2000+ 字符 schema 锁定;契约 100% 通但 LLM 受 system + 模型双重限制选保留 schema + 局部洗名字;不是工程 bug 是 prompt engineering + 模型选型)。
+
+**D020 三件套修复**(Founder 拍板):
+- A. history 非空时 system 末尾追加 MULTI_TURN_FOOTER 强约束指令
+- B. 多轮 temperature 0.6 → 0.85(初次保持 0.6)
+- C. Pro 模型 deepseek-v3 → qwen3.6-plus-2026-04-02(免费保持 qwen3.6-flash)
+
+**Step 1 — 读上下文 + 检查 @backend 进度** ✅
+- TEAM_CHAT 最新 + DECISIONS D020 全文
+- stream.py / stream_en.py mtime Apr 28 21:35(@backend 在改),顶部常量 MULTI_TURN_FOOTER + MULTI_TURN_TEMPERATURE = 0.85 已就位
+- 31 端点应用未完成(grep MULTI_TURN_FOOTER 引用 = 1)+ stream.py L317 仍 deepseek-v3-250324
+- backend-progress 三件套停 16:21 D019 未刷新
+
+**Step 2 — 追加 4 个 D020 active sensor(test_multi_turn_history.py 末尾 ~230 行)** ✅
+
+| # | Test | 类型 | 最终状态 |
+|---|------|------|--------|
+| 6 | `test_d020_multi_turn_footer_constant_exists` | active 静态扫描 | ✅ **PASS** |
+| 7 | `test_d020_multi_turn_temperature_is_increased` | active 静态扫描 | ✅ **PASS** |
+| 8 | `test_d020_pro_model_is_qwen_not_deepseek` | active 静态扫描 | ✅ **PASS** |
+| 9 | `test_d020_endpoints_apply_footer_when_history_present` | active 静态扫描(grep) | ✅ **PASS** |
+
+**Test 6** zh 关键短语锁定:多轮对话特别处理 / 最高优先级 / 禁止用 / 换一个 / 完全不一样;en: multi-turn special handling / highest priority / do not use / completely different(忽略大小写)
+
+**Test 7** MULTI_TURN_TEMPERATURE / _EN >= 0.8(D020 拍板 0.85),正则抽取浮点值 + float() 断言
+
+**Test 8** 不含 deepseek-v3-250324 + 含 qwen3.6-plus-2026-04-02 + 含 qwen3.6-flash-2026-04-16
+
+**Test 9** 31 端点 grep 计数:
+- MULTI_TURN_FOOTER zh >= 18(1 def + 17 端点)+ MULTI_TURN_TEMPERATURE >= 18
+- MULTI_TURN_FOOTER_EN en >= 15(1 def + 14 端点)+ MULTI_TURN_TEMPERATURE_EN >= 15
+- final_system / system_with_footer / multi_turn_system 任一,zh >= 17 / en >= 14
+- final_temperature / multi_turn_temperature / effective_temperature 任一,zh >= 17 / en >= 14
+
+**Step 3 — 全量回归** ✅
+- xuhua-wx 18/18 PASS(零回归)
+- sumai **97 passed / 0 failed / 96 skipped / 3 xfailed / 2 xpassed = 198 total**(超过预期 96 passed,+5 vs D019 基线 92)
+- 4 D020 sensor 全 PASS,远超阈值(MULTI_TURN_FOOTER 35/18,final_system 85/17,等)
+
+**Step 4 — HARNESS_HEALTH.md 更新** ✅
+- Sensor 表 +4 行
+- 合计行更新: 198 total / 97 passed / 0 failed
+- 最近变更记录追加详细 D020 段(背景 + 4 sensor 设计 + 完成确认)
+
+**Step 5 — TEAM_CHAT 完成消息追加 + 三件套刷新** ✅
+
+**Step 6 — 与 @backend 协同**:启动检查发现 stream.py 21:35 mtime 在动,@backend 还在做 31 端点应用阶段。我编写 sensor + 文档过程中(21:38 → 21:43,5 分钟)@backend 完成所有改动,sumai/CLAUDE.md 同步更新到 D020 闭环。最终 4 sensor 全 PASS。
+
+**关键测试数据**:
+
+| 测试套 | D019 收尾基线 | D020 收尾(本轮) | 变化 |
+|---|---|---|---|
+| xuhua-wx | 18 passed | **18 passed** ✅ | 持平 |
+| sumai passed | 92 | **97 passed** ✅ | **+5** |
+| sumai failed | 0 | **0** ✅ | 持平 |
+| sumai total | 193 | **198** | +5 |
+
+**实测 D020 grep 计数(全部远超 sensor 阈值)**:
+- stream.py `MULTI_TURN_FOOTER` = 35 / `MULTI_TURN_TEMPERATURE` = 35
+- stream_en.py `MULTI_TURN_FOOTER_EN` = 29 / `MULTI_TURN_TEMPERATURE_EN` = 29
+- stream.py `final_system` = 85 / `final_temperature` = 68
+- stream_en.py `final_system` = 70 / `final_temperature` = 56
+- stream.py `qwen3.6-plus-2026-04-02` = 2 / stream_en.py = 1
+- stream.py + stream_en.py `deepseek-v3-250324` = 0(完全清除)
+
+---
 
 ### 2026-04-28 D019 真·多轮对话 messages history sensor(替代 D018a/b)
 
@@ -177,6 +246,8 @@
 
 ## 上次更新记录
 
+- **2026-04-28 21:43 D020 收尾**: 4 D020 active sensor 全 PASS,xuhua-wx 18 / sumai 97 passed / 0 failed / 96 skipped / 3 xfailed / 2 xpassed = 198 total
+- **2026-04-28 21:38 D020**: 追加 4 D020 active sensor(2 PASS + 2 等 @backend),HARNESS_HEALTH 更新,xuhua-wx 18 / sumai 95+2/96/3/2
 - **2026-04-28 D019**: 删 test_context_injection.py + 新建 test_multi_turn_history.py(3 active + 1 skip)+ HARNESS_HEALTH 更新
 - 2026-04-28 D017+D018a: 删 test_complexity.py + 新建 test_context_injection.py(D019 已删)
 - 2026-04-25 Wave 2 Round 3 D: R3-D 收尾 — 测试激活 + 旧测试删除 + W2-2 fallout + 全量回归

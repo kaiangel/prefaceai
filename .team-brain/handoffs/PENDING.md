@@ -236,3 +236,27 @@
 - **工作量**: @frontend 0.5 天
 - **触发条件**: 真机测试快速双击 + 可观察用户报告"扣了 2 次没多优化"
 
+
+---
+
+## 2026-04-28 PM · D020 真·多轮对话二次修复(D019 v1 真机失败后)
+
+### 🚀 启动中
+
+- @backend D020 三件套合并(stream.py + stream_en.py 31 端点):
+  1. 多轮 footer 追加(history 非空时拼接到 system 末尾)
+  2. 多轮温度切换(0.6 → 0.85)
+  3. Pro 模型修正(deepseek-v3-250324 → qwen3.6-plus-2026-04-02,免费不变 qwen3.6-flash-2026-04-16)
+- @backend 顺手修 sumai/CLAUDE.md 过时的 LLM 模型表(L122/L130/L247/L259)
+- @tester D020 测试 sensor:
+  - footer 字符串存在 sensor
+  - history 非空时 system contains footer 关键词
+  - 多轮 temperature 切换 sensor
+  - Pro 模型 qwen3.6-plus sensor
+
+### 🟡 P3 follow-up(D020 后观察期)
+
+- 真机 A/B 验证多轮听话度(Founder 用激进指令测试)
+- 如果 D020 还不行 → 升级方案 B(history 翻译成单条 user message)
+- F-2 GET URL 长度风险持续观察(history 累积可能超 nginx 8KB)
+

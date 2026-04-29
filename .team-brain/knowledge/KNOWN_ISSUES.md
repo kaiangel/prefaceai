@@ -381,3 +381,41 @@
 - UI 不展示历史(选项 a)
 - 输入框 placeholder 改"告诉 AI 要怎么改(如:换个场域和角色...)"
 - 跳过填写时给默认兜底"请基于以上输出做明显改进"
+
+---
+
+## STAGE-2 · D019 v1 真·多轮对话失败诊断(2026-04-28 PM)
+
+### 现象
+
+D019 真·多轮对话上线后,Founder 真机测试发现 LLM 仍不听用户的"禁止"指令。
+用户写"禁止用冯·卡门、图灵和帕森斯,换 NASA JPL 和数字孪生实验室",输出 E 仍含
+冯·卡门 + 帕森斯 + NASA JPL。
+
+### 真因(地毯审查发现)
+
+| # | 真因 | 证据 |
+|---|---|---|
+| 1 | **Pro 用 deepseek-v3-250324 不是 Qwen** | stream.py L275(sumai/CLAUDE.md 文档过时未提)|
+| 2 | **System Prompt B 完全无 multi-turn handling** | 2000+ 字符 schema 锁定指令,设计为 single-shot |
+| 3 | 契约层面 100% 通过 | Founder 日志 historyTurns: 3 + lastUserContent 是禁止指令 ✅ |
+| 4 | P0 fix `if not history:` 守卫 31 端点全生效 | 代码 grep 验证 ✅ |
+
+### 关键洞察
+
+LLM 看到:
+- system: 强 schema 约束("始终保持炼金术士身份" + "专家与需求高度相关" + 完整输出格式)
+- history: [user:A, assistant:C, user:R(禁止指令)]
+
+LLM 选择最大化"遵守 system" → 保留 schema(必须 π 型角色 / 必须 NASA-级机构 / 必须按 schema 输出)
++ 局部洗名字(假装满足用户禁止)。
+
+### D020 修复(2026-04-28 启动)
+
+详见 DECISIONS.md D020。三件套并行:
+1. **D019 multi-turn footer**(history 非空时追加强约束)
+2. **多轮温度 0.6 → 0.85**
+3. **Pro 模型 deepseek-v3 → qwen3.6-plus**(免费保持 qwen3.6-flash)
+
+如果 D020 仍不行 → 升级架构改造方案(history 翻译成单条 user message,LLM 不直接看到 assistant 消息避免锚定)。
+

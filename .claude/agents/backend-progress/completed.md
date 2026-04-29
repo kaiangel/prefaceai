@@ -1,12 +1,118 @@
 # Backend(后端) - 已完成任务记录
 
 > 创建日期: 2026-04-24
-> 上次更新: 2026-04-28 (D019 真·多轮对话改造)
+> 上次更新: 2026-04-28 (D020 多轮 footer + 调温 + Pro 切 Qwen)
 > 角色: backend
 
 ---
 
 ## 已完成任务
+
+### [2026-04-28] D020 · Stage 2 真·多轮对话二次修复(D019 v1 真机失败诊断后)✅
+
+- **任务编号**: D020 backend(独占,@tester 同轮预先添加 4 个防御 sensor)
+- **决策依据**: D020(2026-04-28 PM 地毯审查 + Founder 拍板"听你的做")— D019 v1 真机仍失败诊断
+- **背景**:
+  - 真因 1: Pro 路径用 `deepseek-v3-250324`(stream.py L279)不是 Qwen,文档过时未提
+  - 真因 2: System Prompt B 是 2000+ 字符 schema 锁定,完全无 multi-turn handling
+  - 真因 3: D019 契约 100% 通,但 LLM 选"保留 schema + 局部洗名字"
+- **PM 审查 SOP**: 必须地毯审查(memory feedback_carpet_code_review.md)
+
+#### 修改文件清单
+
+| 文件 | 改动摘要 | 净行数 |
+|---|---|---|
+| `sumai/stream.py` | 顶部新增 `MULTI_TURN_FOOTER` + `MULTI_TURN_TEMPERATURE = 0.85` 常量(D019 基础设施之后) · 17 端点(16 标准 + 1 describeImageStream 4-空格)拼装时按 history 切 final_system/final_temperature · botPromptStreamBak Pro 路径切 qwen3.6-plus(原 deepseek-v3-250324)+ DashScope client · 51 处 [D020] print 日志 | +约 380 |
+| `sumai/stream_en.py` | EN 版镜像:`MULTI_TURN_FOOTER_EN` + `MULTI_TURN_TEMPERATURE_EN = 0.85` · 14 端点同步切换 · 42 处 [D020] EN 日志 | +约 300 |
+| `sumai/CLAUDE.md` | LLM 模型表全面更正:全部 16 端点底层 LLM 改为 Qwen 3.6 Plus / Flash · `botPromptStreamBak` 标注 D020 切换说明 · `/wanxiangStream` 加入(D010 方案 Y 已上线) · `/hunyuanStream` 标注下架 · LLM 集成现状段重写(qwen-plus-latest / claude-haiku-4-5 历史字样修正) · RED-001/002 + YELLOW-001 标记 ✅ 已解决 · 新增"已弃用模式"段落(get_claude_client_and_config + deepseek-v3 死代码) | 净 +约 50 |
+
+#### Step 总览
+
+1. **Fix 1 顶部常量** → `MULTI_TURN_FOOTER`(zh)+ `MULTI_TURN_FOOTER_EN`(en)+ 各自 `MULTI_TURN_TEMPERATURE` = 0.85
+2. **Fix 2 31 端点切换** → 每端点 if history 拼 footer + 温度 0.85,else 保持 system + 温度 0.6;chat completion 调用切 `temperature=final_temperature`
+3. **Fix 3 botPromptStreamBak Pro 切 qwen3.6-plus** → 仅改 if is_pro == 1 分支内的 client + model_name(免费豆包路径完全不动)
+4. **Fix 4 sumai/CLAUDE.md 文档同步** → 6 大段落更新(状态 / 端点表 / LLM 集成 / RED-001 / RED-002 / YELLOW-001)
+5. **Fix 5 [D020] 详细 print 日志** → 每端点 ≥ 2 处(模式启用 + 最终调用)
+
+#### 批量改造方法
+
+写 `/tmp/d020_apply.py` Python 脚本一次性精确替换:
+- 模式 A:30 处 8-空格 D019 注入块(stream.py 16 + stream_en.py 14)
+- 模式 B:1 处 4-空格 describeImageStream(stream.py)
+- 模式 C:1 处 botPromptStreamBak Pro 模型切换(stream.py)
+- 替换前后均做计数 + 必备符号 + 禁忌字样验证(任一失败 abort 不写文件)
+- 用普通字符串(非 raw)写 replacement,避开 raw string `\\"` 转义陷阱(v1 踩过坑,v2 修复)
+
+避免 31 次手动 Edit 累积出错风险。
+
+#### grep 计数验证(全部匹配预期)
+
+| 文件 | 符号 | 实际 | 期望 |
+|---|---|---|---|
+| stream.py | `MULTI_TURN_FOOTER` | 35 | ≥ 18 ✅ |
+| stream.py | `MULTI_TURN_TEMPERATURE` | 35 | ≥ 18 ✅ |
+| stream.py | `final_temperature` | 68 | 17 × 4 = 68 ✅ 精确 |
+| stream.py | `[D020]` 日志 | 51 | ≥ 34 ✅ |
+| stream.py | `qwen3.6-plus-2026-04-02` | 2 | 2 ✅ |
+| stream.py | `qwen3.6-flash-2026-04-16` | 1 | 1 ✅ |
+| stream.py | `temperature=temperature,` | 0 | = 0 ✅ |
+| stream.py | `deepseek-v3-250324` | 0 | = 0 ✅ |
+| stream_en.py | `MULTI_TURN_FOOTER_EN` | 29 | ≥ 15 ✅ |
+| stream_en.py | `MULTI_TURN_TEMPERATURE_EN` | 29 | ≥ 15 ✅ |
+| stream_en.py | `final_temperature` | 56 | 14 × 4 = 56 ✅ 精确 |
+| stream_en.py | `[D020]` 日志 | 42 | ≥ 28 ✅ |
+| stream_en.py | `temperature=temperature,` | 0 | = 0 ✅ |
+| stream_en.py | `deepseek-v3-250324` | 0 | = 0 ✅ |
+
+**禁忌检查**:
+- `.format(` 残留 = 0 ✅(D018a P0 永久红线)
+- D018a/b `CONTEXT_INJECTION_TEMPLATE` / `REFINE_INSTRUCTION_TEMPLATE` 残留 = 0 ✅
+- raw string 错误转义 `\"` 残留 = 0 ✅
+
+#### 基线测试
+
+- `python3 -m py_compile sumai/stream.py sumai/stream_en.py` → **OK** ✅
+- `pytest sumai/tests/` → **97 passed / 96 skipped / 3 xfailed / 2 xpassed / 0 failed**(基线 92 passed +5,@tester 同轮添加的 D020 sensor 全 PASS)
+- `pytest tests/` → **18 passed** ✅(持平)
+
+#### 关键设计决策
+
+1. **footer 是叠加,不是替换** — D019 基础设施完整保留,footer 仅在 history 非空时拼到 system 末尾
+2. **`final_system` / `final_temperature` 局部变量** — 不动 system / temperature 原变量(避免影响其他逻辑)
+3. **botPromptStreamBak 保守改造** — 只动 if is_pro == 1 分支内 4 行(切 client + model + 温度 + max),不动外层 doubao client + 不动后面 system prompt 字符串
+4. **describeImageStream 4-空格特殊处理** — D020 切换在 generate() 外(端点函数顶层),`final_system` / `final_temperature` 被 generate() 闭包捕获,内 chat call 切到 final_temperature(模型用 `qwen3-vl-plus`)
+5. **`request.path` 自动取端点名** — 避免硬编码 31 处
+6. **batch script 严格验证** — 替换前后做计数 + 必备符号 + 禁忌字样检查,任一失败 abort
+
+#### 给其他角色的契约
+
+- **@frontend**: D020 完全是后端内部行为,前端契约 0 改动(`history` 字段格式不变)。后端日志 `[D020]` 前缀 + `[D019]` 前缀(已部署),Founder 真机调试时 grep 两个 tag 即可看到完整对话流
+- **@tester**: 4 个 D020 sensor 已 PASS(test_multi_turn_history.py),原 D019 sensor 共 8 active 全 PASS + 1 skip stub(等 Flask test client + LLM mock)
+- **@devops**: 无新环境变量(QWEN_API_KEY 已存在),无新依赖,部署 = 单独 sumai 后端 push + supervisorctl restart
+
+#### 已完成的子任务
+
+- [x] Fix 1 stream.py + stream_en.py 顶部 D020 常量
+- [x] Fix 2 31 端点拼装时按 history 切换(16 zh 标准 + 1 zh describeImage + 14 en = 31)
+- [x] Fix 3 botPromptStreamBak Pro deepseek-v3 → qwen3.6-plus(D011 闭环)
+- [x] Fix 4 sumai/CLAUDE.md 6 段更正
+- [x] Fix 5 [D020] 详细 print 日志(每端点 ≥ 2 处)
+- [x] py_compile + pytest 全过
+- [x] grep 计数 + 禁忌检查全过
+
+#### 验收标准达成
+
+| # | 验收 | 状态 |
+|---|---|---|
+| 1 | MULTI_TURN_FOOTER + MULTI_TURN_TEMPERATURE 常量(zh + en 各一份) | ✅ |
+| 2 | 31 端点 history 非空时拼 footer + 切 0.85 温度,初次完全不变 | ✅ |
+| 3 | deepseek-v3-250324 全清零,Pro 切 qwen3.6-plus-2026-04-02 | ✅ |
+| 4 | 免费保持 qwen3.6-flash-2026-04-16 不变 | ✅ |
+| 5 | sumai/CLAUDE.md LLM 模型表全面修正 | ✅ |
+| 6 | [D020] 详细 print 日志(每端点 ≥ 2 处) | ✅ |
+| 7 | py_compile + pytest 不倒退 | ✅ |
+
+---
 
 ### [2026-04-28] D019 · Stage 2 真·多轮对话改造 ✅
 
